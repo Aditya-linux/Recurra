@@ -23,8 +23,8 @@ export interface WebhookJobData {
 
 const WEBHOOK_QUEUE_NAME = 'webhook-delivery-queue';
 
-export const webhookQueue = new Queue<WebhookJobData>(WEBHOOK_QUEUE_NAME, {
-  connection: redisClient,
+export const webhookQueue = new Queue<WebhookJobData, any, string>(WEBHOOK_QUEUE_NAME, {
+  connection: redisClient as any,
   defaultJobOptions: {
     attempts: config.webhook.maxRetries,
     backoff: {
@@ -40,13 +40,13 @@ export class WebhookDeliveryService {
   private worker: Worker;
 
   constructor() {
-    this.worker = new Worker<WebhookJobData>(
+    this.worker = new Worker<WebhookJobData, any, string>(
       WEBHOOK_QUEUE_NAME,
       async (job) => {
         await this.processWebhook(job);
       },
       {
-        connection: redisClient,
+        connection: redisClient as any,
         concurrency: 10,
       }
     );
