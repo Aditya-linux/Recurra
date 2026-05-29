@@ -12,8 +12,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short,
-    Address, Env, String, Vec, log,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
+    Vec,
 };
 
 #[contracterror]
@@ -109,9 +109,15 @@ impl EscrowDisputeContract {
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Paused, &false);
-        env.storage().instance().set(&DataKey::DisputeCounter, &0_u64);
-        env.storage().instance().set(&DataKey::TotalDisputes, &0_u32);
-        env.storage().instance().set(&DataKey::TotalResolved, &0_u32);
+        env.storage()
+            .instance()
+            .set(&DataKey::DisputeCounter, &0_u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalDisputes, &0_u32);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalResolved, &0_u32);
         env.storage().instance().extend_ttl(100, 500_000);
         log!(&env, "Escrow & Dispute initialized");
         Ok(())
@@ -134,10 +140,15 @@ impl EscrowDisputeContract {
             return Err(EscrowError::InvalidInput);
         }
 
-        let counter: u64 = env.storage().instance()
-            .get(&DataKey::DisputeCounter).unwrap_or(0);
+        let counter: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::DisputeCounter)
+            .unwrap_or(0);
         let new_counter = counter.checked_add(1).ok_or(EscrowError::Overflow)?;
-        env.storage().instance().set(&DataKey::DisputeCounter, &new_counter);
+        env.storage()
+            .instance()
+            .set(&DataKey::DisputeCounter, &new_counter);
 
         let dispute_id = Self::generate_dispute_id(&env, new_counter);
         let now = env.ledger().timestamp();
@@ -166,11 +177,20 @@ impl EscrowDisputeContract {
 
         // Track in user/merchant lists
         Self::add_to_list(&env, &DataKey::UserDisputes(user.clone()), &dispute_id);
-        Self::add_to_list(&env, &DataKey::MerchantDisputes(merchant.clone()), &dispute_id);
+        Self::add_to_list(
+            &env,
+            &DataKey::MerchantDisputes(merchant.clone()),
+            &dispute_id,
+        );
 
-        let total: u32 = env.storage().instance()
-            .get(&DataKey::TotalDisputes).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalDisputes, &(total + 1));
+        let total: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalDisputes)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalDisputes, &(total + 1));
 
         env.events().publish(
             (symbol_short!("dispute"), symbol_short!("created")),
@@ -192,13 +212,19 @@ impl EscrowDisputeContract {
         dispute_id: String,
         resolver: Address,
     ) -> Result<(), EscrowError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(EscrowError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::NotInitialized)?;
         admin.require_auth();
 
         let key = DataKey::Dispute(dispute_id.clone());
-        let mut dispute: Dispute = env.storage().persistent()
-            .get(&key).ok_or(EscrowError::NotFound)?;
+        let mut dispute: Dispute = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::NotFound)?;
 
         if dispute.status != DisputeStatus::Open {
             return Err(EscrowError::InvalidStatus);
@@ -220,8 +246,11 @@ impl EscrowDisputeContract {
         notes: String,
     ) -> Result<Dispute, EscrowError> {
         let key = DataKey::Dispute(dispute_id.clone());
-        let mut dispute: Dispute = env.storage().persistent()
-            .get(&key).ok_or(EscrowError::NotFound)?;
+        let mut dispute: Dispute = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::NotFound)?;
 
         if dispute.status != DisputeStatus::UnderReview {
             return Err(EscrowError::InvalidStatus);
@@ -242,31 +271,44 @@ impl EscrowDisputeContract {
 
         env.storage().persistent().set(&key, &dispute);
 
-        let total_resolved: u32 = env.storage().instance()
-            .get(&DataKey::TotalResolved).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalResolved, &(total_resolved + 1));
+        let total_resolved: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalResolved)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalResolved, &(total_resolved + 1));
 
         env.events().publish(
             (symbol_short!("dispute"), symbol_short!("resolve")),
             dispute_id.clone(),
         );
 
-        log!(&env, "Dispute resolved: id={}, resolution={}", dispute_id, resolution);
+        log!(
+            &env,
+            "Dispute resolved: id={}, resolution={}",
+            dispute_id,
+            resolution
+        );
         Ok(dispute)
     }
 
     /// Escalate a dispute for higher-level review. Admin only.
-    pub fn escalate_dispute(
-        env: Env,
-        dispute_id: String,
-    ) -> Result<(), EscrowError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(EscrowError::NotInitialized)?;
+    pub fn escalate_dispute(env: Env, dispute_id: String) -> Result<(), EscrowError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::NotInitialized)?;
         admin.require_auth();
 
         let key = DataKey::Dispute(dispute_id.clone());
-        let mut dispute: Dispute = env.storage().persistent()
-            .get(&key).ok_or(EscrowError::NotFound)?;
+        let mut dispute: Dispute = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::NotFound)?;
 
         dispute.status = DisputeStatus::Escalated;
         env.storage().persistent().set(&key, &dispute);
@@ -281,24 +323,39 @@ impl EscrowDisputeContract {
 
     pub fn get_dispute(env: Env, dispute_id: String) -> Result<Dispute, EscrowError> {
         let key = DataKey::Dispute(dispute_id);
-        env.storage().persistent().get(&key).ok_or(EscrowError::NotFound)
+        env.storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::NotFound)
     }
 
     pub fn get_user_disputes(env: Env, user: Address) -> Vec<String> {
         let key = DataKey::UserDisputes(user);
-        env.storage().persistent().get(&key).unwrap_or(Vec::new(&env))
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(&env))
     }
 
     pub fn get_merchant_disputes(env: Env, merchant: Address) -> Vec<String> {
         let key = DataKey::MerchantDisputes(merchant);
-        env.storage().persistent().get(&key).unwrap_or(Vec::new(&env))
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(&env))
     }
 
     pub fn stats(env: Env) -> (u32, u32) {
-        let total: u32 = env.storage().instance()
-            .get(&DataKey::TotalDisputes).unwrap_or(0);
-        let resolved: u32 = env.storage().instance()
-            .get(&DataKey::TotalResolved).unwrap_or(0);
+        let total: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalDisputes)
+            .unwrap_or(0);
+        let resolved: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalResolved)
+            .unwrap_or(0);
         (total, resolved)
     }
 
@@ -307,16 +364,22 @@ impl EscrowDisputeContract {
     // --------------------------------------------------------
 
     pub fn pause(env: Env) -> Result<(), EscrowError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(EscrowError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &true);
         Ok(())
     }
 
     pub fn unpause(env: Env) -> Result<(), EscrowError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(EscrowError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &false);
         Ok(())
@@ -327,9 +390,14 @@ impl EscrowDisputeContract {
     // --------------------------------------------------------
 
     fn check_not_paused(env: &Env) -> Result<(), EscrowError> {
-        let paused: bool = env.storage().instance()
-            .get(&DataKey::Paused).unwrap_or(false);
-        if paused { return Err(EscrowError::Paused); }
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            return Err(EscrowError::Paused);
+        }
         Ok(())
     }
 
@@ -351,12 +419,14 @@ impl EscrowDisputeContract {
         for j in 0..i {
             buf[4 + j] = tmp[i - 1 - j];
         }
-        String::from_str(env, core::str::from_utf8(&buf[..4 + i]).unwrap_or("DSP_ERR"))
+        String::from_str(
+            env,
+            core::str::from_utf8(&buf[..4 + i]).unwrap_or("DSP_ERR"),
+        )
     }
 
     fn add_to_list(env: &Env, key: &DataKey, id: &String) {
-        let mut list: Vec<String> = env.storage().persistent()
-            .get(key).unwrap_or(Vec::new(env));
+        let mut list: Vec<String> = env.storage().persistent().get(key).unwrap_or(Vec::new(env));
         list.push_back(id.clone());
         env.storage().persistent().set(key, &list);
         env.storage().persistent().extend_ttl(key, 100, 500_000);

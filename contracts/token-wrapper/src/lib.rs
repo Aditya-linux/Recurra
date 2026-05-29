@@ -11,8 +11,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short,
-    token, Address, Env, String, Vec, log,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, token, Address, Env,
+    String, Vec,
 };
 
 #[contracterror]
@@ -76,19 +76,19 @@ pub struct TokenWrapperContract;
 
 #[contractimpl]
 impl TokenWrapperContract {
-    pub fn initialize(
-        env: Env,
-        admin: Address,
-        payment_engine: Address,
-    ) -> Result<(), TokenError> {
+    pub fn initialize(env: Env, admin: Address, payment_engine: Address) -> Result<(), TokenError> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(TokenError::Unauthorized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::PaymentEngine, &payment_engine);
+        env.storage()
+            .instance()
+            .set(&DataKey::PaymentEngine, &payment_engine);
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage().instance().set(&DataKey::TotalVolume, &0_i128);
-        env.storage().instance().set(&DataKey::TotalTransfers, &0_u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalTransfers, &0_u64);
         env.storage().instance().extend_ttl(100, 500_000);
         log!(&env, "Token Wrapper initialized");
         Ok(())
@@ -127,22 +127,13 @@ impl TokenWrapperContract {
     }
 
     /// Check token balance for an account.
-    pub fn balance_of(
-        env: Env,
-        token_address: Address,
-        account: Address,
-    ) -> i128 {
+    pub fn balance_of(env: Env, token_address: Address, account: Address) -> i128 {
         let token_client = token::Client::new(&env, &token_address);
         token_client.balance(&account)
     }
 
     /// Check token allowance.
-    pub fn allowance(
-        env: Env,
-        token_address: Address,
-        owner: Address,
-        spender: Address,
-    ) -> i128 {
+    pub fn allowance(env: Env, token_address: Address, owner: Address, spender: Address) -> i128 {
         let token_client = token::Client::new(&env, &token_address);
         token_client.allowance(&owner, &spender)
     }
@@ -161,7 +152,9 @@ impl TokenWrapperContract {
         Self::check_not_paused(&env)?;
 
         // Only Payment Engine can batch
-        let pe: Address = env.storage().instance()
+        let pe: Address = env
+            .storage()
+            .instance()
             .get(&DataKey::PaymentEngine)
             .ok_or(TokenError::NotInitialized)?;
         pe.require_auth();
@@ -191,7 +184,12 @@ impl TokenWrapperContract {
 
         Self::update_stats(&env, total_amount);
 
-        log!(&env, "Batch transfer: {} transfers, total={}", total, total_amount);
+        log!(
+            &env,
+            "Batch transfer: {} transfers, total={}",
+            total,
+            total_amount
+        );
         Ok(BatchResult {
             successful: total,
             total,
@@ -203,26 +201,38 @@ impl TokenWrapperContract {
     // --------------------------------------------------------
 
     pub fn pause(env: Env) -> Result<(), TokenError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(TokenError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(TokenError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &true);
         Ok(())
     }
 
     pub fn unpause(env: Env) -> Result<(), TokenError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(TokenError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(TokenError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &false);
         Ok(())
     }
 
     pub fn stats(env: Env) -> (i128, u64) {
-        let volume: i128 = env.storage().instance()
-            .get(&DataKey::TotalVolume).unwrap_or(0);
-        let count: u64 = env.storage().instance()
-            .get(&DataKey::TotalTransfers).unwrap_or(0);
+        let volume: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalVolume)
+            .unwrap_or(0);
+        let count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalTransfers)
+            .unwrap_or(0);
         (volume, count)
     }
 
@@ -231,21 +241,32 @@ impl TokenWrapperContract {
     // --------------------------------------------------------
 
     fn check_not_paused(env: &Env) -> Result<(), TokenError> {
-        let paused: bool = env.storage().instance()
-            .get(&DataKey::Paused).unwrap_or(false);
-        if paused { return Err(TokenError::Paused); }
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            return Err(TokenError::Paused);
+        }
         Ok(())
     }
 
     fn update_stats(env: &Env, amount: i128) {
-        let vol: i128 = env.storage().instance()
-            .get(&DataKey::TotalVolume).unwrap_or(0);
+        let vol: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalVolume)
+            .unwrap_or(0);
         env.storage().instance().set(
             &DataKey::TotalVolume,
             &vol.checked_add(amount).unwrap_or(vol),
         );
-        let count: u64 = env.storage().instance()
-            .get(&DataKey::TotalTransfers).unwrap_or(0);
+        let count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalTransfers)
+            .unwrap_or(0);
         env.storage().instance().set(
             &DataKey::TotalTransfers,
             &count.checked_add(1).unwrap_or(count),

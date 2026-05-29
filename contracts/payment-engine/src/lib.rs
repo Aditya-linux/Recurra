@@ -17,8 +17,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short,
-    Address, Env, String, Vec, log,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
+    Vec,
 };
 
 // ============================================================
@@ -197,14 +197,24 @@ impl RecurringPaymentEngine {
         }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::AuthManager, &auth_manager);
-        env.storage().instance().set(&DataKey::SubFactory, &sub_factory);
-        env.storage().instance().set(&DataKey::TokenWrapper, &token_wrapper);
-        env.storage().instance().set(&DataKey::FeeRecipient, &fee_recipient);
+        env.storage()
+            .instance()
+            .set(&DataKey::AuthManager, &auth_manager);
+        env.storage()
+            .instance()
+            .set(&DataKey::SubFactory, &sub_factory);
+        env.storage()
+            .instance()
+            .set(&DataKey::TokenWrapper, &token_wrapper);
+        env.storage()
+            .instance()
+            .set(&DataKey::FeeRecipient, &fee_recipient);
         env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage().instance().set(&DataKey::SubCounter, &0_u64);
-        env.storage().instance().set(&DataKey::TotalPayments, &0_u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalPayments, &0_u64);
         env.storage().instance().set(&DataKey::TotalVolume, &0_i128);
 
         let keepers: Vec<Address> = Vec::new(&env);
@@ -251,10 +261,15 @@ impl RecurringPaymentEngine {
         }
 
         // Generate unique subscription ID
-        let counter: u64 = env.storage().instance()
-            .get(&DataKey::SubCounter).unwrap_or(0);
+        let counter: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::SubCounter)
+            .unwrap_or(0);
         let new_counter = counter.checked_add(1).ok_or(PaymentError::Overflow)?;
-        env.storage().instance().set(&DataKey::SubCounter, &new_counter);
+        env.storage()
+            .instance()
+            .set(&DataKey::SubCounter, &new_counter);
 
         let sub_id = Self::generate_sub_id(&env, new_counter);
         let now = env.ledger().timestamp();
@@ -280,7 +295,9 @@ impl RecurringPaymentEngine {
         // Store subscription
         let sub_key = DataKey::Subscription(sub_id.clone());
         env.storage().persistent().set(&sub_key, &subscription);
-        env.storage().persistent().extend_ttl(&sub_key, 100, 500_000);
+        env.storage()
+            .persistent()
+            .extend_ttl(&sub_key, 100, 500_000);
 
         // Track in user and merchant lists
         Self::add_to_user_subs(&env, &user, &sub_id);
@@ -344,23 +361,22 @@ impl RecurringPaymentEngine {
 
         // --- STEP 3: VALIDATE STATUS (CHECK) ---
         match sub.status {
-            SubscriptionStatus::Active | SubscriptionStatus::PastDue => {},
+            SubscriptionStatus::Active | SubscriptionStatus::PastDue => {}
             _ => return Err(PaymentError::SubscriptionInactive),
         }
 
         // --- STEP 4: IDEMPOTENCY CHECK ---
-        let next_payment_num = sub.payments_made.checked_add(1)
+        let next_payment_num = sub
+            .payments_made
+            .checked_add(1)
             .ok_or(PaymentError::Overflow)?;
-        let idempotency_key = DataKey::PaymentExecuted(
-            subscription_id.clone(), next_payment_num
-        );
+        let idempotency_key = DataKey::PaymentExecuted(subscription_id.clone(), next_payment_num);
         if env.storage().persistent().has(&idempotency_key) {
             return Err(PaymentError::PaymentAlreadyExecuted);
         }
 
         // --- STEP 5: CALCULATE FEE ---
-        let fee_bps: u32 = env.storage().instance()
-            .get(&DataKey::FeeBps).unwrap_or(50); // 0.5% default
+        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(50); // 0.5% default
         let fee_amount = (sub.amount * fee_bps as i128) / 10_000;
         let _merchant_amount = sub.amount - fee_amount;
 
@@ -379,22 +395,32 @@ impl RecurringPaymentEngine {
 
         // Mark as executed (idempotency)
         env.storage().persistent().set(&idempotency_key, &true);
-        env.storage().persistent().extend_ttl(&idempotency_key, 100, 500_000);
+        env.storage()
+            .persistent()
+            .extend_ttl(&idempotency_key, 100, 500_000);
 
         // Save updated subscription
         env.storage().persistent().set(&sub_key, &sub);
-        env.storage().persistent().extend_ttl(&sub_key, 100, 500_000);
+        env.storage()
+            .persistent()
+            .extend_ttl(&sub_key, 100, 500_000);
 
         // Update global stats
-        let total_payments: u64 = env.storage().instance()
-            .get(&DataKey::TotalPayments).unwrap_or(0);
+        let total_payments: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPayments)
+            .unwrap_or(0);
         env.storage().instance().set(
             &DataKey::TotalPayments,
             &total_payments.checked_add(1).unwrap_or(total_payments),
         );
 
-        let total_volume: i128 = env.storage().instance()
-            .get(&DataKey::TotalVolume).unwrap_or(0);
+        let total_volume: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalVolume)
+            .unwrap_or(0);
         env.storage().instance().set(
             &DataKey::TotalVolume,
             &total_volume.checked_add(sub.amount).unwrap_or(total_volume),
@@ -525,10 +551,7 @@ impl RecurringPaymentEngine {
     }
 
     /// Mark a subscription as past due (called when payment fails).
-    pub fn mark_past_due(
-        env: Env,
-        subscription_id: String,
-    ) -> Result<(), PaymentError> {
+    pub fn mark_past_due(env: Env, subscription_id: String) -> Result<(), PaymentError> {
         Self::check_not_paused(&env)?;
 
         let sub_key = DataKey::Subscription(subscription_id.clone());
@@ -556,7 +579,9 @@ impl RecurringPaymentEngine {
         subscription_id: String,
     ) -> Result<UserSubscription, PaymentError> {
         let sub_key = DataKey::Subscription(subscription_id);
-        env.storage().persistent().get(&sub_key)
+        env.storage()
+            .persistent()
+            .get(&sub_key)
             .ok_or(PaymentError::SubscriptionNotFound)
     }
 
@@ -569,11 +594,17 @@ impl RecurringPaymentEngine {
     }
 
     pub fn total_payments(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::TotalPayments).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalPayments)
+            .unwrap_or(0)
     }
 
     pub fn total_volume(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalVolume).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalVolume)
+            .unwrap_or(0)
     }
 
     // --------------------------------------------------------
@@ -581,20 +612,29 @@ impl RecurringPaymentEngine {
     // --------------------------------------------------------
 
     pub fn add_keeper(env: Env, keeper: Address) -> Result<(), PaymentError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(PaymentError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PaymentError::NotInitialized)?;
         admin.require_auth();
 
-        let mut keepers: Vec<Address> = env.storage().instance()
-            .get(&DataKey::Keepers).unwrap_or(Vec::new(&env));
+        let mut keepers: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Keepers)
+            .unwrap_or(Vec::new(&env));
         keepers.push_back(keeper);
         env.storage().instance().set(&DataKey::Keepers, &keepers);
         Ok(())
     }
 
     pub fn pause(env: Env) -> Result<(), PaymentError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(PaymentError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PaymentError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &true);
         log!(&env, "Payment Engine PAUSED");
@@ -602,8 +642,11 @@ impl RecurringPaymentEngine {
     }
 
     pub fn unpause(env: Env) -> Result<(), PaymentError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(PaymentError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PaymentError::NotInitialized)?;
         admin.require_auth();
         env.storage().instance().set(&DataKey::Paused, &false);
         log!(&env, "Payment Engine UNPAUSED");
@@ -611,10 +654,14 @@ impl RecurringPaymentEngine {
     }
 
     pub fn update_fee(env: Env, new_fee_bps: u32) -> Result<(), PaymentError> {
-        let admin: Address = env.storage().instance()
-            .get(&DataKey::Admin).ok_or(PaymentError::NotInitialized)?;
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PaymentError::NotInitialized)?;
         admin.require_auth();
-        if new_fee_bps > 1000 { // Max 10%
+        if new_fee_bps > 1000 {
+            // Max 10%
             return Err(PaymentError::InvalidInput);
         }
         env.storage().instance().set(&DataKey::FeeBps, &new_fee_bps);
@@ -626,9 +673,14 @@ impl RecurringPaymentEngine {
     // --------------------------------------------------------
 
     fn check_not_paused(env: &Env) -> Result<(), PaymentError> {
-        let paused: bool = env.storage().instance()
-            .get(&DataKey::Paused).unwrap_or(false);
-        if paused { return Err(PaymentError::Paused); }
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            return Err(PaymentError::Paused);
+        }
         Ok(())
     }
 
@@ -651,23 +703,35 @@ impl RecurringPaymentEngine {
         for j in 0..i {
             buf[4 + j] = tmp[i - 1 - j];
         }
-        String::from_str(env, core::str::from_utf8(&buf[..4 + i]).unwrap_or("SUB_ERR"))
+        String::from_str(
+            env,
+            core::str::from_utf8(&buf[..4 + i]).unwrap_or("SUB_ERR"),
+        )
     }
 
     fn get_user_sub_list(env: &Env, user: &Address) -> Vec<String> {
         let key = DataKey::UserSubs(user.clone());
-        env.storage().persistent().get(&key).unwrap_or(Vec::new(env))
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(env))
     }
 
     fn get_merchant_sub_list(env: &Env, merchant: &Address) -> Vec<String> {
         let key = DataKey::MerchantSubs(merchant.clone());
-        env.storage().persistent().get(&key).unwrap_or(Vec::new(env))
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(env))
     }
 
     fn add_to_user_subs(env: &Env, user: &Address, sub_id: &String) {
         let key = DataKey::UserSubs(user.clone());
-        let mut list: Vec<String> = env.storage().persistent()
-            .get(&key).unwrap_or(Vec::new(env));
+        let mut list: Vec<String> = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(env));
         list.push_back(sub_id.clone());
         env.storage().persistent().set(&key, &list);
         env.storage().persistent().extend_ttl(&key, 100, 500_000);
@@ -675,8 +739,11 @@ impl RecurringPaymentEngine {
 
     fn add_to_merchant_subs(env: &Env, merchant: &Address, sub_id: &String) {
         let key = DataKey::MerchantSubs(merchant.clone());
-        let mut list: Vec<String> = env.storage().persistent()
-            .get(&key).unwrap_or(Vec::new(env));
+        let mut list: Vec<String> = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(env));
         list.push_back(sub_id.clone());
         env.storage().persistent().set(&key, &list);
         env.storage().persistent().extend_ttl(&key, 100, 500_000);
@@ -706,13 +773,22 @@ mod tests {
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(
-            &admin, &auth_mgr, &sub_factory,
-            &token_wrapper, &fee_recipient, &50_u32,
+            &admin,
+            &auth_mgr,
+            &sub_factory,
+            &token_wrapper,
+            &fee_recipient,
+            &50_u32,
         );
 
         let sub = client.create_subscription(
-            &user, &String::from_str(&env, "PLAN_1"),
-            &merchant, &token, &1000_i128, &2592000_u64, &12_u32,
+            &user,
+            &String::from_str(&env, "PLAN_1"),
+            &merchant,
+            &token,
+            &1000_i128,
+            &2592000_u64,
+            &12_u32,
         );
 
         assert_eq!(sub.amount, 1000);
@@ -743,13 +819,22 @@ mod tests {
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(
-            &admin, &Address::generate(&env), &Address::generate(&env),
-            &Address::generate(&env), &Address::generate(&env), &50_u32,
+            &admin,
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &50_u32,
         );
 
         let sub = client.create_subscription(
-            &user, &String::from_str(&env, "PLAN_1"),
-            &merchant, &token, &500_i128, &2592000_u64, &0_u32,
+            &user,
+            &String::from_str(&env, "PLAN_1"),
+            &merchant,
+            &token,
+            &500_i128,
+            &2592000_u64,
+            &0_u32,
         );
 
         client.cancel_subscription(&user, &sub.subscription_id);
@@ -772,13 +857,22 @@ mod tests {
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(
-            &admin, &Address::generate(&env), &Address::generate(&env),
-            &Address::generate(&env), &Address::generate(&env), &50_u32,
+            &admin,
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &50_u32,
         );
 
         let sub = client.create_subscription(
-            &user, &String::from_str(&env, "PLAN_1"),
-            &merchant, &token, &1000_i128, &2592000_u64, &0_u32,
+            &user,
+            &String::from_str(&env, "PLAN_1"),
+            &merchant,
+            &token,
+            &1000_i128,
+            &2592000_u64,
+            &0_u32,
         );
 
         // Execute first payment

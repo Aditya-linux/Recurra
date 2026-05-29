@@ -12,8 +12,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short,
-    Address, BytesN, Env, String, Vec, log,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, BytesN, Env,
+    String, Vec,
 };
 
 // ============================================================
@@ -194,7 +194,9 @@ impl SubscriptionFactory {
             .unwrap_or(0);
 
         let new_counter = counter.checked_add(1).ok_or(FactoryError::Overflow)?;
-        env.storage().instance().set(&DataKey::PlanCounter, &new_counter);
+        env.storage()
+            .instance()
+            .set(&DataKey::PlanCounter, &new_counter);
 
         let plan_id = Self::generate_plan_id(&env, &merchant, new_counter);
 
@@ -218,7 +220,9 @@ impl SubscriptionFactory {
         // Store plan
         let plan_key = DataKey::Plan(plan_id.clone());
         env.storage().persistent().set(&plan_key, &plan);
-        env.storage().persistent().extend_ttl(&plan_key, 100, 500_000);
+        env.storage()
+            .persistent()
+            .extend_ttl(&plan_key, 100, 500_000);
 
         // Add to merchant's plan list
         Self::add_to_merchant_plans(&env, &merchant, &plan_id);
@@ -294,7 +298,9 @@ impl SubscriptionFactory {
         plan.metadata_uri = metadata_uri;
 
         env.storage().persistent().set(&plan_key, &plan);
-        env.storage().persistent().extend_ttl(&plan_key, 100, 500_000);
+        env.storage()
+            .persistent()
+            .extend_ttl(&plan_key, 100, 500_000);
 
         log!(&env, "Plan updated: id={}", plan_id);
         Ok(plan)
@@ -361,10 +367,7 @@ impl SubscriptionFactory {
     }
 
     /// Increment subscriber count (called by Payment Engine on new subscription).
-    pub fn increment_subscribers(
-        env: Env,
-        plan_id: String,
-    ) -> Result<(), FactoryError> {
+    pub fn increment_subscribers(env: Env, plan_id: String) -> Result<(), FactoryError> {
         let plan_key = DataKey::Plan(plan_id.clone());
         let mut plan: SubscriptionPlan = env
             .storage()
@@ -382,10 +385,7 @@ impl SubscriptionFactory {
     }
 
     /// Decrement subscriber count (called by Payment Engine on cancellation).
-    pub fn decrement_subscribers(
-        env: Env,
-        plan_id: String,
-    ) -> Result<(), FactoryError> {
+    pub fn decrement_subscribers(env: Env, plan_id: String) -> Result<(), FactoryError> {
         let plan_key = DataKey::Plan(plan_id.clone());
         let mut plan: SubscriptionPlan = env
             .storage()
@@ -482,7 +482,10 @@ impl SubscriptionFactory {
         let len = counter_str.len().min(15);
         id_bytes[5..5 + len].copy_from_slice(&counter_str[..len]);
 
-        String::from_str(env, core::str::from_utf8(&id_bytes[..5 + len]).unwrap_or("PLAN_ERR"))
+        String::from_str(
+            env,
+            core::str::from_utf8(&id_bytes[..5 + len]).unwrap_or("PLAN_ERR"),
+        )
     }
 
     fn u64_to_bytes(mut n: u64) -> [u8; 20] {
@@ -556,7 +559,7 @@ mod tests {
             &1000_i128,
             &token,
             &2592000_u64, // 30 days
-            &0_u32,        // infinite
+            &0_u32,       // infinite
             &String::from_str(&env, "ipfs://QmExample"),
         );
 

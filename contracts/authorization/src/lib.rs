@@ -18,8 +18,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short,
-    Address, Env, String, Vec, log,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
+    Vec,
 };
 
 // ============================================================
@@ -145,18 +145,16 @@ impl AuthorizationManager {
     /// # Security
     /// - Sets the authorized Payment Engine address
     /// - Only admin can perform emergency operations
-    pub fn initialize(
-        env: Env,
-        admin: Address,
-        payment_engine: Address,
-    ) -> Result<(), AuthError> {
+    pub fn initialize(env: Env, admin: Address, payment_engine: Address) -> Result<(), AuthError> {
         // Ensure not already initialized
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(AuthError::AlreadyExists);
         }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::PaymentEngine, &payment_engine);
+        env.storage()
+            .instance()
+            .set(&DataKey::PaymentEngine, &payment_engine);
         env.storage().instance().set(&DataKey::Paused, &false);
 
         // Extend instance TTL for long-lived contract
@@ -210,7 +208,11 @@ impl AuthorizationManager {
         let key = DataKey::Auth(user.clone(), merchant.clone(), token.clone());
 
         // Check for existing non-revoked authorization
-        if let Some(existing) = env.storage().persistent().get::<DataKey, Authorization>(&key) {
+        if let Some(existing) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, Authorization>(&key)
+        {
             if !existing.revoked {
                 return Err(AuthError::AlreadyExists);
             }
@@ -253,7 +255,12 @@ impl AuthorizationManager {
             },
         );
 
-        log!(&env, "Authorization granted: user={}, merchant={}", user, merchant);
+        log!(
+            &env,
+            "Authorization granted: user={}, merchant={}",
+            user,
+            merchant
+        );
         Ok(auth)
     }
 
@@ -302,7 +309,12 @@ impl AuthorizationManager {
             },
         );
 
-        log!(&env, "Authorization revoked: user={}, merchant={}", user, merchant);
+        log!(
+            &env,
+            "Authorization revoked: user={}, merchant={}",
+            user,
+            merchant
+        );
         Ok(())
     }
 
@@ -467,10 +479,7 @@ impl AuthorizationManager {
     }
 
     /// Get all authorizations for a user (returns list of (merchant, token) tuples).
-    pub fn get_user_authorizations(
-        env: Env,
-        user: Address,
-    ) -> Vec<(Address, Address)> {
+    pub fn get_user_authorizations(env: Env, user: Address) -> Vec<(Address, Address)> {
         let key = DataKey::UserAuths(user);
         env.storage()
             .persistent()
@@ -479,10 +488,7 @@ impl AuthorizationManager {
     }
 
     /// Get all authorizations for a merchant (returns list of (user, token) tuples).
-    pub fn get_merchant_authorizations(
-        env: Env,
-        merchant: Address,
-    ) -> Vec<(Address, Address)> {
+    pub fn get_merchant_authorizations(env: Env, merchant: Address) -> Vec<(Address, Address)> {
         let key = DataKey::MerchantAuths(merchant);
         env.storage()
             .persistent()
@@ -530,10 +536,7 @@ impl AuthorizationManager {
 
     /// Update the Payment Engine address.
     /// Requires admin authentication.
-    pub fn update_payment_engine(
-        env: Env,
-        new_payment_engine: Address,
-    ) -> Result<(), AuthError> {
+    pub fn update_payment_engine(env: Env, new_payment_engine: Address) -> Result<(), AuthError> {
         let admin: Address = env
             .storage()
             .instance()
@@ -658,9 +661,9 @@ mod tests {
             &user,
             &merchant,
             &token,
-            &1000_i128,    // max per payment: $10.00
-            &12000_i128,   // total allowed: $120.00
-            &0_u64,        // no expiry
+            &1000_i128,  // max per payment: $10.00
+            &12000_i128, // total allowed: $120.00
+            &0_u64,      // no expiry
         );
 
         assert_eq!(auth.max_per_payment, 1000);
@@ -744,18 +747,16 @@ mod tests {
         client.pause();
 
         // Attempt authorize should fail (paused)
-        let result = client.try_authorize(
-            &user, &merchant, &token, &1000_i128, &12000_i128, &0_u64,
-        );
+        let result =
+            client.try_authorize(&user, &merchant, &token, &1000_i128, &12000_i128, &0_u64);
         assert!(result.is_err());
 
         // Unpause
         client.unpause();
 
         // Now authorize should work
-        let result = client.try_authorize(
-            &user, &merchant, &token, &1000_i128, &12000_i128, &0_u64,
-        );
+        let result =
+            client.try_authorize(&user, &merchant, &token, &1000_i128, &12000_i128, &0_u64);
         assert!(result.is_ok());
     }
 }
