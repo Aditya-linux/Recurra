@@ -61,10 +61,10 @@ const Dashboard: React.FC = () => {
 
   // Merchant style mapping
   const merchantStyles: Record<string, { color: string; icon: string }> = {
-    'Spotify Premium': { color: '#1DB954', icon: '🎵' },
-    'Claude Pro': { color: '#D4A574', icon: '🤖' },
-    'Netflix Standard': { color: '#E50914', icon: '🎬' },
-    'Amazon Prime': { color: '#FF9900', icon: '📦' },
+    'Spotify Premium': { color: '#1DB954', icon: '' },
+    'Claude Pro': { color: '#D4A574', icon: '' },
+    'Netflix Standard': { color: '#E50914', icon: '' },
+    'Amazon Prime': { color: '#FF9900', icon: '' },
   };
 
   return (

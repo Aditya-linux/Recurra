@@ -75,7 +75,7 @@ const MerchantIntegration: React.FC = () => {
       } else {
         // If already registered, re-authenticate to get merchant JWT
         if (status === 400 && error?.includes('already registered')) {
-          toast('Already registered! Refreshing session...', { icon: '🔄' });
+          toast('Already registered! Refreshing session...', { icon: '' });
           const authRes = await fetch(`${API_BASE}/auth/connect`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

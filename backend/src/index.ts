@@ -182,7 +182,7 @@ async function startServer() {
     }));
 
     const server = app.listen(config.app.port, config.app.host, () => {
-      logger.info(`🚀 Recurra API server running`, {
+      logger.info(` Recurra API server running`, {
         host: config.app.host,
         port: config.app.port,
         environment: config.app.env,

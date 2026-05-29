@@ -123,7 +123,7 @@ const UserIntegration: React.FC = () => {
                   <div className="flex justify-between">
                     <span style={{ color: 'var(--on-surface-variant)' }}>Payment Allowance</span>
                     <span style={{ color: btnState === 'success' ? '#1DB954' : 'var(--on-surface-variant)', fontWeight: 600 }}>
-                      {btnState === 'success' ? '✓ Approved' : '✗ Not Approved'}
+                      {btnState === 'success' ? ' Approved' : ' Not Approved'}
                     </span>
                   </div>
                   <div className="flex justify-between">

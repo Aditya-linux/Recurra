@@ -22,7 +22,7 @@ export class MailService {
 
   public static async sendEmail(to: string, subject: string, htmlContent: string) {
     if (!this.isConfigured) {
-      logger.info(`\n📧 [DEV MODE - EMAIL MOCKED]\nTo: ${to}\nSubject: ${subject}\nContent:\n${htmlContent.replace(/<[^>]+>/g, '')}\n`);
+      logger.info(`\n [DEV MODE - EMAIL MOCKED]\nTo: ${to}\nSubject: ${subject}\nContent:\n${htmlContent.replace(/<[^>]+>/g, '')}\n`);
       return;
     }
 

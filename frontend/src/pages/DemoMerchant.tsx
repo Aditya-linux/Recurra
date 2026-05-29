@@ -94,9 +94,9 @@ const DemoMerchant: React.FC = () => {
                 <h3 className="text-xl font-bold mb-2">Premium 4K</h3>
                 <p className="text-3xl font-extrabold mb-1">10 <span className="text-lg text-gray-400 font-normal">USDC/mo</span></p>
                 <ul className="text-sm text-gray-400 space-y-3 mt-6 mb-8">
-                  <li className="flex items-center"><span className="text-red-500 mr-2">✓</span> Watch on 4 supported devices at a time</li>
-                  <li className="flex items-center"><span className="text-red-500 mr-2">✓</span> Unlimited ad-free movies, TV shows</li>
-                  <li className="flex items-center"><span className="text-red-500 mr-2">✓</span> Download on 6 supported devices</li>
+                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Watch on 4 supported devices at a time</li>
+                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Unlimited ad-free movies, TV shows</li>
+                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Download on 6 supported devices</li>
                 </ul>
                 
                 <button 

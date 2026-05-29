@@ -18,8 +18,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env,
-    Vec,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, Vec,
 };
 
 // ============================================================

@@ -318,7 +318,7 @@ const SubscriptionCenter: React.FC = () => {
                           </div>
                           {alreadySubscribed ? (
                             <span style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: 'rgba(29,185,84,0.15)', color: '#1DB954' }}>
-                              ✓ Subscribed
+                               Subscribed
                             </span>
                           ) : (
                             <Button
