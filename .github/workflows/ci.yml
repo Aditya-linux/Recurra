@@ -16,7 +16,7 @@ permissions:
 
 env:
   NODE_VERSION: "20"
-  RUST_VERSION: "1.74"
+  RUST_VERSION: "stable"
 
 jobs:
   # ============================================================
