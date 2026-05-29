@@ -29,7 +29,7 @@ contracts/target/
 **/*.rs.bk
 *.wasm
 !contracts/*/optimized/*.wasm
-Cargo.lock
+# Cargo.lock was removed to ensure deterministic builds in CI
 
 # ===== NODE.JS =====
 node_modules/
@@ -38,7 +38,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
-package-lock.json
+# package-lock.json was removed to ensure deterministic builds in CI
 
 # ===== NEXT.JS =====
 .next/
