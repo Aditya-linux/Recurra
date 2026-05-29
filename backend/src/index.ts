@@ -1,0 +1,240 @@
+/**
+ * Recurra Backend — Main Entry Point
+ * 
+ * Express.js + Apollo GraphQL server with comprehensive security middleware.
+ * 
+ * @security Stack:
+ * - Helmet (security headers)
+ * - CORS (origin restriction)
+ * - Rate limiting (IP + API key)
+ * - JWT authentication
+ * - Input validation (Zod)
+ * - Structured logging with PII redaction
+ */
+
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import xss from 'xss-clean';
+import { v4 as uuidv4 } from 'uuid';
+import { config } from './config/index.js';
+import { logger } from './utils/logger.js';
+import { ipRateLimiter } from './middleware/rateLimiter.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { authRoutes } from './api/routes/auth.js';
+import { userRoutes } from './api/routes/user.js';
+import { merchantRoutes } from './api/routes/merchant.js';
+import { subscriptionRoutes } from './api/routes/subscription.js';
+import { webhookRoutes } from './api/routes/webhook.js';
+import { expressMiddleware } from '@apollo/server/express4';
+import { apolloServer } from './api/graphql/index.js';
+import { checkDatabaseConnection } from './database/index.js';
+import { startIndexer, stopIndexer } from './services/indexer.js';
+
+// ============================================================
+// APPLICATION SETUP
+// ============================================================
+
+const app = express();
+
+// ============================================================
+// SECURITY MIDDLEWARE (Applied globally)
+// ============================================================
+
+// Security headers (Helmet)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// CORS — restrict to allowed origins
+app.use(cors({
+  origin: config.cors.allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID'],
+  maxAge: 86400, // 24 hours
+}));
+
+// Compression
+app.use(compression());
+
+// Body parsing with size limits (prevent payload attacks)
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+
+// Sanitize data against XSS
+app.use(xss());
+
+// Request ID injection for tracing
+app.use((req, _res, next) => {
+  req.headers['x-request-id'] = req.headers['x-request-id'] ?? uuidv4();
+  next();
+});
+
+// Request logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  const requestId = req.headers['x-request-id'] as string;
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const logData = {
+      requestId,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    };
+
+    if (res.statusCode >= 500) {
+      logger.error('Request failed', logData);
+    } else if (res.statusCode >= 400) {
+      logger.warn('Client error', logData);
+    } else {
+      logger.info('Request completed', logData);
+    }
+  });
+
+  next();
+});
+
+// Global rate limiting
+app.use(ipRateLimiter);
+
+// ============================================================
+// HEALTH CHECK (No auth required)
+// ============================================================
+
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    service: config.app.name,
+    version: '0.1.0',
+    timestamp: new Date().toISOString(),
+    environment: config.app.env,
+  });
+});
+
+// ============================================================
+// API ROUTES (v1)
+// ============================================================
+
+import { plansRoutes } from './api/routes/plans.js';
+import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
+
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/merchant', merchantRoutes);
+app.use('/api/v1/subscriptions', subscriptionRoutes);
+app.use('/api/v1/webhooks', webhookRoutes);
+app.use('/api/v1/plans', plansRoutes);
+app.use('/api/v1/demo-merchant', demoMerchantRoutes);
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+// ============================================================
+// SERVER STARTUP
+// ============================================================
+
+import { WebhookDeliveryService } from './webhooks/WebhookDeliveryService.js';
+import { initSocket } from './utils/socket.js';
+
+const webhookService = new WebhookDeliveryService();
+
+async function startServer() {
+  try {
+    // 1. Test Database Connection
+    const dbConnected = await checkDatabaseConnection();
+    if (!dbConnected) {
+      throw new Error("Failed to connect to database");
+    }
+    
+    // 2. Start Blockchain Event Indexer
+    startIndexer();
+
+    // 3. Start Apollo GraphQL server
+    await apolloServer.start();
+    app.use('/graphql', expressMiddleware(apolloServer, {
+      context: async ({ req }) => {
+        // Very basic context, should integrate with real JWT validation
+        const authHeader = req.headers.authorization || '';
+        return { token: authHeader };
+      },
+    }));
+
+    const server = app.listen(config.app.port, config.app.host, () => {
+      logger.info(`🚀 Recurra API server running`, {
+        host: config.app.host,
+        port: config.app.port,
+        environment: config.app.env,
+        stellarNetwork: config.stellar.network,
+      });
+      logger.info(`API Documentation available at http://${config.app.host}:${config.app.port}/api/docs`);
+    });
+
+    // Initialize WebSockets
+    initSocket(server);
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received — shutting down gracefully');
+      stopIndexer();
+      webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
+      server.close(() => {
+        logger.info('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      logger.info('SIGINT received — shutting down gracefully');
+      stopIndexer();
+      webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
+      server.close(() => {
+        logger.info('Server closed');
+        process.exit(0);
+      });
+    });
+  } catch (error: any) {
+    logger.error('Failed to start server', { error: error.message });
+    process.exit(1);
+  }
+}
+
+startServer().catch(err => {
+  logger.error('Failed to start server', { error: err.message });
+  process.exit(1);
+});
+
+// Unhandled rejections — log and exit
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise rejection', { reason });
+  // Give time to log, then exit
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception', { error: err.message, stack: err.stack });
+  setTimeout(() => process.exit(1), 1000);
+});
+
+export default app;

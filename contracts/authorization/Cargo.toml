@@ -1,0 +1,16 @@
+[package]
+name = "recurra-authorization"
+version = "0.1.0"
+edition = "2021"
+description = "Recurra Authorization Manager — Permission system for merchant auto-debit"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

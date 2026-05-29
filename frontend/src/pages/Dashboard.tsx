@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from 'react';
+import { useWallet } from '../context/WalletContext';
+import { api, getValidToken } from '../utils/api';
+import { Card, CardContent } from "@/components/ui/card";
+import { Wallet, RefreshCw, DollarSign, Loader2 } from "lucide-react";
+
+const Dashboard: React.FC = () => {
+  const { fullWalletAddress } = useWallet();
+  const [balances, setBalances] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+
+  // Fetch wallet balances from Horizon Testnet
+  useEffect(() => {
+    if (!fullWalletAddress) {
+      setBalances(null);
+      return;
+    }
+
+    const fetchBalances = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${fullWalletAddress}`);
+        if (!response.ok) {
+          setBalances({ error: 'Account not yet funded on Testnet. Use friendbot to fund it.' });
+        } else {
+          const data = await response.json();
+          setBalances(data.balances);
+        }
+      } catch (err) {
+        setError('Failed to load balances.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBalances();
+  }, [fullWalletAddress]);
+
+  // Fetch subscriptions from backend
+  useEffect(() => {
+    const fetchSubs = async () => {
+      // Only fetch if we have a valid token
+      if (!getValidToken()) return;
+
+      const { ok, data } = await api('/user/subscriptions');
+      if (ok && data) {
+        setSubscriptions(data.data || []);
+      }
+    };
+    fetchSubs();
+  }, [fullWalletAddress]);
+
+  const activeSubs = subscriptions.filter(s => s.status === 'active');
+  const totalMonthlySpend = activeSubs.reduce((acc, s) => {
+    const amount = parseFloat(s.amount) || 0;
+    return acc + (amount / 10000000);
+  }, 0);
+
+  // Merchant style mapping
+  const merchantStyles: Record<string, { color: string; icon: string }> = {
+    'Spotify Premium': { color: '#1DB954', icon: '🎵' },
+    'Claude Pro': { color: '#D4A574', icon: '🤖' },
+    'Netflix Standard': { color: '#E50914', icon: '🎬' },
+    'Amazon Prime': { color: '#FF9900', icon: '📦' },
+  };
+
+  return (
+    <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+      <section className="container" style={{ marginTop: '40px' }}>
+        <h2 className="text-h2">Dashboard Overview</h2>
+        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
+          Monitor your automated Web3 payments and account balance.
+        </p>
+
+        <div className="grid-12" style={{ marginBottom: '40px' }}>
+          {/* Balance Card */}
+          <Card style={{ gridColumn: 'span 8', background: 'linear-gradient(135deg, var(--surface-container-low), var(--surface-container-highest))' }}>
+            <CardContent className="p-6 flex flex-col h-full justify-between">
+              <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
+                <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Total Balance</span>
+                <Wallet className="text-primary" size={24} />
+              </div>
+              <div id="dashboard-balances" className="flex flex-col gap-2">
+                {!fullWalletAddress && (
+                  <>
+                    <div className="text-h1" style={{ fontSize: '64px' }}>$0.00 <span className="text-body-lg" style={{ color: 'var(--on-surface-variant)', fontWeight: 500 }}>USDC</span></div>
+                    <div className="text-body-md flex items-center gap-2" style={{ color: 'var(--on-surface-variant)', marginTop: '8px' }}>Connect wallet to view assets</div>
+                  </>
+                )}
+                {loading && (
+                  <div className="flex items-center gap-2 text-h3">
+                    <Loader2 className="animate-spin text-primary" size={24} /> Fetching on-chain assets...
+                  </div>
+                )}
+                {error && <div className="text-h3" style={{ color: 'var(--error)' }}>{error}</div>}
+                {balances && balances.error && (
+                  <>
+                    <div className="text-h1" style={{ fontSize: '48px' }}>0.00 <span className="text-body-lg" style={{ color: 'var(--on-surface-variant)', fontWeight: 500 }}>XLM</span></div>
+                    <div className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '8px' }}>{balances.error}</div>
+                  </>
+                )}
+                {balances && Array.isArray(balances) && balances.length === 0 && (
+                  <div className="text-h1" style={{ fontSize: '48px' }}>0.00 <span className="text-body-lg" style={{ color: 'var(--on-surface-variant)', fontWeight: 500 }}>Assets</span></div>
+                )}
+                {balances && Array.isArray(balances) && balances.length > 0 && balances.map((b: any, idx: number) => {
+                  const assetCode = b.asset_type === 'native' ? 'XLM' : b.asset_code;
+                  const amount = parseFloat(b.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  return (
+                    <div key={idx} className="text-h1" style={{ fontSize: '48px', lineHeight: 1.2 }}>
+                      {amount} <span className="text-body-lg" style={{ color: 'var(--on-surface-variant)', fontWeight: 500 }}>{assetCode}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
+          <div className="flex flex-col gap-4" style={{ gridColumn: 'span 4' }}>
+            <Card style={{ flex: 1 }}>
+              <CardContent className="p-6 flex flex-col justify-between h-full">
+                <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
+                  <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Active Subscriptions</span>
+                  <RefreshCw className="text-primary" size={20} />
+                </div>
+                <div>
+                  <div className="text-h1" style={{ fontSize: '48px' }}>{activeSubs.length}</div>
+                  <div className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                    {activeSubs.length > 0 ? 'Recurring payments active' : 'No active subscriptions'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card style={{ flex: 1 }}>
+              <CardContent className="p-6 flex flex-col justify-between h-full">
+                <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
+                  <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Monthly Spend</span>
+                  <DollarSign className="text-primary" size={20} />
+                </div>
+                <div>
+                  <div className="text-h1" style={{ fontSize: '36px' }}>${totalMonthlySpend.toFixed(2)}</div>
+                  <div className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                    USDC / month
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Active Subscriptions List */}
+        <h3 className="text-h3" style={{ marginBottom: '24px', fontSize: '24px' }}>Active Subscriptions</h3>
+        <div className="panel flex flex-col gap-4">
+          {activeSubs.length === 0 && (
+            <Card style={{ padding: '24px', textAlign: 'center' }}>
+              <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)' }}>
+                No active subscriptions. Head to the <strong>Subscriptions</strong> tab to subscribe to your favorite services!
+              </p>
+            </Card>
+          )}
+          {activeSubs.map((sub, idx) => {
+            const style = merchantStyles[sub.name] || { color: '#3B82F6', icon: sub.name?.charAt(0) || '?' };
+            return (
+              <Card key={idx} className="flex justify-between items-center p-4">
+                <div className="flex items-center gap-4">
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '12px',
+                    background: style.color, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontSize: '22px', color: 'white'
+                  }}>
+                    {style.icon}
+                  </div>
+                  <div>
+                    <div className="text-body-lg" style={{ fontWeight: 500 }}>{sub.name}</div>
+                    <div className="text-label-caps" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                      Recurring • Next: {sub.nextPayment || 'Upcoming'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="text-body-lg" style={{ fontWeight: 600 }}>
+                    -{(parseFloat(sub.amount) / 10000000).toFixed(2)} USDC
+                  </div>
+                  <div className="status-chip" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', color: '#1DB954', borderColor: '#1DB954' }}>Active</div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+    </main>
+  );
+};
+
+export default Dashboard;

@@ -1,0 +1,84 @@
+# ============================================
+# RECURRA — COMPREHENSIVE .GITIGNORE
+# Security-first: Never commit secrets or keys
+# ============================================
+
+# ===== ENVIRONMENT & SECRETS =====
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.test
+.env*.local
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+vault/
+.vault-token
+
+# ===== RUST / SOROBAN =====
+contracts/*/target/
+contracts/target/
+**/target/
+**/*.rs.bk
+*.wasm
+!contracts/*/optimized/*.wasm
+Cargo.lock
+
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json
+
+# ===== NEXT.JS =====
+.next/
+out/
+.vercel/
+
+# ===== BUILD ARTIFACTS =====
+dist/
+build/
+*.tsbuildinfo
+
+# ===== DATABASE =====
+*.sql.bak
+*.dump
+data/postgres/
+data/redis/
+
+# ===== DOCKER =====
+docker-compose.override.yml
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== TESTING =====
+coverage/
+.nyc_output/
+*.lcov
+
+# ===== LOGS =====
+logs/
+*.log
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
