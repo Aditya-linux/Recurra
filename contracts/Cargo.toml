@@ -9,8 +9,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-soroban-sdk = "21.7.1"
-soroban-token-interface = "21.7.1"
+soroban-sdk = "22.0.10"
+soroban-token-interface = "22.0.10"
 
 [profile.release]
 opt-level = "z"
