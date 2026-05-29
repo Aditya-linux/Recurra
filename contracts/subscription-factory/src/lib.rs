@@ -10,6 +10,7 @@
 //! - Contract supports emergency pause by admin
 
 #![no_std]
+#![allow(clippy::too_many_arguments)]
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
@@ -113,7 +114,6 @@ pub struct PlanCreatedEvent {
 #[contract]
 pub struct SubscriptionFactory;
 
-#[allow(clippy::too_many_arguments)]
 #[contractimpl]
 impl SubscriptionFactory {
     // --------------------------------------------------------
@@ -156,7 +156,6 @@ impl SubscriptionFactory {
     /// - Requires merchant authentication
     /// - Validates all inputs
     /// - Generates unique plan ID
-    #[allow(clippy::too_many_arguments)]
     pub fn create_plan(
         env: Env,
         merchant: Address,
@@ -261,7 +260,6 @@ impl SubscriptionFactory {
     /// - Requires merchant auth
     /// - Only the original creator can update
     /// - Cannot change merchant or plan_id
-    #[allow(clippy::too_many_arguments)]
     pub fn update_plan(
         env: Env,
         merchant: Address,
