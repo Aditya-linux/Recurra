@@ -180,6 +180,7 @@ pub struct SubscriptionCreatedEvent {
 #[contract]
 pub struct RecurringPaymentEngine;
 
+#[allow(clippy::too_many_arguments)]
 #[contractimpl]
 impl RecurringPaymentEngine {
     /// Initialize the Payment Engine with all dependent contract addresses.
@@ -236,6 +237,7 @@ impl RecurringPaymentEngine {
     /// 2. Check user has authorized the merchant
     /// 3. Create subscription record
     /// 4. Execute first payment immediately
+    #[allow(clippy::too_many_arguments)]
     pub fn create_subscription(
         env: Env,
         user: Address,
@@ -349,11 +351,7 @@ impl RecurringPaymentEngine {
         let now = env.ledger().timestamp();
 
         // Allow 1-hour buffer before due time
-        let due_with_buffer = if sub.next_payment_time > PAYMENT_BUFFER_SECONDS {
-            sub.next_payment_time - PAYMENT_BUFFER_SECONDS
-        } else {
-            0
-        };
+        let due_with_buffer = sub.next_payment_time.saturating_sub(PAYMENT_BUFFER_SECONDS);
 
         if now < due_with_buffer {
             return Err(PaymentError::PaymentNotDue);
@@ -753,7 +751,7 @@ impl RecurringPaymentEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, Ledger};
+    use soroban_sdk::testutils::Address as _;
 
     #[test]
     fn test_create_and_execute_subscription() {
@@ -769,7 +767,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(RecurringPaymentEngine, ());
+        let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(
@@ -815,7 +813,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(RecurringPaymentEngine, ());
+        let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(
@@ -853,7 +851,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(RecurringPaymentEngine, ());
+        let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
         client.initialize(

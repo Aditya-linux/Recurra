@@ -12,8 +12,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, BytesN, Env,
-    String, Vec,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String, Vec,
 };
 
 // ============================================================
@@ -113,6 +112,7 @@ pub struct PlanCreatedEvent {
 #[contract]
 pub struct SubscriptionFactory;
 
+#[allow(clippy::too_many_arguments)]
 #[contractimpl]
 impl SubscriptionFactory {
     // --------------------------------------------------------
@@ -155,6 +155,7 @@ impl SubscriptionFactory {
     /// - Requires merchant authentication
     /// - Validates all inputs
     /// - Generates unique plan ID
+    #[allow(clippy::too_many_arguments)]
     pub fn create_plan(
         env: Env,
         merchant: Address,
@@ -259,6 +260,7 @@ impl SubscriptionFactory {
     /// - Requires merchant auth
     /// - Only the original creator can update
     /// - Cannot change merchant or plan_id
+    #[allow(clippy::too_many_arguments)]
     pub fn update_plan(
         env: Env,
         merchant: Address,
@@ -547,7 +549,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(SubscriptionFactory, ());
+        let contract_id = env.register_contract(None, SubscriptionFactory);
         let client = SubscriptionFactoryClient::new(&env, &contract_id);
 
         client.initialize(&admin);
@@ -578,7 +580,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(SubscriptionFactory, ());
+        let contract_id = env.register_contract(None, SubscriptionFactory);
         let client = SubscriptionFactoryClient::new(&env, &contract_id);
 
         client.initialize(&admin);
@@ -609,7 +611,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(SubscriptionFactory, ());
+        let contract_id = env.register_contract(None, SubscriptionFactory);
         let client = SubscriptionFactoryClient::new(&env, &contract_id);
 
         client.initialize(&admin);

@@ -18,7 +18,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env,
     Vec,
 };
 
@@ -619,7 +619,7 @@ mod tests {
         let merchant = Address::generate(&env);
 
         // Initialize contract
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
         client.initialize(&admin, &payment_engine);
 
@@ -634,7 +634,7 @@ mod tests {
         let admin = Address::generate(&env);
         let payment_engine = Address::generate(&env);
 
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
 
         client.initialize(&admin, &payment_engine);
@@ -651,7 +651,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
 
         client.initialize(&admin, &payment_engine);
@@ -687,7 +687,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
 
         client.initialize(&admin, &payment_engine);
@@ -712,7 +712,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
 
         client.initialize(&admin, &payment_engine);
@@ -738,7 +738,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let token = Address::generate(&env);
 
-        let contract_id = env.register(AuthorizationManager, ());
+        let contract_id = env.register_contract(None, AuthorizationManager);
         let client = AuthorizationManagerClient::new(&env, &contract_id);
 
         client.initialize(&admin, &payment_engine);

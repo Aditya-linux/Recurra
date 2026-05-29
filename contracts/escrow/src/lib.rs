@@ -259,7 +259,7 @@ impl EscrowDisputeContract {
         // Only the assigned resolver can resolve
         dispute.resolver.require_auth();
 
-        if resolution < 1 || resolution > 3 {
+        if !(1..=3).contains(&resolution) {
             return Err(EscrowError::InvalidInput);
         }
 
@@ -448,7 +448,7 @@ mod tests {
         let merchant = Address::generate(&env);
         let resolver = Address::generate(&env);
 
-        let contract_id = env.register(EscrowDisputeContract, ());
+        let contract_id = env.register_contract(None, EscrowDisputeContract);
         let client = EscrowDisputeContractClient::new(&env, &contract_id);
 
         client.initialize(&admin);

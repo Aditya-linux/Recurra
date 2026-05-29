@@ -11,8 +11,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, token, Address, Env,
-    String, Vec,
+    contract, contracterror, contractimpl, contracttype, log, token, Address, Env, Vec,
 };
 
 #[contracterror]
@@ -287,7 +286,7 @@ mod tests {
         let admin = Address::generate(&env);
         let pe = Address::generate(&env);
 
-        let contract_id = env.register(TokenWrapperContract, ());
+        let contract_id = env.register_contract(None, TokenWrapperContract);
         let client = TokenWrapperContractClient::new(&env, &contract_id);
 
         client.initialize(&admin, &pe);
