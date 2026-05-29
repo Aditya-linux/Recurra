@@ -98,7 +98,7 @@ export const keeperWorker = new Worker('keeperQueue', async (job: Job) => {
             // Retail Storefront fulfillment
             const user = await UserRepository.findById(sub.user_id);
             const plan = await PlanRepository.findById(sub.plan_id);
-            if (user && plan) {
+            if (user && user.email && plan) {
               await RetailFulfillmentService.fulfillOrder(plan.name, user.email);
             }
           } else {
