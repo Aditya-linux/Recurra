@@ -35,7 +35,7 @@ export const config = {
     url: requireEnv('DATABASE_URL', 'postgresql://recurra_user:password@localhost:5432/recurra_dev'),
     poolMin: parseInt(process.env['DATABASE_POOL_MIN'] ?? '2', 10),
     poolMax: parseInt(process.env['DATABASE_POOL_MAX'] ?? '10', 10),
-    ssl: process.env['DATABASE_SSL'] === 'true',
+    ssl: process.env['DATABASE_SSL'] ? process.env['DATABASE_SSL'] === 'true' : process.env['NODE_ENV'] === 'production',
   },
 
   // Redis
