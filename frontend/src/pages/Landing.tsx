@@ -7,9 +7,9 @@ const Landing: React.FC = () => {
       <section className="section-md container">
         <div className="hero-grid">
           <div className="hero-content flex flex-col gap-6">
-            <div className="chip status-chip inline-flex" style={{ width: 'fit-content' }}>
-              <div className="pulse-dot"></div>
-              <span className="text-label-caps">Mainnet Live</span>
+            <div className="chip inline-flex items-center gap-2" style={{ width: 'fit-content', background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(16,185,129,0.1))', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--primary)' }}>currency_exchange</span>
+              <span className="text-label-caps" style={{ color: 'var(--primary)', fontWeight: 600 }}>Web3 Subscription Protocol</span>
             </div>
             
             <h1 className="text-h1">Trustless<br />Automation.</h1>

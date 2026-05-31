@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '../context/WalletContext';
 import { api, API_BASE } from '../utils/api';
 import toast from 'react-hot-toast';
-import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
+import AnalyticsPage from './AnalyticsPage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 
 const MerchantIntegration: React.FC = () => {
   const { walletAddress, fullWalletAddress, userRole, openModal, setUserRole } = useWallet();
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
 
   // Registration state
   const [businessName, setBusinessName] = useState('');
@@ -199,6 +200,7 @@ const MerchantIntegration: React.FC = () => {
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     required
+                    className="text-black"
                   />
                 </div>
                 <Button type="submit" disabled={isRegistering}>
@@ -216,15 +218,45 @@ const MerchantIntegration: React.FC = () => {
     <main className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
         <h2 className="text-h2">Merchant Portal</h2>
-        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px', maxWidth: '600px' }}>
-          Manage your subscription plans, webhooks, and analytics.
+        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '32px', maxWidth: '600px' }}>
+          Manage your subscription plans, webhooks, and performance analytics.
         </p>
 
-        {/* Analytics Dashboard */}
-        <div style={{ marginBottom: '40px' }}>
-          <AnalyticsDashboard />
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', borderBottom: '1px solid var(--outline-variant)' }}>
+          <button
+            onClick={() => setActiveTab('overview')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '15px',
+              borderBottom: activeTab === 'overview' ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === 'overview' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
+              backgroundColor: 'transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            Plans & Integration
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '15px',
+              borderBottom: activeTab === 'analytics' ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === 'analytics' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
+              backgroundColor: 'transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            Performance Analytics
+          </button>
         </div>
 
+        {activeTab === 'analytics' ? (
+          <AnalyticsPage isEmbedded={true} />
+        ) : (
         <div className="grid-12">
           {/* Plan Creation */}
           <Card style={{ gridColumn: 'span 7' }}>
@@ -235,11 +267,11 @@ const MerchantIntegration: React.FC = () => {
               <form onSubmit={createPlan} className="grid-12" style={{ gap: '24px' }}>
                 <div style={{ gridColumn: 'span 6' }}>
                   <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Plan Name</label>
-                  <Input required type="text" placeholder="e.g. Pro Tier" value={planName} onChange={(e) => setPlanName(e.target.value)} />
+                  <Input required type="text" placeholder="e.g. Pro Tier" value={planName} onChange={(e) => setPlanName(e.target.value)} className="text-black" />
                 </div>
                 <div style={{ gridColumn: 'span 6' }}>
                   <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Amount (USDC)</label>
-                  <Input required type="number" step="0.01" placeholder="e.g. 15.00" value={planAmount} onChange={(e) => setPlanAmount(e.target.value)} />
+                  <Input required type="number" step="0.01" placeholder="e.g. 15.00" value={planAmount} onChange={(e) => setPlanAmount(e.target.value)} className="text-black" />
                 </div>
 
                 <div style={{ gridColumn: 'span 12' }}>
@@ -249,9 +281,9 @@ const MerchantIntegration: React.FC = () => {
                       <SelectValue placeholder="Select billing interval" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-black border border-[var(--outline-variant)] rounded-[10px] shadow-lg">
-                      <SelectItem value="2592000" className="cursor-pointer hover:bg-[var(--surface-container-high)] text-black">Monthly (30 days)</SelectItem>
-                      <SelectItem value="604800" className="cursor-pointer hover:bg-[var(--surface-container-high)] text-black">Weekly (7 days)</SelectItem>
-                      <SelectItem value="31536000" className="cursor-pointer hover:bg-[var(--surface-container-high)] text-black">Yearly (365 days)</SelectItem>
+                      <SelectItem value="2592000" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Monthly (30 days)</SelectItem>
+                      <SelectItem value="604800" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Weekly (7 days)</SelectItem>
+                      <SelectItem value="31536000" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Yearly (365 days)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -320,7 +352,7 @@ const MerchantIntegration: React.FC = () => {
             <CardContent>
               <form onSubmit={createWebhook} className="flex flex-col gap-4">
                 <div>
-                  <Input required type="url" placeholder="https://your-server.com/webhook" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} />
+                  <Input required type="url" placeholder="https://your-server.com/webhook" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="text-black" />
                 </div>
                 <Button type="submit" variant="secondary" disabled={isCreatingWebhook} className="w-full">
                   {isCreatingWebhook ? <><Loader2 className="animate-spin mr-2" size={16} /> Saving...</> : 'Add Webhook Endpoint'}
@@ -352,6 +384,7 @@ const MerchantIntegration: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        )}
       </section>
     </main>
   );

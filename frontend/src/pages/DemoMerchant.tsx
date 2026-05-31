@@ -37,27 +37,22 @@ const DemoMerchant: React.FC = () => {
     return () => clearInterval(interval);
   }, [fullWalletAddress, isActive]);
 
-  const handleSubscribe = () => {
+  const handleSubscribe = (planId: string, merchantName: string) => {
     if (!fullWalletAddress) {
       openModal();
       return;
     }
-    if (plans.length === 0) {
-      toast.error('No plans available');
-      return;
-    }
     
     // Redirect to Recurra Checkout
-    const planId = plans[0].id;
-    navigate(`/checkout?planId=${planId}&merchantName=Acme Streaming`);
+    navigate(`/checkout?planId=${planId}&merchantName=${encodeURIComponent(merchantName)}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center pt-20">
       <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-        <div className="bg-gradient-to-r from-red-600 to-red-800 p-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight">Acme Streaming</h1>
-          <p className="text-red-200 mt-2">Unlimited movies, TV shows, and more.</p>
+        <div className="bg-gradient-to-r from-blue-600 to-purple-800 p-8 text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight" style={{ fontFamily: 'sans-serif' }}>Subscription Hub</h1>
+          <p className="text-blue-200 mt-2">Manage all your premium subscriptions in one place.</p>
         </div>
         
         <div className="p-8 flex flex-col items-center">
@@ -85,27 +80,43 @@ const DemoMerchant: React.FC = () => {
           ) : (
             <div className="w-full">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">Choose your plan</h2>
-                <p className="text-gray-400">Cancel anytime.</p>
+                <h2 className="text-2xl font-bold mb-2">Available Subscriptions</h2>
+                <p className="text-gray-400">Subscribe with your Stellar wallet and pay in USDC.</p>
               </div>
               
-              <div className="border border-red-500 rounded-xl p-6 relative overflow-hidden bg-gray-900/50">
-                <div className="absolute top-0 right-0 bg-red-600 text-xs font-bold px-3 py-1 rounded-bl-lg">RECOMMENDED</div>
-                <h3 className="text-xl font-bold mb-2">Premium 4K</h3>
-                <p className="text-3xl font-extrabold mb-1">10 <span className="text-lg text-gray-400 font-normal">USDC/mo</span></p>
-                <ul className="text-sm text-gray-400 space-y-3 mt-6 mb-8">
-                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Watch on 4 supported devices at a time</li>
-                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Unlimited ad-free movies, TV shows</li>
-                  <li className="flex items-center"><span className="text-red-500 mr-2"></span> Download on 6 supported devices</li>
-                </ul>
-                
-                <button 
-                  onClick={handleSubscribe}
-                  className="w-full bg-blue-600 hover:bg-blue-500 px-6 py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] flex justify-center items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  Pay with Crypto via Recurra
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {plans.map((plan, index) => {
+                  let hostname = 'netflix.com';
+                  if (plan.redirect_url) {
+                    try {
+                      hostname = new URL(plan.redirect_url).hostname;
+                    } catch(e){}
+                  } else {
+                    if (plan.name.toLowerCase().includes('amazon')) hostname = 'amazon.com';
+                    if (plan.name.toLowerCase().includes('spotify')) hostname = 'spotify.com';
+                    if (plan.name.toLowerCase().includes('jiocinema')) hostname = 'jiocinema.com';
+                  }
+                  
+                  return (
+                  <div key={plan.id} className="border border-gray-700 rounded-xl p-6 relative overflow-hidden bg-gray-900/50 hover:border-blue-500 transition-colors flex flex-col justify-between">
+                    {index === 0 && <div className="absolute top-0 right-0 bg-blue-600 text-xs font-bold px-3 py-1 rounded-bl-lg">RECOMMENDED</div>}
+                    <div>
+                      <div className="w-14 h-14 rounded-2xl overflow-hidden mb-4 bg-white p-2 flex items-center justify-center">
+                        <img src={`https://logo.clearbit.com/${hostname}`} alt={plan.name} className="w-full h-full object-contain rounded-lg" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(plan.name)}&background=random&color=fff&size=150`; }} />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                      <p className="text-3xl font-extrabold mb-4">{(Number(plan.amount) / 10000000).toFixed(2)} <span className="text-sm text-gray-400 font-normal">USDC/mo</span></p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleSubscribe(plan.id, plan.name)}
+                      className="w-full bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl font-bold transition-all shadow-md flex justify-center items-center gap-2 mt-4"
+                    >
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Pay with Crypto
+                    </button>
+                  </div>
+                )})}
               </div>
             </div>
           )}

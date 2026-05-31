@@ -135,6 +135,7 @@ app.get('/health', (_req, res) => {
 
 import { plansRoutes } from './api/routes/plans.js';
 import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
+import { analyticsRoutes } from './api/routes/analytics.js';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
@@ -143,6 +144,7 @@ app.use('/api/v1/subscriptions', subscriptionRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/plans', plansRoutes);
 app.use('/api/v1/demo-merchant', demoMerchantRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // ============================================================
 // ERROR HANDLING

@@ -13,6 +13,8 @@ export interface Plan {
   max_payments: number;
   is_active: boolean;
   metadata_uri: string | null;
+  redirect_url: string | null;
+  redirect_label: string | null;
   subscriber_count: number;
   created_at: Date;
   updated_at: Date;
@@ -42,15 +44,16 @@ export class PlanRepository {
     const query = `
       INSERT INTO plans (
         plan_id_on_chain, merchant_id, name, description, 
-        amount, token_address, interval_seconds, max_payments, metadata_uri
+        amount, token_address, interval_seconds, max_payments, metadata_uri,
+        redirect_url, redirect_label
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
     const values = [
       plan.plan_id_on_chain, plan.merchant_id, plan.name, plan.description || null,
       plan.amount, plan.token_address, plan.interval_seconds, plan.max_payments || 0,
-      plan.metadata_uri || null
+      plan.metadata_uri || null, plan.redirect_url || null, plan.redirect_label || 'Go to Platform'
     ];
     const result = await db.query<Plan>(query, values);
     return result.rows[0] as Plan;
@@ -64,7 +67,7 @@ export class PlanRepository {
     let argCounter = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'description', 'is_active', 'metadata_uri', 'subscriber_count'].includes(key)) {
+      if (['name', 'description', 'is_active', 'metadata_uri', 'subscriber_count', 'redirect_url', 'redirect_label'].includes(key)) {
         setClauses.push(`${key} = $${argCounter}`);
         values.push(value);
         argCounter++;

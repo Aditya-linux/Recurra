@@ -52,6 +52,19 @@ export const registerMerchantSchema = z.object({
   businessUrl: z.string().trim().url().optional(),
   countryCode: z.string().trim().length(2).optional(),
   gstNumber: z.string().trim().max(15).optional(),
+  platformUrl: z.string().trim().url().optional(),
+  platformName: z.string().trim().max(100).optional(),
+  platformLogoUrl: z.string().trim().url().optional(),
+  redirectUrlTemplate: z.string().trim().max(500).optional(),
+});
+
+export const updateMerchantSettingsSchema = z.object({
+  businessName: z.string().trim().min(2).max(255).optional(),
+  businessUrl: z.string().trim().url().optional(),
+  platformUrl: z.string().trim().url().optional(),
+  platformName: z.string().trim().max(100).optional(),
+  platformLogoUrl: z.string().trim().url().optional(),
+  redirectUrlTemplate: z.string().trim().max(500).optional(),
 });
 
 // ============================================================
@@ -66,6 +79,8 @@ export const createPlanSchema = z.object({
   intervalSeconds: z.number().int().min(3600, 'Minimum interval is 1 hour'),
   maxPayments: z.number().int().min(0).default(0),
   metadataUri: z.string().url().or(z.literal('')).optional(),
+  redirectUrl: z.string().trim().url().optional(),
+  redirectLabel: z.string().trim().max(100).optional(),
 });
 
 export const updatePlanSchema = createPlanSchema.partial();
@@ -130,6 +145,7 @@ export const analyticsSchema = z.object({
 
 export type ConnectWalletInput = z.infer<typeof connectWalletSchema>;
 export type RegisterMerchantInput = z.infer<typeof registerMerchantSchema>;
+export type UpdateMerchantSettingsInput = z.infer<typeof updateMerchantSettingsSchema>;
 export type CreatePlanInput = z.infer<typeof createPlanSchema>;
 export type CreateSubscriptionInput = z.infer<typeof createSubscriptionSchema>;
 export type CreateWebhookInput = z.infer<typeof createWebhookSchema>;

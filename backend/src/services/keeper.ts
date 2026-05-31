@@ -6,6 +6,7 @@ import { getIO } from '../utils/socket.js';
 import { UserRepository } from '../database/repositories/UserRepository.js';
 import { PlanRepository } from '../database/repositories/PlanRepository.js';
 import { RetailFulfillmentService } from './RetailFulfillmentService.js';
+import { MailService } from './MailService.js';
 
 // Connection details from env
 const connection = {
@@ -112,6 +113,35 @@ export const keeperWorker = new Worker('keeperQueue', async (job: Job) => {
           }
 
           getIO().emit('payment_executed', { subscriptionId: sub.id, transactionHash: txHash });
+
+          // Email notifications (async, non-blocking)
+          const user = await UserRepository.findById(sub.user_id);
+          const plan = await PlanRepository.findById(sub.plan_id);
+          if (user && user.email && plan) {
+            const amountStr = `${Number(plan.amount) / 10000000} USDC`;
+            const paymentsMade = updateRes.rows[0].payments_made;
+
+            // Calculate next payment date for email
+            const nextPaymentResult = await dbPool.query(
+              'SELECT next_payment_time FROM subscriptions WHERE id = $1', [sub.id]
+            );
+            const nextPaymentDate = nextPaymentResult.rows[0]?.next_payment_time
+              ? new Date(nextPaymentResult.rows[0].next_payment_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'Upcoming';
+
+            // Send payment executed email
+            MailService.sendPaymentExecutedEmail(user.email, plan.name, amountStr, paymentsMade, nextPaymentDate)
+              .catch(e => logger.error('Failed to send payment email', { error: (e as Error).message }));
+
+            // Check for subscription expiring (max_payments approaching)
+            if (plan.max_payments > 0) {
+              const paymentsRemaining = plan.max_payments - paymentsMade;
+              if (paymentsRemaining <= 2 && paymentsRemaining > 0) {
+                MailService.sendSubscriptionExpiringEmail(user.email, plan.name, paymentsRemaining)
+                  .catch(e => logger.error('Failed to send expiring email', { error: (e as Error).message }));
+              }
+            }
+          }
         } catch (e) {
           logger.error('Failed to emit socket/webhook events in keeper', { error: (e as Error).message });
         }

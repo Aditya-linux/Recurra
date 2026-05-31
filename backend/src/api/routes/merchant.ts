@@ -14,6 +14,7 @@ import {
   createPlanSchema,
   analyticsSchema,
   paginationSchema,
+  updateMerchantSettingsSchema,
 } from '../../utils/validation.js';
 import { logger } from '../../utils/logger.js';
 
@@ -36,9 +37,11 @@ merchantRoutes.post('/register', authenticate, async (req: Request, res: Respons
 
     // Create merchant record in database
     const result = await dbPool.query(
-      `INSERT INTO merchants (wallet_address, business_name, business_url, kyc_status) 
-       VALUES ($1, $2, $3, 'approved') RETURNING *`,
-      [input.walletAddress, input.businessName, input.businessUrl || null]
+      `INSERT INTO merchants (wallet_address, business_name, business_url, kyc_status, platform_url, platform_name, platform_logo_url, redirect_url_template) 
+       VALUES ($1, $2, $3, 'approved', $4, $5, $6, $7) RETURNING *`,
+      [input.walletAddress, input.businessName, input.businessUrl || null,
+       input.platformUrl || null, input.platformName || null,
+       input.platformLogoUrl || null, input.redirectUrlTemplate || null]
     );
 
     const merchant = result.rows[0];
@@ -90,10 +93,11 @@ merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), as
 
     // Insert plan in database
     const result = await dbPool.query(
-      `INSERT INTO plans (plan_id_on_chain, merchant_id, name, description, amount, token_address, interval_seconds, max_payments)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO plans (plan_id_on_chain, merchant_id, name, description, amount, token_address, interval_seconds, max_payments, redirect_url, redirect_label)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [planIdOnChain, merchantId, input.name, input.description || null, input.amount, input.tokenAddress, input.intervalSeconds, input.maxPayments || 0]
+      [planIdOnChain, merchantId, input.name, input.description || null, input.amount, input.tokenAddress, input.intervalSeconds, input.maxPayments || 0,
+       input.redirectUrl || null, input.redirectLabel || 'Go to Platform']
     );
 
     const plan = result.rows[0];
@@ -148,6 +152,66 @@ merchantRoutes.get('/plans', authenticate, requireRole('merchant', 'admin'), asy
     res.json({
       data: plansResult.rows,
       pagination: { ...pagination, total },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PUT /api/v1/merchant/settings — Update merchant platform settings
+ */
+merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = updateMerchantSettingsSchema.parse(req.body);
+    const { dbPool } = await import('../../database/index.js');
+
+    // Get merchant ID
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) {
+      res.status(403).json({ error: 'Merchant not found' });
+      return;
+    }
+    const merchantId = merchantResult.rows[0].id;
+
+    // Build dynamic update query
+    const fieldMap: Record<string, string> = {
+      businessName: 'business_name',
+      businessUrl: 'business_url',
+      platformUrl: 'platform_url',
+      platformName: 'platform_name',
+      platformLogoUrl: 'platform_logo_url',
+      redirectUrlTemplate: 'redirect_url_template',
+    };
+
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let argCounter = 1;
+
+    for (const [jsKey, dbCol] of Object.entries(fieldMap)) {
+      if ((input as any)[jsKey] !== undefined) {
+        setClauses.push(`${dbCol} = $${argCounter}`);
+        values.push((input as any)[jsKey]);
+        argCounter++;
+      }
+    }
+
+    if (setClauses.length === 0) {
+      res.status(400).json({ error: 'No fields to update' });
+      return;
+    }
+
+    values.push(merchantId);
+    const result = await dbPool.query(
+      `UPDATE merchants SET ${setClauses.join(', ')} WHERE id = $${argCounter} RETURNING *`,
+      values
+    );
+
+    logger.info('Merchant settings updated', { merchantId });
+
+    res.json({
+      message: 'Settings updated successfully',
+      merchant: result.rows[0],
     });
   } catch (err) {
     next(err);

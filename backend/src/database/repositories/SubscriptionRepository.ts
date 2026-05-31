@@ -23,9 +23,13 @@ export class SubscriptionRepository {
     const query = `
       SELECT 
         s.id, s.status, s.subscription_id_on_chain, s.next_payment_time,
-        p.name, p.amount, p.token_address, p.interval_seconds
+        p.name, p.amount, p.token_address, p.interval_seconds,
+        p.redirect_url, p.redirect_label,
+        m.platform_url, m.platform_name, m.platform_logo_url, m.redirect_url_template,
+        m.business_name as merchant_name
       FROM subscriptions s
       JOIN plans p ON s.plan_id = p.id
+      JOIN merchants m ON s.merchant_id = m.id
       WHERE s.user_id = $1
       ORDER BY s.created_at DESC
     `;

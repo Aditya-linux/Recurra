@@ -1,0 +1,47 @@
+services:
+  # ==========================================
+  # RECURRA BACKEND API (Web Service)
+  # ==========================================
+  - type: web
+    name: recurra-backend
+    env: node
+    region: oregon # or ohio, frankfurt, etc.
+    plan: free # Change to 'starter' or higher for production without sleep delays
+    buildCommand: "cd backend && npm install && npm run build"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_PORT
+        value: "3001"
+      - key: DATABASE_URL
+        sync: false # You will need to paste your Supabase Postgres URL here in the Render Dashboard
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: recurra-redis
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # You will need to add your Vercel Frontend URL here (e.g., https://recurra.vercel.app)
+      - key: JWT_SECRET
+        generateValue: true # Render will automatically generate a secure 64-char secret
+      - key: KEEPER_CRON_SCHEDULE
+        value: "*/15 * * * *" # Run keeper every 15 minutes (or as desired)
+      # --- Stellar Config ---
+      - key: STELLAR_NETWORK
+        value: "testnet"
+      - key: STELLAR_RPC_URL
+        value: "https://soroban-testnet.stellar.org"
+      - key: STELLAR_HORIZON_URL
+        value: "https://horizon-testnet.stellar.org"
+      - key: STELLAR_NETWORK_PASSPHRASE
+        value: "Test SDF Network ; September 2015"
+
+  # ==========================================
+  # RECURRA REDIS (Cache & Job Queue)
+  # ==========================================
+  - type: redis
+    name: recurra-redis
+    region: oregon
+    plan: free # Change to a paid plan for persistence in production
+    ipAllowList: [] # Blank array allows internal connections from Render web services

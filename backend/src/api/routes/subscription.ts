@@ -8,6 +8,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import { dbPool } from '../../database/index.js';
 import { authenticate } from '../../middleware/auth.js';
 import { createSubscriptionSchema, cancelSubscriptionSchema } from '../../utils/validation.js';
 import { logger } from '../../utils/logger.js';
@@ -80,9 +81,33 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
       subscriptionId: sub.id
     });
 
+    // Fetch merchant redirect info for the response
+    const merchantRedirectResult = await dbPool.query(
+      `SELECT m.platform_url, m.platform_name, m.platform_logo_url, m.redirect_url_template,
+              p.redirect_url as plan_redirect_url, p.redirect_label
+       FROM merchants m
+       JOIN plans p ON p.merchant_id = m.id
+       WHERE p.id = $1`,
+      [input.planId]
+    );
+    const redirectInfo = merchantRedirectResult.rows[0] || {};
+
+    // Build the actual redirect URL (substitute {wallet} placeholder)
+    let resolvedRedirectUrl = redirectInfo.plan_redirect_url || redirectInfo.redirect_url_template || redirectInfo.platform_url || null;
+    if (resolvedRedirectUrl && req.user!.walletAddress) {
+      resolvedRedirectUrl = resolvedRedirectUrl.replace('{wallet}', encodeURIComponent(req.user!.walletAddress as string));
+    }
+
     res.status(201).json({
       message: 'Subscription created successfully',
       subscription: sub,
+      redirect: {
+        url: resolvedRedirectUrl,
+        label: redirectInfo.redirect_label || 'Go to Platform',
+        platformName: redirectInfo.platform_name || null,
+        platformLogoUrl: redirectInfo.platform_logo_url || null,
+        platformUrl: redirectInfo.platform_url || null,
+      }
     });
 
     try {
@@ -118,6 +143,9 @@ subscriptionRoutes.get('/', async (req: Request, res: Response, next: NextFuncti
       const nextDate = new Date(sub.next_payment_time);
       const formattedDate = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       
+      // Resolve redirect URL — plan-level overrides merchant-level template
+      const redirectUrl = sub.redirect_url || sub.redirect_url_template || sub.platform_url || null;
+
       return {
         id: sub.id,
         name: sub.name,
@@ -126,7 +154,14 @@ subscriptionRoutes.get('/', async (req: Request, res: Response, next: NextFuncti
         status: sub.status,
         color: '#3B82F6', // default color
         icon: 'payment', // default material icon
-        isMaterial: true
+        isMaterial: true,
+        redirect: {
+          url: redirectUrl,
+          label: sub.redirect_label || 'Go to Platform',
+          platformName: sub.platform_name || sub.merchant_name || null,
+          platformLogoUrl: sub.platform_logo_url || null,
+          platformUrl: sub.platform_url || null,
+        }
       };
     });
 

@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
+import SubscriptionSuccessModal from '../components/SubscriptionSuccessModal';
 
 const CheckoutWidget: React.FC = () => {
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
   const merchantName = searchParams.get('merchantName') || 'Merchant';
   
-  const navigate = useNavigate();
   const { fullWalletAddress, openModal, signTransaction } = useWallet();
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<any>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [redirectInfo, setRedirectInfo] = useState<any>(null);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch plan details (public endpoint, no auth needed)
@@ -72,6 +75,7 @@ const CheckoutWidget: React.FC = () => {
       toast.loading('Submitting transaction...', { id: toastId });
       const sendRes = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET));
       txHash = sendRes.hash;
+      setTransactionHash(txHash);
     } catch (contractErr: any) {
       const errMsg = contractErr?.message || String(contractErr);
       
@@ -86,9 +90,8 @@ const CheckoutWidget: React.FC = () => {
       }
     }
 
-    // Step 2: Register in backend
     try {
-      const { ok, error } = await api('/subscriptions', {
+      const { ok, data, error } = await api('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ 
           planId: plan.id,
@@ -98,9 +101,9 @@ const CheckoutWidget: React.FC = () => {
 
       if (ok) {
         toast.success('Payment Successful!', { id: toastId });
-        setTimeout(() => {
-          navigate('/demo-merchant');
-        }, 2000);
+        // Show success modal with redirect info from backend
+        setRedirectInfo(data?.redirect || null);
+        setShowSuccessModal(true);
       } else {
         throw new Error(error || 'Subscription failed');
       }
@@ -115,6 +118,7 @@ const CheckoutWidget: React.FC = () => {
   if (!planId) return <div className="p-10 text-center">Invalid checkout link</div>;
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
@@ -178,6 +182,18 @@ const CheckoutWidget: React.FC = () => {
         </div>
       </div>
     </div>
+
+    {/* Success Modal with auto-redirect */}
+    <SubscriptionSuccessModal
+      isOpen={showSuccessModal}
+      onClose={() => setShowSuccessModal(false)}
+      planName={plan?.name || ''}
+      amount={`$${plan?.amount || '0'} USDC`}
+      redirect={redirectInfo}
+      autoRedirectSeconds={5}
+      txHash={transactionHash}
+    />
+    </>
   );
 };
 

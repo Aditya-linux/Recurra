@@ -211,37 +211,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const disconnect = () => {
-    toast.custom((t) => (
-      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} card max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col gap-4 p-4 border border-[var(--outline-variant)]`}>
-        <div className="flex flex-col">
-          <p className="text-h3" style={{ fontSize: '18px' }}>Disconnect wallet?</p>
-          <p className="text-body-md mt-1" style={{ color: 'var(--on-surface-variant)' }}>Are you sure you want to log out of Recurra?</p>
-        </div>
-        <div className="flex justify-end gap-3 mt-2">
-          <button 
-            className="btn font-medium" 
-            style={{ padding: '8px 16px', border: '1px solid var(--outline-variant)', borderRadius: '8px', background: 'var(--surface)' }} 
-            onClick={() => toast.dismiss(t.id)}
-          >
-            Cancel
-          </button>
-          <button 
-            className="btn font-medium" 
-            style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--destructive, #ef4444)', color: 'white' }} 
-            onClick={() => {
-              setWalletAddress(null);
-              setFullWalletAddress(null);
-              setUserRole(null);
-              localStorage.removeItem('recurra_token');
-              localStorage.removeItem('activeWalletId');
-              toast.dismiss(t.id);
-            }}
-          >
-            Disconnect
-          </button>
-        </div>
-      </div>
-    ), { duration: Infinity, position: 'top-center' });
+    setWalletAddress(null);
+    setFullWalletAddress(null);
+    setUserRole(null);
+    localStorage.removeItem('recurra_token');
+    localStorage.removeItem('activeWalletId');
+    toast.success('Wallet disconnected successfully');
   };
 
   return (

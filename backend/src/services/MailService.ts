@@ -69,6 +69,68 @@ export class MailService {
     `;
     await this.sendEmail(to, subject, html);
   }
+
+  public static async sendPaymentExecutedEmail(to: string, planName: string, amountStr: string, paymentNumber: number, nextPaymentDate: string) {
+    const subject = `Payment Processed: ${planName} (#${paymentNumber})`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #10b981;">Payment Successful</h2>
+        <p>Hi there,</p>
+        <p>Your recurring payment for <strong>${planName}</strong> has been processed successfully.</p>
+        <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 6px 0; color: #6b7280;">Amount</td><td style="padding: 6px 0; text-align: right; font-weight: 600;">${amountStr}</td></tr>
+            <tr><td style="padding: 6px 0; color: #6b7280;">Payment #</td><td style="padding: 6px 0; text-align: right; font-weight: 600;">${paymentNumber}</td></tr>
+            <tr><td style="padding: 6px 0; color: #6b7280;">Next Payment</td><td style="padding: 6px 0; text-align: right; font-weight: 600;">${nextPaymentDate}</td></tr>
+          </table>
+        </div>
+        <p style="color: #6b7280; font-size: 13px;">This payment was automated by the Recurra smart contract on the Stellar network.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  public static async sendPaymentFailedEmail(to: string, planName: string, reason: string) {
+    const subject = `Payment Failed: ${planName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #ef4444;">Payment Failed</h2>
+        <p>Hi there,</p>
+        <p>We were unable to process your recurring payment for <strong>${planName}</strong>.</p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <p style="margin: 0; color: #dc2626;"><strong>Reason:</strong> ${reason || 'Insufficient balance'}</p>
+        </div>
+        <p><strong>What to do:</strong></p>
+        <ul style="color: #374151;">
+          <li>Ensure your wallet has sufficient USDC balance</li>
+          <li>Check that your authorization to the merchant is still active</li>
+          <li>Visit your Recurra Dashboard to review your subscription</li>
+        </ul>
+        <p style="color: #6b7280; font-size: 13px;">If this issue persists, your subscription may be paused until payment is resolved.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  public static async sendSubscriptionExpiringEmail(to: string, planName: string, paymentsRemaining: number) {
+    const subject = `Subscription Expiring Soon: ${planName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #f59e0b;">Subscription Expiring</h2>
+        <p>Hi there,</p>
+        <p>Your subscription to <strong>${planName}</strong> has <strong>${paymentsRemaining} payment${paymentsRemaining === 1 ? '' : 's'}</strong> remaining.</p>
+        <p>After the final payment, your subscription will expire automatically.</p>
+        <p>To continue using the service, you can renew your subscription from the Recurra platform.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
 }
 
 // Initialize on load

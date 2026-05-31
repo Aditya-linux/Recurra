@@ -14,6 +14,10 @@ export interface Merchant {
   webhook_url: string | null;
   webhook_secret: string | null;
   api_key_hash: string | null;
+  platform_url: string | null;
+  platform_name: string | null;
+  platform_logo_url: string | null;
+  redirect_url_template: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -37,15 +41,18 @@ export class MerchantRepository {
     const query = `
       INSERT INTO merchants (
         wallet_address, business_name, business_email, business_url, 
-        logo_url, country_code, gst_number
+        logo_url, country_code, gst_number,
+        platform_url, platform_name, platform_logo_url, redirect_url_template
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
     const values = [
       merchant.wallet_address, merchant.business_name, merchant.business_email || null,
       merchant.business_url || null, merchant.logo_url || null, merchant.country_code || null,
-      merchant.gst_number || null
+      merchant.gst_number || null,
+      merchant.platform_url || null, merchant.platform_name || null,
+      merchant.platform_logo_url || null, merchant.redirect_url_template || null
     ];
     const result = await db.query<Merchant>(query, values);
     return result.rows[0] as Merchant;
@@ -59,7 +66,7 @@ export class MerchantRepository {
     let argCounter = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (['business_name', 'business_email', 'business_url', 'logo_url', 'kyc_status', 'country_code', 'gst_number', 'webhook_url', 'webhook_secret', 'api_key_hash', 'is_active'].includes(key)) {
+      if (['business_name', 'business_email', 'business_url', 'logo_url', 'kyc_status', 'country_code', 'gst_number', 'webhook_url', 'webhook_secret', 'api_key_hash', 'is_active', 'platform_url', 'platform_name', 'platform_logo_url', 'redirect_url_template'].includes(key)) {
         setClauses.push(`${key} = $${argCounter}`);
         values.push(value);
         argCounter++;

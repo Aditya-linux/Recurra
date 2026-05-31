@@ -4,7 +4,8 @@ import { api, getValidToken } from '../utils/api';
 import { useSocket } from '../hooks/useSocket';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import SubscriptionSuccessModal from '../components/SubscriptionSuccessModal';
 
 const SubscriptionCenter: React.FC = () => {
   const { fullWalletAddress, openModal, signTransaction } = useWallet();
@@ -14,6 +15,8 @@ const SubscriptionCenter: React.FC = () => {
   const [fetchError, setFetchError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<any[]>([]);
   const [successMsg, setSuccessMsg] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastSubscribedPlan, setLastSubscribedPlan] = useState<{ name: string; amount: string; redirect: any; txHash?: string | null } | null>(null);
   const socket = useSocket();
 
   const fetchSubscriptions = useCallback(async () => {
@@ -167,7 +170,7 @@ const SubscriptionCenter: React.FC = () => {
     // Step 2: Register subscription in backend
     try {
       setSuccessMsg('Registering subscription on backend...');
-      const { ok, error } = await api('/subscriptions', {
+      const { ok, data, error } = await api('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ 
           planId: plan.id,
@@ -176,12 +179,19 @@ const SubscriptionCenter: React.FC = () => {
       });
 
       if (ok) {
-        setSuccessMsg(`Successfully subscribed to ${plan.plan_name || plan.name}!`);
+        const planName = plan.plan_name || plan.name;
+        const amountStr = `$${(Number(plan.amount) / 10000000).toFixed(2)} / mo`;
+        setSuccessMsg(`Successfully subscribed to ${planName}!`);
         await fetchSubscriptions();
-        setTimeout(() => {
-          setFilter('active');
-          setSuccessMsg('');
-        }, 1500);
+
+        // Show the success modal with redirect info from backend
+        setLastSubscribedPlan({
+          name: planName,
+          amount: amountStr,
+          redirect: data?.redirect || null,
+          txHash: txHash
+        });
+        setShowSuccessModal(true);
       } else {
         setSuccessMsg(`Backend Error: ${error || 'Subscription failed'}`);
       }
@@ -231,6 +241,7 @@ const SubscriptionCenter: React.FC = () => {
   const inactiveCount = subscriptions.filter(s => s.status === 'inactive').length;
 
   return (
+    <>
     <main className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
         <h2 className="text-h2">Subscription Center & Retail Store</h2>
@@ -289,7 +300,7 @@ const SubscriptionCenter: React.FC = () => {
               )}
 
               {/* Available Plans */}
-              {!fetchError && filter === 'available' && availablePlans.filter(p => p.merchant_name === 'Recurra Retail Store').map(plan => {
+              {!fetchError && filter === 'available' && availablePlans.map(plan => {
                 const baseName = plan.plan_name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
                 const style = merchantStyles[baseName] || { color: '#3B82F6', logo: '' };
                 const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
@@ -368,6 +379,18 @@ const SubscriptionCenter: React.FC = () => {
                             {sub.amount}
                           </div>
                           <div className="flex gap-2 sm-w-full">
+                            {/* Platform redirect button */}
+                            {!isInactive && sub.redirect?.url && (
+                              <Button
+                                variant="outline"
+                                className="sm-w-full"
+                                onClick={() => window.open(sub.redirect.url, '_blank', 'noopener,noreferrer')}
+                                style={{ minWidth: '120px', gap: '6px' }}
+                              >
+                                <ExternalLink size={14} />
+                                {sub.redirect.label || `Open ${sub.redirect.platformName || 'Platform'}`}
+                              </Button>
+                            )}
                             {!isInactive && (
                               <Button
                                 variant="destructive"
@@ -382,6 +405,17 @@ const SubscriptionCenter: React.FC = () => {
                               </Button>
                             )}
                           </div>
+                          {!isInactive && sub.subscription_id_on_chain && (
+                            <a
+                              href={`https://stellar.expert/explorer/testnet/tx/${sub.subscription_id_on_chain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-medium mt-2 flex items-center gap-1 hover:underline"
+                              style={{ color: 'var(--primary, #3B82F6)' }}
+                            >
+                              Verify on Stellar Explorer <ExternalLink size={10} />
+                            </a>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -392,6 +426,22 @@ const SubscriptionCenter: React.FC = () => {
         </div>
       </section>
     </main>
+
+    {/* Success Modal */}
+    <SubscriptionSuccessModal
+      isOpen={showSuccessModal}
+      onClose={() => {
+        setShowSuccessModal(false);
+        setLastSubscribedPlan(null);
+        setFilter('active');
+        setSuccessMsg('');
+      }}
+      planName={lastSubscribedPlan?.name || ''}
+      amount={lastSubscribedPlan?.amount || ''}
+      redirect={lastSubscribedPlan?.redirect || null}
+      txHash={lastSubscribedPlan?.txHash || null}
+    />
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { WalletProvider } from './context/WalletContext';
 import Navbar from './components/Navbar';
 import WalletModal from './components/WalletModal';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -16,19 +17,21 @@ import { Toaster } from 'react-hot-toast';
 const App: React.FC = () => {
   return (
     <WalletProvider>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 2000 }} />
       <Router>
         <Navbar />
         <WalletModal />
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/merchant" element={<MerchantIntegration />} />
-          <Route path="/user" element={<UserIntegration />} />
-          <Route path="/subscriptions" element={<SubscriptionCenter />} />
-          <Route path="/demo-merchant" element={<DemoMerchant />} />
-          <Route path="/checkout" element={<CheckoutWidget />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+            <Route path="/merchant" element={<ErrorBoundary><MerchantIntegration /></ErrorBoundary>} />
+            <Route path="/user" element={<ErrorBoundary><UserIntegration /></ErrorBoundary>} />
+            <Route path="/subscriptions" element={<ErrorBoundary><SubscriptionCenter /></ErrorBoundary>} />
+            <Route path="/demo-merchant" element={<ErrorBoundary><DemoMerchant /></ErrorBoundary>} />
+            <Route path="/checkout" element={<ErrorBoundary><CheckoutWidget /></ErrorBoundary>} />
+          </Routes>
+        </ErrorBoundary>
       </Router>
     </WalletProvider>
   );

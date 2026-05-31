@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '../context/WalletContext';
 import { api, getValidToken } from '../utils/api';
 import { Card, CardContent } from "@/components/ui/card";
-import { Wallet, RefreshCw, DollarSign, Loader2 } from "lucide-react";
+import { Wallet, RefreshCw, DollarSign, Loader2, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Dashboard: React.FC = () => {
   const { fullWalletAddress } = useWallet();
@@ -180,11 +181,25 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end">
-                  <div className="text-body-lg" style={{ fontWeight: 600 }}>
-                    -{(parseFloat(sub.amount) / 10000000).toFixed(2)} USDC
+                <div className="flex items-center gap-3">
+                  {/* Platform redirect quick-link */}
+                  {sub.redirect?.url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(sub.redirect.url, '_blank', 'noopener,noreferrer')}
+                      style={{ gap: '4px', fontSize: '12px' }}
+                    >
+                      <ExternalLink size={12} />
+                      {sub.redirect.platformName ? `Open ${sub.redirect.platformName}` : 'Open Platform'}
+                    </Button>
+                  )}
+                  <div className="flex flex-col items-end">
+                    <div className="text-body-lg" style={{ fontWeight: 600 }}>
+                      -{(parseFloat(sub.amount) / 10000000).toFixed(2)} USDC
+                    </div>
+                    <div className="status-chip" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', color: '#1DB954', borderColor: '#1DB954' }}>Active</div>
                   </div>
-                  <div className="status-chip" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', color: '#1DB954', borderColor: '#1DB954' }}>Active</div>
                 </div>
               </Card>
             );
