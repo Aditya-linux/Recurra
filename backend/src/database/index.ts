@@ -22,7 +22,7 @@ dbPool.on('connect', () => {
   logger.debug('New database connection established');
 });
 
-dbPool.on('error', (err) => {
+dbPool.on('error', (err: any) => {
   logger.error('Unexpected error on idle database client', { error: err.message });
   process.exit(-1);
 });

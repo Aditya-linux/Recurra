@@ -64,7 +64,7 @@ analyticsRoutes.get('/revenue-chart', async (req: Request, res: Response, next: 
     );
 
     // Format the data points
-    const dataPoints = result.rows.map(row => ({
+    const dataPoints = result.rows.map((row: any) => ({
       date: new Date(row.period_start).toISOString(),
       label: formatLabel(new Date(row.period_start), config.trunc),
       revenue: Number(row.revenue),
@@ -140,12 +140,12 @@ analyticsRoutes.get('/subscriber-growth', async (req: Request, res: Response, ne
       period: input.period,
       granularity: config.trunc,
       totalActive: activeResult.rows[0].total,
-      newSubscribers: newSubsResult.rows.map(row => ({
+      newSubscribers: newSubsResult.rows.map((row: any) => ({
         date: new Date(row.period_start).toISOString(),
         label: formatLabel(new Date(row.period_start), config.trunc),
         count: row.new_subscribers,
       })),
-      cancellations: cancelResult.rows.map(row => ({
+      cancellations: cancelResult.rows.map((row: any) => ({
         date: new Date(row.period_start).toISOString(),
         label: formatLabel(new Date(row.period_start), config.trunc),
         count: row.cancelled,
@@ -187,7 +187,7 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
       [merchantId, interval]
     );
 
-    const breakdown = result.rows.map(row => ({
+    const breakdown = result.rows.map((row: any) => ({
       status: row.status,
       count: row.count,
       totalAmount: Number(row.total_amount),
@@ -195,9 +195,9 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
     }));
 
     // Calculate totals
-    const totalPayments = breakdown.reduce((sum, b) => sum + b.count, 0);
+    const totalPayments = breakdown.reduce((sum: number, b: any) => sum + b.count, 0);
     const successRate = totalPayments > 0
-      ? ((breakdown.find(b => b.status === 'completed')?.count || 0) / totalPayments * 100).toFixed(1)
+      ? ((breakdown.find((b: any) => b.status === 'completed')?.count || 0) / totalPayments * 100).toFixed(1)
       : '0.0';
 
     // Top plans by revenue
@@ -223,7 +223,7 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
       breakdown,
       totalPayments,
       successRate: parseFloat(successRate as string),
-      topPlans: topPlansResult.rows.map(row => ({
+      topPlans: topPlansResult.rows.map((row: any) => ({
         name: row.name,
         paymentCount: row.payment_count,
         revenue: Number(row.total_revenue),
