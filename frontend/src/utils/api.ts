@@ -90,7 +90,7 @@ export function handleSessionExpired(reason: 'expired' | 'invalid' = 'expired'):
     ? 'Session expired. Please reconnect your wallet.'
     : 'Session invalid. Please reconnect your wallet.';
 
-  toast.error(message, { id: 'session-expired', duration: 5000 });
+  toast.error(message, { id: 'session-expired', duration: 2000 });
 
   // Reset the guard after 5 seconds so future expiries can show toast again
   setTimeout(() => {

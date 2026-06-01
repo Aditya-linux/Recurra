@@ -169,7 +169,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Step 3: Authenticate with the backend
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
       
       const res = await fetch(`${API_BASE}/auth/connect`, {
         method: 'POST',
@@ -194,13 +194,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error('[Wallet] Backend auth failed:', res.status, errData);
         // Still connect the wallet in view-only mode so user isn't blocked
         handleSuccessfulConnection(publicKey);
-        toast('Wallet connected (limited mode). Backend auth failed — some features may be unavailable.', { icon: '️' });
+        toast('Wallet connected (limited mode). Backend auth failed — some features may be unavailable.', { icon: '️', duration: 2000 });
       }
     } catch (fetchErr: any) {
       console.error('[Wallet] Backend auth network error:', fetchErr);
       // Still connect the wallet in view-only mode
       handleSuccessfulConnection(publicKey);
-      toast('Wallet connected (limited mode). Backend is unreachable — please ensure it is running.', { icon: '️' });
+      toast('Wallet connected (limited mode). Backend is unreachable — please ensure it is running.', { icon: '️', duration: 2000 });
     }
   };
 
