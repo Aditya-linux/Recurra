@@ -11,7 +11,8 @@
 
 import toast from 'react-hot-toast';
 
-export const API_BASE = 'http://localhost:3001/api/v1';
+const ENV_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_BASE = `${ENV_API_URL}/api/v1`;
 
 // ============================================================
 // JWT TOKEN HELPERS
