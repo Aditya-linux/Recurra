@@ -38,6 +38,9 @@ import { startIndexer, stopIndexer } from './services/indexer.js';
 
 const app = express();
 
+// Trust the first proxy (e.g. Render/Heroku load balancer) to fix rate limiter IP detection
+app.set('trust proxy', 1);
+
 // ============================================================
 // SECURITY MIDDLEWARE (Applied globally)
 // ============================================================
