@@ -1,5 +1,5 @@
 /**
- * Recurra — Centralized API Utility
+ * Rekura — Centralized API Utility
  * 
  * All frontend API calls go through this module.
  * Handles:
@@ -117,7 +117,7 @@ interface ApiResponse<T = any> {
 }
 
 /**
- * Centralized fetch wrapper for all Recurra API calls.
+ * Centralized fetch wrapper for all Rekura API calls.
  * 
  * - Checks token validity BEFORE sending (prevents 401 flood)
  * - Injects Authorization header automatically

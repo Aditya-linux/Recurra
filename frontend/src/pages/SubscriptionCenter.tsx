@@ -4,7 +4,8 @@ import { api, getValidToken } from '../utils/api';
 import { useSocket } from '../hooks/useSocket';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
+import toast from 'react-hot-toast';
 import SubscriptionSuccessModal from '../components/SubscriptionSuccessModal';
 
 const SubscriptionCenter: React.FC = () => {
@@ -14,9 +15,9 @@ const SubscriptionCenter: React.FC = () => {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<any[]>([]);
-  const [successMsg, setSuccessMsg] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubscribedPlan, setLastSubscribedPlan] = useState<{ name: string; amount: string; redirect: any; txHash?: string | null } | null>(null);
+  const [selectedMerchantAddress, setSelectedMerchantAddress] = useState<string | null>(null);
   const socket = useSocket();
 
   const fetchSubscriptions = useCallback(async () => {
@@ -43,7 +44,7 @@ const SubscriptionCenter: React.FC = () => {
       }
     } catch (e) {
       console.error(e);
-      setFetchError('Failed to connect to Recurra Backend.');
+      setFetchError('Failed to connect to Rekura Backend.');
     }
   }, []);
 
@@ -73,13 +74,10 @@ const SubscriptionCenter: React.FC = () => {
       return;
     }
     setLoadingAction(plan.id);
-    setSuccessMsg('');
 
     let txHash: string | null = null;
 
-    // Step 1: On-chain transaction via Soroban
     try {
-      setSuccessMsg('Preparing smart contract transaction...');
       const { Contract, rpc, TransactionBuilder, Networks, nativeToScVal, Transaction } = await import('@stellar/stellar-sdk');
       
       const rpcUrl = import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' 
@@ -115,23 +113,23 @@ const SubscriptionCenter: React.FC = () => {
       .setTimeout(300)
       .build();
 
-      setSuccessMsg('Preparing smart contract transaction (footprint)...');
+      const toastId = toast.loading('Preparing smart contract transaction...');
       const preparedTx = await server.prepareTransaction(tx);
 
       // Sign transaction
-      setSuccessMsg('Please sign the transaction in Freighter...');
+      toast.loading('Please sign the transaction in Freighter...', { id: toastId });
       const signedXdr = await signTransaction(preparedTx.toXDR());
       const signedTx = new Transaction(signedXdr, import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? Networks.PUBLIC : Networks.TESTNET);
 
       // Submit transaction
-      setSuccessMsg('Submitting transaction to network...');
+      toast.loading('Submitting transaction to network...', { id: toastId });
       const txResponse = await server.sendTransaction(signedTx);
       
       if (txResponse.status === 'PENDING') {
         txHash = txResponse.hash;
         
         // Wait for network confirmation
-        setSuccessMsg('Waiting for network confirmation...');
+        toast.loading('Waiting for network confirmation...', { id: toastId });
         let status = 'PENDING';
         let retries = 0;
         let lastResponse: any = null;
@@ -154,7 +152,7 @@ const SubscriptionCenter: React.FC = () => {
           throw new Error(`Transaction timed out (Status: ${status})`);
         }
       } else {
-        throw new Error('Transaction submission failed: ' + (txResponse as any).errorResultXdr);
+        throw new Error('Transaction submission failed (Status: ' + txResponse.status + '): ' + JSON.stringify(txResponse));
       }
     } catch (err: any) {
       console.error("Full on-chain error:", err);
@@ -162,14 +160,15 @@ const SubscriptionCenter: React.FC = () => {
       if (err.response && err.response.data) {
         msg += " - " + JSON.stringify(err.response.data);
       }
-      setSuccessMsg('On-chain error: ' + msg);
+      toast.dismiss();
+      toast.error('On-chain error: ' + msg, { duration: 5000 });
       setLoadingAction(null);
       return;
     }
 
     // Step 2: Register subscription in backend
     try {
-      setSuccessMsg('Registering subscription on backend...');
+      const toastId = toast.loading('Registering subscription on backend...');
       const { ok, data, error } = await api('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ 
@@ -181,23 +180,30 @@ const SubscriptionCenter: React.FC = () => {
       if (ok) {
         const planName = plan.plan_name || plan.name;
         const amountStr = `$${(Number(plan.amount) / 10000000).toFixed(2)} / mo`;
-        setSuccessMsg(`Successfully subscribed to ${planName}!`);
+        toast.success(`Successfully subscribed to ${planName}!`, { id: toastId });
         await fetchSubscriptions();
 
+        // Inject the platformLogoUrl from frontend config if not supplied by backend
+        const finalRedirect = data?.redirect || { url: null, label: 'Go to Platform', platformName: plan.merchant_name || planName };
+        if (!finalRedirect.platformLogoUrl) {
+           finalRedirect.platformLogoUrl = merchantStyles[plan.merchant_name]?.logo || null;
+        }
+
         // Show the success modal with redirect info from backend
-        setLastSubscribedPlan({
-          name: planName,
-          amount: amountStr,
-          redirect: data?.redirect || null,
-          txHash: txHash
+        setLastSubscribedPlan({ 
+          name: planName, 
+          amount: amountStr, 
+          redirect: finalRedirect,
+          txHash
         });
         setShowSuccessModal(true);
       } else {
-        setSuccessMsg(`Backend Error: ${error || 'Subscription failed'}`);
+        toast.error(`Backend Error: ${error || 'Subscription failed'}`, { id: toastId });
       }
     } catch (err: any) {
       console.error(err);
-      setSuccessMsg('Subscription failed. ' + (err.message || ''));
+      toast.dismiss();
+      toast.error('Subscription failed. ' + (err.message || ''));
     } finally {
       setLoadingAction(null);
     }
@@ -216,24 +222,28 @@ const SubscriptionCenter: React.FC = () => {
       });
 
       if (ok) {
-        setSuccessMsg(isCanceling ? `${sub.name} cancelled.` : `${sub.name} reactivated!`);
+        toast.success(isCanceling ? `${sub.name} cancelled.` : `${sub.name} reactivated!`);
         await fetchSubscriptions();
-        setTimeout(() => setSuccessMsg(''), 2000);
       }
     } catch (err: any) {
       console.error(err);
-      setSuccessMsg('Action failed.');
+      toast.error('Action failed.');
     } finally {
       setLoadingAction(null);
     }
   };
 
-  // Merchant color/logo mapping
-  const merchantStyles: Record<string, { color: string; logo: string }> = {
-    'Spotify': { color: '#1DB954', logo: 'https://cdn.simpleicons.org/spotify/white' },
-    'Claude': { color: '#D4A574', logo: 'https://cdn.simpleicons.org/anthropic/white' },
-    'Netflix': { color: '#E50914', logo: 'https://cdn.simpleicons.org/netflix/white' },
-    'Amazon': { color: '#FF9900', logo: 'https://cdn.simpleicons.org/amazon/white' },
+  // Merchant color/logo mapping — uses local HD logos from /public/logos/
+  const merchantStyles: Record<string, { color: string; logo: string; objectFit?: 'cover' | 'contain' }> = {
+    'Spotify':    { color: '#1DB954', logo: '/logos/spotify.jpg' },
+    'Netflix':    { color: '#E50914', logo: 'https://cdn.simpleicons.org/netflix/white' },
+    'Amazon':     { color: '#FF9900', logo: '/logos/amazon.jpg', objectFit: 'contain' },
+    'Canva':      { color: '#00C4CC', logo: '/logos/canva.jpg' },
+    'JioHotstar': { color: '#6B2D8B', logo: '/logos/jiohotstar.jpg' },
+    'Apple TV+':  { color: '#1C1C1E', logo: '/logos/apple-tv-plus.jpg' },
+    'Adobe':      { color: '#FFFFFF', logo: '/logos/adobe.jpg', objectFit: 'contain' },
+    'YouTube':    { color: '#FF0000', logo: '/logos/youtube.jpg' },
+    'Claude':     { color: '#D4A574', logo: 'https://cdn.simpleicons.org/anthropic/white' },
   };
 
   const filtered = filter === 'available' ? availablePlans : subscriptions.filter(s => s.status === filter);
@@ -246,26 +256,8 @@ const SubscriptionCenter: React.FC = () => {
       <section className="container" style={{ marginTop: '40px' }}>
         <h2 className="text-h2">Subscription Center & Retail Store</h2>
         <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
-          Manage your active recurring payments and explore retail subscriptions powered by Recurra.
+          Manage your active recurring payments and explore retail subscriptions powered by Rekura.
         </p>
-
-        {/* Success / Error toast */}
-        {successMsg && (
-          <div style={{
-            padding: '12px 20px',
-            marginBottom: '20px',
-            borderRadius: '12px',
-            background: successMsg.startsWith('Error') ? 'rgba(255,80,80,0.15)' : 'rgba(29,185,84,0.15)',
-            color: successMsg.startsWith('Error') ? '#ff6b6b' : '#1DB954',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            {successMsg.startsWith('Error') ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
-            {successMsg}
-          </div>
-        )}
 
         <div className="grid-12">
           {/* Subscriptions List */}
@@ -273,9 +265,9 @@ const SubscriptionCenter: React.FC = () => {
             <div className="flex gap-4 sm-flex-col sm-w-full">
               <Button
                 variant={filter === 'available' ? 'outline' : 'ghost'}
-                onClick={() => setFilter('available')}
+                onClick={() => { setFilter('available'); setSelectedMerchantAddress(null); }}
               >
-                Retail Storefront ({availablePlans.length})
+                Retail Storefront ({availablePlans.length} Plans)
               </Button>
               <Button
                 variant={filter === 'active' ? 'outline' : 'ghost'}
@@ -299,56 +291,93 @@ const SubscriptionCenter: React.FC = () => {
                 </p>
               )}
 
-              {/* Available Plans */}
-              {!fetchError && filter === 'available' && availablePlans.map(plan => {
-                const baseName = plan.plan_name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
-                const style = merchantStyles[baseName] || { color: '#3B82F6', logo: '' };
-                const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
-                return (
-                  <Card key={plan.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)' }}>
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-4">
+              {/* Available Plans - Brands / Plans View */}
+              {!fetchError && filter === 'available' && !selectedMerchantAddress && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+                  {Array.from(new Set(availablePlans.map(p => p.merchant_address))).map(address => {
+                    const plan = availablePlans.find(p => p.merchant_address === address);
+                    if (!plan) return null;
+                    const style = merchantStyles[plan.merchant_name] || { color: '#3B82F6', logo: plan.logo_url };
+                    const planCount = availablePlans.filter(p => p.merchant_address === address).length;
+                    return (
+                      <Card key={address} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)', cursor: 'pointer' }} onClick={() => setSelectedMerchantAddress(address)}>
+                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
                           <div style={{
-                            width: '52px', height: '52px', borderRadius: '14px',
+                            width: '48px', height: '48px', borderRadius: '12px',
                             background: style.color, display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', padding: '12px'
+                            justifyContent: 'center', overflow: 'hidden', flexShrink: 0
                           }}>
-                            {style.logo ? <img src={style.logo} alt={baseName} style={{ width: '28px', height: '28px' }} /> : <span style={{color:'white', fontWeight:600}}>{baseName.charAt(0)}</span>}
+                            {style.logo ? <img src={style.logo} alt={plan.merchant_name} style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} /> : <span style={{color:'white', fontWeight:700, fontSize:'20px'}}>{plan.merchant_name.charAt(0)}</span>}
                           </div>
                           <div>
-                            <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.plan_name}</h3>
-                            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '2px' }}>
-                              by {plan.merchant_name}
+                            <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.merchant_name}</h3>
+                            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                              {planCount} plan{planCount > 1 ? 's' : ''} available
                             </p>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2 sm-items-start sm-mt-4 sm-w-full">
-                          <div className="text-h3" style={{ fontSize: '22px', fontWeight: 700 }}>
-                            ${(plan.amount / 10000000).toFixed(2)} <span className="text-body-md" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>/ mo</span>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!fetchError && filter === 'available' && selectedMerchantAddress && (
+                <>
+                  <Button variant="ghost" onClick={() => setSelectedMerchantAddress(null)} style={{ alignSelf: 'flex-start', marginBottom: '10px' }}>
+                    &larr; Back to Brands
+                  </Button>
+                  {availablePlans.filter(p => p.merchant_address === selectedMerchantAddress).map(plan => {
+                    const baseName = plan.plan_name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
+                    const style = merchantStyles[plan.merchant_name] || { color: '#3B82F6', logo: plan.logo_url };
+                    const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
+                    return (
+                      <Card key={plan.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)' }}>
+                        <CardContent className="p-6">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-4">
+                              <div style={{
+                                width: '52px', height: '52px', borderRadius: '14px',
+                                background: style.color, display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', overflow: 'hidden', flexShrink: 0
+                              }}>
+                                {style.logo ? <img src={style.logo} alt={baseName} style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} /> : <span style={{color:'white', fontWeight:600}}>{baseName.charAt(0)}</span>}
+                              </div>
+                              <div>
+                                <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.plan_name}</h3>
+                                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '2px' }}>
+                                  by {plan.merchant_name}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2 sm-items-start sm-mt-4 sm-w-full">
+                              <div className="text-h3" style={{ fontSize: '22px', fontWeight: 700 }}>
+                                ${(plan.amount / 10000000).toFixed(2)} <span className="text-body-md" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>/ mo</span>
+                              </div>
+                              {alreadySubscribed ? (
+                                <span style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: 'rgba(29,185,84,0.15)', color: '#1DB954' }}>
+                                   Subscribed
+                                </span>
+                              ) : (
+                                <Button
+                                  className="sm-w-full"
+                                  onClick={() => handleSubscribe(plan)}
+                                  disabled={loadingAction === plan.id}
+                                  style={{ minWidth: '120px' }}
+                                >
+                                  {loadingAction === plan.id ? (
+                                    <><Loader2 className="animate-spin mr-2" size={16} /> Subscribing...</>
+                                  ) : 'Subscribe'}
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          {alreadySubscribed ? (
-                            <span style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: 'rgba(29,185,84,0.15)', color: '#1DB954' }}>
-                               Subscribed
-                            </span>
-                          ) : (
-                            <Button
-                              className="sm-w-full"
-                              onClick={() => handleSubscribe(plan)}
-                              disabled={loadingAction === plan.id}
-                              style={{ minWidth: '120px' }}
-                            >
-                              {loadingAction === plan.id ? (
-                                <><Loader2 className="animate-spin mr-2" size={16} /> Subscribing...</>
-                              ) : 'Subscribe'}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </>
+              )}
 
               {/* Active / Inactive Subscriptions */}
               {!fetchError && filter !== 'available' && filtered.map(sub => {
@@ -363,9 +392,9 @@ const SubscriptionCenter: React.FC = () => {
                           <div style={{
                             width: '52px', height: '52px', borderRadius: '14px',
                             background: isInactive ? 'var(--surface-container-high)' : style.color, display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', padding: '12px'
+                            justifyContent: 'center', overflow: 'hidden', flexShrink: 0
                           }}>
-                            {style.logo ? <img src={style.logo} alt={sub.name} style={{ width: '28px', height: '28px', filter: isInactive ? 'grayscale(100%)' : 'none' }} /> : <span style={{color:'white', fontWeight:600}}>{(sub.name || '?').charAt(0)}</span>}
+                            {style.logo ? <img src={style.logo} alt={sub.name} style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover', filter: isInactive ? 'grayscale(100%)' : 'none' }} /> : <span style={{color:'white', fontWeight:600}}>{(sub.name || '?').charAt(0)}</span>}
                           </div>
                           <div>
                             <h3 className="text-h3" style={{ fontSize: '20px' }}>{sub.name}</h3>
@@ -434,7 +463,6 @@ const SubscriptionCenter: React.FC = () => {
         setShowSuccessModal(false);
         setLastSubscribedPlan(null);
         setFilter('active');
-        setSuccessMsg('');
       }}
       planName={lastSubscribedPlan?.name || ''}
       amount={lastSubscribedPlan?.amount || ''}

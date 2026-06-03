@@ -123,7 +123,7 @@ const CheckoutWidget: React.FC = () => {
       <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
         <div className="bg-blue-600 p-6 text-white text-center">
-          <h1 className="text-2xl font-bold">Recurra Checkout</h1>
+          <h1 className="text-2xl font-bold">Rekura Checkout</h1>
           <p className="text-blue-200 text-sm mt-1">Secure crypto payments</p>
         </div>
         

@@ -139,6 +139,10 @@ app.get('/health', (_req, res) => {
 import { plansRoutes } from './api/routes/plans.js';
 import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
 import { analyticsRoutes } from './api/routes/analytics.js';
+import { uploadRoutes } from './api/routes/upload.js';
+
+// Serve static files from the public directory
+app.use(express.static('public'));
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
@@ -148,6 +152,7 @@ app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/plans', plansRoutes);
 app.use('/api/v1/demo-merchant', demoMerchantRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // ============================================================
 // ERROR HANDLING
@@ -162,6 +167,7 @@ app.use(errorHandler);
 
 import { WebhookDeliveryService } from './webhooks/WebhookDeliveryService.js';
 import { initSocket } from './utils/socket.js';
+import { startKeepAlive, stopKeepAlive } from './services/KeepAliveService.js';
 
 const webhookService = new WebhookDeliveryService();
 
@@ -199,10 +205,14 @@ async function startServer() {
     // Initialize WebSockets
     initSocket(server);
 
+    // Start keepalive pinger (prevents Render free-tier cold starts)
+    startKeepAlive();
+
     // Graceful shutdown
     process.on('SIGTERM', () => {
       logger.info('SIGTERM received — shutting down gracefully');
       stopIndexer();
+      stopKeepAlive();
       webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
       server.close(() => {
         logger.info('Server closed');
@@ -213,6 +223,7 @@ async function startServer() {
     process.on('SIGINT', () => {
       logger.info('SIGINT received — shutting down gracefully');
       stopIndexer();
+      stopKeepAlive();
       webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
       server.close(() => {
         logger.info('Server closed');
@@ -230,11 +241,13 @@ startServer().catch(err => {
   process.exit(1);
 });
 
-// Unhandled rejections — log and exit
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled Promise rejection', { reason });
-  // Give time to log, then exit
-  setTimeout(() => process.exit(1), 1000);
+// Unhandled rejections — log but don't crash in development
+process.on('unhandledRejection', (reason: any) => {
+  logger.error('Unhandled Promise rejection', { 
+    message: reason?.message || String(reason),
+    stack: reason?.stack,
+    reason 
+  });
 });
 
 process.on('uncaughtException', (err) => {

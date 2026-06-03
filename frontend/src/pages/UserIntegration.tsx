@@ -61,20 +61,20 @@ const UserIntegration: React.FC = () => {
                     <span className="text-body-lg" style={{ fontWeight: 600 }}>Payment Engine Allowance</span>
                   </div>
                   {btnState === 'success' && (
-                    <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, background: 'rgba(29,185,84,0.15)', color: '#1DB954' }}>
+                    <span className="chip" style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
                       ACTIVE
                     </span>
                   )}
                 </div>
                 <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '16px' }}>
-                  Approve the Recurra smart contract to pull funds for your active subscriptions.
+                  Approve the Rekura smart contract to pull funds for your active subscriptions.
                 </p>
                 <button
                   id="btn-approve-allowance"
                   className="btn btn-primary"
                   style={{
                     width: '100%',
-                    ...(btnState === 'success' ? { backgroundColor: '#1DB954', color: '#fff', cursor: 'default' } : {})
+                    ...(btnState === 'success' ? { opacity: 0.8, cursor: 'default' } : {})
                   }}
                   onClick={approveAllowance}
                   disabled={btnState === 'loading' || btnState === 'success'}
@@ -85,8 +85,8 @@ const UserIntegration: React.FC = () => {
                 </button>
                 {btnState === 'success' && (
                   <button
-                    className="btn"
-                    style={{ width: '100%', marginTop: '8px', background: 'transparent', color: 'var(--on-surface-variant)', fontSize: '13px' }}
+                    className="btn btn-ghost"
+                    style={{ width: '100%', marginTop: '8px', fontSize: '14px' }}
                     onClick={revokeAllowance}
                   >
                     Revoke Allowance
@@ -122,7 +122,7 @@ const UserIntegration: React.FC = () => {
                 <div className="flex flex-col gap-2" style={{ fontSize: '13px' }}>
                   <div className="flex justify-between">
                     <span style={{ color: 'var(--on-surface-variant)' }}>Payment Allowance</span>
-                    <span style={{ color: btnState === 'success' ? '#1DB954' : 'var(--on-surface-variant)', fontWeight: 600 }}>
+                    <span style={{ color: btnState === 'success' ? 'var(--on-surface)' : 'var(--on-surface-variant)', fontWeight: 600 }}>
                       {btnState === 'success' ? ' Approved' : ' Not Approved'}
                     </span>
                   </div>

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2, Power, Upload } from "lucide-react";
 
 const MerchantIntegration: React.FC = () => {
   const { walletAddress, fullWalletAddress, userRole, openModal, setUserRole } = useWallet();
@@ -15,7 +15,47 @@ const MerchantIntegration: React.FC = () => {
 
   // Registration state
   const [businessName, setBusinessName] = useState('');
+  const [businessEmail, setBusinessEmail] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('recurra_token') || ''}`
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        const baseUrl = API_BASE.replace('/api/v1', '');
+        setLogoUrl(`${baseUrl}${data.url}`);
+        toast.success('Logo uploaded successfully');
+      } else {
+        toast.error(data.error || 'Failed to upload logo');
+      }
+    } catch (err) {
+      toast.error('Network error during upload');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   // Plan creation state
   const [planName, setPlanName] = useState('');
@@ -66,6 +106,8 @@ const MerchantIntegration: React.FC = () => {
         body: JSON.stringify({
           walletAddress: fullWalletAddress,
           businessName,
+          businessEmail,
+          logoUrl,
         })
       });
 
@@ -83,7 +125,7 @@ const MerchantIntegration: React.FC = () => {
             body: JSON.stringify({
               walletAddress: fullWalletAddress,
               signature: 'dummy_sig',
-              message: `Sign in to Recurra with wallet ${fullWalletAddress}`,
+              message: `Sign in to Rekura with wallet ${fullWalletAddress}`,
               publicKey: fullWalletAddress,
             })
           });
@@ -137,6 +179,38 @@ const MerchantIntegration: React.FC = () => {
     setIsCreatingPlan(false);
   };
 
+  const deletePlan = async (planId: string) => {
+    if (!confirm('Are you sure you want to deactivate this plan?')) return;
+    try {
+      const { ok, error } = await api(`/merchant/plans/${planId}`, { method: 'DELETE' });
+      if (ok) {
+        toast.success('Plan deactivated successfully');
+        fetchPlans();
+      } else {
+        toast.error(error || 'Failed to deactivate plan');
+      }
+    } catch (e) {
+      toast.error('Network error while deleting plan');
+    }
+  };
+
+  const togglePlanStatus = async (plan: any) => {
+    try {
+      const { ok, error } = await api(`/merchant/plans/${plan.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: !plan.is_active })
+      });
+      if (ok) {
+        toast.success(`Plan ${plan.is_active ? 'deactivated' : 'activated'} successfully`);
+        fetchPlans();
+      } else {
+        toast.error(error || 'Failed to update plan status');
+      }
+    } catch (e) {
+      toast.error('Network error while updating plan');
+    }
+  };
+
   const createWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreatingWebhook(true);
@@ -187,7 +261,7 @@ const MerchantIntegration: React.FC = () => {
             <CardHeader>
               <CardTitle className="text-h2">Register as a Merchant</CardTitle>
               <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-                Upgrade your account to create subscription plans and integrate Recurra payments.
+                Upgrade your account to create subscription plans and integrate Rekura payments.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -202,6 +276,69 @@ const MerchantIntegration: React.FC = () => {
                     required
                     className="text-black"
                   />
+                </div>
+                <div>
+                  <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Email</label>
+                  <Input 
+                    type="email" 
+                    placeholder="e.g. billing@acme.com" 
+                    value={businessEmail}
+                    onChange={(e) => setBusinessEmail(e.target.value)}
+                    required
+                    className="text-black"
+                  />
+                </div>
+                <div>
+                  <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Logo</label>
+                  {!logoUrl ? (
+                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-8 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center cursor-pointer">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        disabled={isUploadingLogo}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      {isUploadingLogo ? (
+                        <div className="flex flex-col items-center text-primary">
+                          <Loader2 className="animate-spin mb-2" size={28} />
+                          <span className="text-sm font-medium">Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-gray-500">
+                          <div className="bg-gray-100 p-3 rounded-full mb-3 text-gray-600">
+                            <Upload size={24} />
+                          </div>
+                          <span className="text-sm font-semibold text-black">Click to upload from device</span>
+                          <span className="text-xs mt-1 text-gray-400">SVG, PNG, JPG (max 5MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="relative border rounded-lg p-4 bg-white flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-gray-50 p-2 border border-gray-100 rounded-lg flex items-center justify-center" style={{ width: '60px', height: '60px' }}>
+                          <img src={logoUrl} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-black">Logo uploaded</span>
+                          <span className="text-xs text-emerald-600 font-medium">Ready for display</span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <Button type="button" variant="outline" size="sm" disabled={isUploadingLogo} className="text-black">
+                          {isUploadingLogo ? <><Loader2 className="animate-spin mr-2" size={14} /> Replacing...</> : 'Replace'}
+                        </Button>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isUploadingLogo}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button type="submit" disabled={isRegistering}>
                   {isRegistering ? <><Loader2 className="animate-spin mr-2" size={16} /> Registering...</> : 'Complete Registration'}
@@ -328,9 +465,23 @@ const MerchantIntegration: React.FC = () => {
                           }}>
                             {plan.is_active ? 'Active' : 'Inactive'}
                           </span>
-                          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginRight: '8px' }}>
                             {plan.subscriber_count || 0} subs
                           </span>
+                          <button 
+                            onClick={() => togglePlanStatus(plan)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
+                            title={plan.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button 
+                            onClick={() => deletePlan(plan.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     );

@@ -15,6 +15,7 @@ import {
   analyticsSchema,
   paginationSchema,
   updateMerchantSettingsSchema,
+  updatePlanSchema,
 } from '../../utils/validation.js';
 import { logger } from '../../utils/logger.js';
 
@@ -37,9 +38,9 @@ merchantRoutes.post('/register', authenticate, async (req: Request, res: Respons
 
     // Create merchant record in database
     const result = await dbPool.query(
-      `INSERT INTO merchants (wallet_address, business_name, business_url, kyc_status, platform_url, platform_name, platform_logo_url, redirect_url_template) 
-       VALUES ($1, $2, $3, 'approved', $4, $5, $6, $7) RETURNING *`,
-      [input.walletAddress, input.businessName, input.businessUrl || null,
+      `INSERT INTO merchants (wallet_address, business_name, business_email, logo_url, business_url, kyc_status, platform_url, platform_name, platform_logo_url, redirect_url_template) 
+       VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7, $8, $9) RETURNING *`,
+      [input.walletAddress, input.businessName, input.businessEmail, input.logoUrl, input.businessUrl || null,
        input.platformUrl || null, input.platformName || null,
        input.platformLogoUrl || null, input.redirectUrlTemplate || null]
     );
@@ -107,6 +108,114 @@ merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), as
     res.status(201).json({
       message: 'Plan created successfully',
       plan,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PUT /api/v1/merchant/plans/:id — Update subscription plan
+ */
+merchantRoutes.put('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const planId = req.params.id;
+    const input = updatePlanSchema.parse(req.body);
+    const { dbPool } = await import('../../database/index.js');
+
+    // Get merchant ID
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) {
+      res.status(403).json({ error: 'Merchant not found' });
+      return;
+    }
+    const merchantId = merchantResult.rows[0].id;
+
+    // Verify plan belongs to merchant
+    const planResult = await dbPool.query('SELECT id FROM plans WHERE id = $1 AND merchant_id = $2', [planId, merchantId]);
+    if (planResult.rowCount === 0) {
+      res.status(404).json({ error: 'Plan not found or unauthorized' });
+      return;
+    }
+
+    // Build update query
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let argCounter = 1;
+
+    const fieldMap: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      amount: 'amount',
+      intervalSeconds: 'interval_seconds',
+      is_active: 'is_active'
+    };
+
+    for (const [jsKey, dbCol] of Object.entries(fieldMap)) {
+      if ((input as any)[jsKey] !== undefined) {
+        setClauses.push(`${dbCol} = $${argCounter}`);
+        values.push((input as any)[jsKey]);
+        argCounter++;
+      }
+    }
+    
+    if (req.body.is_active !== undefined) {
+       setClauses.push(`is_active = $${argCounter}`);
+       values.push(req.body.is_active);
+       argCounter++;
+    }
+
+    if (setClauses.length === 0) {
+      res.status(400).json({ error: 'No fields to update' });
+      return;
+    }
+
+    values.push(planId);
+    values.push(merchantId);
+
+    const updateResult = await dbPool.query(
+      `UPDATE plans SET ${setClauses.join(', ')} WHERE id = $${argCounter - 2} AND merchant_id = $${argCounter - 1} RETURNING *`,
+      values
+    );
+
+    res.json({
+      message: 'Plan updated successfully',
+      plan: updateResult.rows[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/v1/merchant/plans/:id — Delete (deactivate) subscription plan
+ */
+merchantRoutes.delete('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const planId = req.params.id;
+    const { dbPool } = await import('../../database/index.js');
+
+    // Get merchant ID
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) {
+      res.status(403).json({ error: 'Merchant not found' });
+      return;
+    }
+    const merchantId = merchantResult.rows[0].id;
+
+    // Deactivate plan instead of hard delete to preserve history
+    const result = await dbPool.query(
+      `UPDATE plans SET is_active = false WHERE id = $1 AND merchant_id = $2 RETURNING *`,
+      [planId, merchantId]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Plan not found or unauthorized' });
+      return;
+    }
+
+    res.json({
+      message: 'Plan deleted (deactivated) successfully'
     });
   } catch (err) {
     next(err);

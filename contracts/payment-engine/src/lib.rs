@@ -17,8 +17,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, Address, Env, String,
-    Vec,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short, token as token_interface,
+    Address, Env, String, Vec,
 };
 
 // ============================================================
@@ -157,7 +157,9 @@ pub struct PaymentExecutedEvent {
     pub subscription_id: String,
     pub user: Address,
     pub merchant: Address,
-    pub amount: i128,
+    pub amount: i128,         // Total amount charged to subscriber
+    pub merchant_amount: i128, // Amount received by merchant (after 0.5% fee)
+    pub protocol_fee: i128,   // 0.5% fee sent to Recurra treasury
     pub payment_number: u32,
     pub next_payment_time: u64,
 }
@@ -373,12 +375,13 @@ impl RecurringPaymentEngine {
             return Err(PaymentError::PaymentAlreadyExecuted);
         }
 
-        // --- STEP 5: CALCULATE FEE ---
-        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(50); // 0.5% default
-        let fee_amount = (sub.amount * fee_bps as i128) / 10_000;
-        let _merchant_amount = sub.amount - fee_amount;
+        // --- STEP 5: CALCULATE FEE (0.5% to Recurra treasury) ---
+        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(50);
+        let fee_amount: i128 = (sub.amount * fee_bps as i128) / 10_000;
+        let merchant_amount: i128 = sub.amount - fee_amount;
 
         // --- STEP 6: UPDATE STATE BEFORE TRANSFER (EFFECTS) ---
+        // Safety: state changes BEFORE external calls prevents re-entrancy.
         sub.payments_made = next_payment_num;
         sub.next_payment_time = now + sub.interval;
         sub.last_payment_at = now;
@@ -391,7 +394,7 @@ impl RecurringPaymentEngine {
             sub.status = SubscriptionStatus::Active;
         }
 
-        // Mark as executed (idempotency)
+        // Mark as executed (idempotency) — prevents double-charge even if called twice
         env.storage().persistent().set(&idempotency_key, &true);
         env.storage()
             .persistent()
@@ -424,17 +427,36 @@ impl RecurringPaymentEngine {
             &total_volume.checked_add(sub.amount).unwrap_or(total_volume),
         );
 
-        // --- STEP 7: INTERACTIONS would happen here ---
-        // In production: call token_wrapper.transfer(user, merchant, merchant_amount)
-        // and token_wrapper.transfer(user, fee_recipient, fee_amount)
-        // These are cross-contract calls that happen AFTER state updates
+        // --- STEP 7: TOKEN TRANSFERS (INTERACTIONS — happen last, after state is final) ---
+        //
+        // Both transfers happen atomically in this single Soroban transaction.
+        // If either fails (e.g. insufficient balance), the entire tx reverts —
+        // including the state updates above. This is Soroban's ACID guarantee.
+        //
+        // Money flow:
+        //   sub.user → merchant:      merchant_amount (e.g. 9.95 USDC)
+        //   sub.user → fee_recipient: fee_amount      (e.g. 0.05 USDC = 0.5%)
+        let token = token_interface::Client::new(&env, &sub.token);
 
-        // Emit event
+        // Transfer merchant's share
+        token.transfer(&sub.user, &sub.merchant, &merchant_amount);
+
+        // Transfer Recurra's 0.5% protocol fee to treasury
+        let fee_recipient: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::FeeRecipient)
+            .ok_or(PaymentError::NotInitialized)?;
+        token.transfer(&sub.user, &fee_recipient, &fee_amount);
+
+        // Emit event (includes fee breakdown for indexer/dashboard)
         let event = PaymentExecutedEvent {
             subscription_id: subscription_id.clone(),
             user: sub.user.clone(),
             merchant: sub.merchant.clone(),
             amount: sub.amount,
+            merchant_amount,
+            protocol_fee: fee_amount,
             payment_number: next_payment_num,
             next_payment_time: sub.next_payment_time,
         };
@@ -446,10 +468,12 @@ impl RecurringPaymentEngine {
 
         log!(
             &env,
-            "Payment executed: sub={}, payment#={}, amount={}",
+            "Payment executed: sub={}, payment#={}, total={}, merchant={}, fee={}",
             subscription_id,
             next_payment_num,
-            sub.amount
+            sub.amount,
+            merchant_amount,
+            fee_amount
         );
 
         Ok(event)

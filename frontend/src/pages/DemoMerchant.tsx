@@ -43,7 +43,7 @@ const DemoMerchant: React.FC = () => {
       return;
     }
     
-    // Redirect to Recurra Checkout
+    // Redirect to Rekura Checkout
     navigate(`/checkout?planId=${planId}&merchantName=${encodeURIComponent(merchantName)}`);
   };
 

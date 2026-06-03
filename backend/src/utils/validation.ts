@@ -48,7 +48,8 @@ export const refreshTokenSchema = z.object({
 export const registerMerchantSchema = z.object({
   walletAddress: stellarAddressSchema,
   businessName: z.string().trim().min(2).max(255),
-  businessEmail: z.string().trim().email().optional(),
+  businessEmail: z.string().trim().email(),
+  logoUrl: z.string().trim().url(),
   businessUrl: z.string().trim().url().optional(),
   countryCode: z.string().trim().length(2).optional(),
   gstNumber: z.string().trim().max(15).optional(),

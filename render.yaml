@@ -5,8 +5,9 @@ services:
   - type: web
     name: recurra-backend
     env: node
-    region: oregon # or ohio, frankfurt, etc.
-    plan: free # Change to 'starter' or higher for production without sleep delays
+    region: oregon
+    plan: free # ⚠ Free tier: 50-second cold starts. Upgrade to 'starter' ($7/mo) to eliminate.
+              # When upgrading: also set KEEPALIVE_ENABLED=false to disable the ping workaround.
     buildCommand: "cd backend && npm install --include=dev && npm run build"
     startCommand: "cd backend && npm start"
     envVars:
@@ -36,6 +37,23 @@ services:
         value: "https://horizon-testnet.stellar.org"
       - key: STELLAR_NETWORK_PASSPHRASE
         value: "Test SDF Network ; September 2015"
+      # --- Keepalive (prevents free-tier cold starts by pinging /health every 14 min) ---
+      - key: KEEPALIVE_ENABLED
+        value: "true" # Set to 'false' when upgrading to Render Starter plan
+      - key: RENDER_EXTERNAL_URL
+        sync: false # Paste your Render service URL here (e.g., https://recurra-backend.onrender.com)
+      # --- Keeper config ---
+      - key: KEEPER_BATCH_SIZE
+        value: "500" # Number of subscriptions processed in parallel per keeper run
+      - key: MAINNET_GATE_TEST
+        value: "false" # Set to 'true' during the 500-tx testnet gate test
+      # --- Recurra Treasury (receives 0.5% protocol fee from every payment) ---
+      - key: RECURRA_TREASURY_PUBLIC_KEY
+        value: "GDQVRBAWJ62PYHEDJCZOQFCWJQXPHM5SPEFXGO6IHODONRNOZM27LEBJ"
+        # IMPORTANT: Store the SECRET key securely — NEVER commit it to git.
+        # Treasury keypair was generated 2026-06-03. Fund on testnet via friendbot first.
+      - key: RECURRA_TREASURY_SECRET_KEY
+        sync: false # Paste the secret key in Render Dashboard (never in code)
 
   # ==========================================
   # RECURRA REDIS (Cache & Job Queue)

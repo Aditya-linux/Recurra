@@ -279,7 +279,7 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
                   transition: 'all 0.2s ease',
                 }}
               >
-                Stay on Recurra
+                Stay on Rekura
               </button>
             </>
           ) : (

@@ -82,3 +82,7 @@ logs/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# ===== UPLOADS =====
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
