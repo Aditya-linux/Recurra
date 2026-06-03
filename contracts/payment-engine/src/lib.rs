@@ -17,8 +17,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, log, symbol_short, token as token_interface,
-    Address, Env, String, Vec,
+    contract, contracterror, contractimpl, contracttype, log, symbol_short,
+    token as token_interface, Address, Env, String, Vec,
 };
 
 // ============================================================
@@ -157,9 +157,9 @@ pub struct PaymentExecutedEvent {
     pub subscription_id: String,
     pub user: Address,
     pub merchant: Address,
-    pub amount: i128,         // Total amount charged to subscriber
+    pub amount: i128,          // Total amount charged to subscriber
     pub merchant_amount: i128, // Amount received by merchant (after 0.5% fee)
-    pub protocol_fee: i128,   // 0.5% fee sent to Recurra treasury
+    pub protocol_fee: i128,    // 0.5% fee sent to Recurra treasury
     pub payment_number: u32,
     pub next_payment_time: u64,
 }
@@ -797,7 +797,7 @@ mod tests {
         let fee_recipient = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        
+
         #[allow(deprecated)]
         let token = env.register_contract(None, MockToken);
 
@@ -846,7 +846,7 @@ mod tests {
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        
+
         #[allow(deprecated)]
         let token = env.register_contract(None, MockToken);
 
@@ -887,7 +887,7 @@ mod tests {
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        
+
         #[allow(deprecated)]
         let token = env.register_contract(None, MockToken);
 
