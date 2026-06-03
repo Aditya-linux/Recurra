@@ -777,6 +777,14 @@ mod tests {
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
+    #[contract]
+    pub struct MockToken;
+
+    #[contractimpl]
+    impl MockToken {
+        pub fn transfer(_env: Env, _from: Address, _to: Address, _amount: i128) {}
+    }
+
     #[test]
     fn test_create_and_execute_subscription() {
         let env = Env::default();
@@ -789,8 +797,11 @@ mod tests {
         let fee_recipient = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        let token = Address::generate(&env);
+        
+        #[allow(deprecated)]
+        let token = env.register_contract(None, MockToken);
 
+        #[allow(deprecated)]
         let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
@@ -835,8 +846,11 @@ mod tests {
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        let token = Address::generate(&env);
+        
+        #[allow(deprecated)]
+        let token = env.register_contract(None, MockToken);
 
+        #[allow(deprecated)]
         let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
@@ -873,8 +887,11 @@ mod tests {
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
         let merchant = Address::generate(&env);
-        let token = Address::generate(&env);
+        
+        #[allow(deprecated)]
+        let token = env.register_contract(None, MockToken);
 
+        #[allow(deprecated)]
         let contract_id = env.register_contract(None, RecurringPaymentEngine);
         let client = RecurringPaymentEngineClient::new(&env, &contract_id);
 
