@@ -241,9 +241,19 @@ const SubscriptionCenter: React.FC = () => {
     'Canva':      { color: '#00C4CC', logo: '/logos/canva.jpg' },
     'JioHotstar': { color: '#6B2D8B', logo: '/logos/jiohotstar.jpg' },
     'Apple TV+':  { color: '#1C1C1E', logo: '/logos/apple-tv-plus.jpg' },
+    'Apple':      { color: '#1C1C1E', logo: '/logos/apple-tv-plus.jpg' },
     'Adobe':      { color: '#FFFFFF', logo: '/logos/adobe.jpg', objectFit: 'contain' },
     'YouTube':    { color: '#FF0000', logo: '/logos/youtube.jpg' },
     'Claude':     { color: '#D4A574', logo: 'https://cdn.simpleicons.org/anthropic/white' },
+    'Kotha':      { color: '#3B82F6', logo: '' }, // Fallback for your custom test data
+  };
+
+  const getMerchantStyle = (nameToMatch: string, fallbackUrl?: string) => {
+    if (!nameToMatch) return { color: '#3B82F6', logo: fallbackUrl || '' };
+    const normalized = nameToMatch.toLowerCase();
+    const match = Object.entries(merchantStyles).find(([key]) => normalized.includes(key.toLowerCase()));
+    if (match) return match[1];
+    return { color: '#3B82F6', logo: fallbackUrl || '' };
   };
 
   const filtered = filter === 'available' ? availablePlans : subscriptions.filter(s => s.status === filter);
@@ -297,7 +307,7 @@ const SubscriptionCenter: React.FC = () => {
                   {Array.from(new Set(availablePlans.map(p => p.merchant_address))).map(address => {
                     const plan = availablePlans.find(p => p.merchant_address === address);
                     if (!plan) return null;
-                    const style = merchantStyles[plan.merchant_name] || { color: '#3B82F6', logo: plan.logo_url };
+                    const style = getMerchantStyle(plan.merchant_name, plan.logo_url);
                     const planCount = availablePlans.filter(p => p.merchant_address === address).length;
                     return (
                       <Card key={address} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)', cursor: 'pointer' }} onClick={() => setSelectedMerchantAddress(address)}>
@@ -329,7 +339,7 @@ const SubscriptionCenter: React.FC = () => {
                   </Button>
                   {availablePlans.filter(p => p.merchant_address === selectedMerchantAddress).map(plan => {
                     const baseName = plan.plan_name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
-                    const style = merchantStyles[plan.merchant_name] || { color: '#3B82F6', logo: plan.logo_url };
+                    const style = getMerchantStyle(plan.merchant_name, plan.logo_url);
                     const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
                     return (
                       <Card key={plan.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)' }}>
@@ -383,7 +393,7 @@ const SubscriptionCenter: React.FC = () => {
               {!fetchError && filter !== 'available' && filtered.map(sub => {
                 const isInactive = sub.status === 'inactive';
                 const subBaseName = sub.name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
-                const style = merchantStyles[subBaseName] || merchantStyles[sub.name] || { color: '#3B82F6', logo: '' };
+                const style = getMerchantStyle(subBaseName || sub.name);
 
                 return <Card key={sub.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)', opacity: isInactive ? 0.6 : 1 }}>
                     <CardContent className="p-6">
