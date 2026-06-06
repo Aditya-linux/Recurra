@@ -309,7 +309,7 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
           
           {txHash && (
             <a
-              href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
+              href={`https://stellar.expert/explorer/${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'public' : 'testnet'}/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

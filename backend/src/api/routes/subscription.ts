@@ -19,6 +19,7 @@ import { UserRepository } from '../../database/repositories/UserRepository.js';
 import { MailService } from '../../services/MailService.js';
 import { getIO } from '../../utils/socket.js';
 import { WebhookDeliveryService } from '../../webhooks/WebhookDeliveryService.js';
+import { config } from '../../config/index.js';
 
 export const subscriptionRoutes = Router();
 
@@ -47,7 +48,7 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
       const txId = req.body.subscriptionIdOnChain;
       
       try {
-        const server = new rpc.Server('https://soroban-testnet.stellar.org');
+        const server = new rpc.Server(config.stellar.rpcUrl);
         const txResponse = await server.getTransaction(txId);
         if (txResponse.status !== 'SUCCESS') {
           res.status(400).json({ error: 'Transaction failed on-chain or is pending' });

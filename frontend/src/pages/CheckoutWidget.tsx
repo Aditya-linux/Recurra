@@ -47,15 +47,21 @@ const CheckoutWidget: React.FC = () => {
     try {
       const { Contract, rpc, TransactionBuilder, Networks, TimeoutInfinite, nativeToScVal } = await import('@stellar/stellar-sdk');
       
-      const server = new rpc.Server('https://soroban-testnet.stellar.org');
+      const rpcUrl = import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET'
+        ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+        : 'https://soroban-testnet.stellar.org';
+      const server = new rpc.Server(rpcUrl);
       const account = await server.getAccount(fullWalletAddress);
       
-      const contract = new Contract('CBOMKCJGCFEYJTTOKQX53NSA6OF66WIFYC4WVKJIF7GWSTVV6JI265AP');
-      const tokenAddress = plan.token_address || 'CD5TE4CUOKX6T5UMHL4JUTX7FTCN2G7CK3XPP7XV35COKJ6RZA6SG7YR';
+      const contractAddress = import.meta.env.VITE_CONTRACT_PAYMENT_ENGINE || 'CC5DLW4KX7NBDQKBS7F4N2QJEXECVSZMZTZ5WQ2FSFNUM3F7Z37J24XR';
+      const contract = new Contract(contractAddress);
+      const defaultTokenAddress = import.meta.env.VITE_USDC_TOKEN_ADDRESS || 'CD5TE4CUOKX6T5UMHL4JUTX7FTCN2G7CK3XPP7XV35COKJ6RZA6SG7YR';
+      const tokenAddress = plan.token_address || defaultTokenAddress;
       
+      const networkPassphrase = import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? Networks.PUBLIC : Networks.TESTNET;
       const tx = new TransactionBuilder(account, {
         fee: '1000',
-        networkPassphrase: Networks.TESTNET
+        networkPassphrase
       })
       .addOperation(contract.call('create_subscription', 
         nativeToScVal(fullWalletAddress, { type: 'address' }), 
@@ -73,7 +79,7 @@ const CheckoutWidget: React.FC = () => {
       const signedXdr = await signTransaction(preparedTx.toXDR());
       
       toast.loading('Submitting transaction...', { id: toastId });
-      const sendRes = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET));
+      const sendRes = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr, networkPassphrase));
       txHash = sendRes.hash;
       setTransactionHash(txHash);
     } catch (contractErr: any) {

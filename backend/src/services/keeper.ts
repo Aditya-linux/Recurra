@@ -7,6 +7,7 @@ import { UserRepository } from '../database/repositories/UserRepository.js';
 import { PlanRepository } from '../database/repositories/PlanRepository.js';
 import { RetailFulfillmentService } from './RetailFulfillmentService.js';
 import { MailService } from './MailService.js';
+import { config } from '../config/index.js';
 
 // Redis connection details from env
 const connection = {
@@ -44,9 +45,7 @@ async function processPayment(sub: any): Promise<void> {
     nativeToScVal,
   } = await import('@stellar/stellar-sdk');
 
-  const server = new rpc.Server(
-    process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org'
-  );
+  const server = new rpc.Server(config.stellar.rpcUrl);
 
   const keeperKeypair =
     process.env.KEEPER_PRIVATE_KEY &&
@@ -68,7 +67,7 @@ async function processPayment(sub: any): Promise<void> {
     const account = await server.getAccount(keeperKeypair.publicKey());
     const tx = new TransactionBuilder(account, {
       fee: '1000',
-      networkPassphrase: Networks.TESTNET,
+      networkPassphrase: config.stellar.networkPassphrase,
     })
       .addOperation(
         contract.call(

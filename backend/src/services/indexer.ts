@@ -1,9 +1,9 @@
 import { rpc } from '@stellar/stellar-sdk';
 import { dbPool } from '../database/index.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../config/index.js';
 
-const RPC_URL = process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org';
-const rpcServer = new rpc.Server(RPC_URL);
+const rpcServer = new rpc.Server(config.stellar.rpcUrl);
 
 let isPolling = false;
 let pollingInterval: NodeJS.Timeout | null = null;

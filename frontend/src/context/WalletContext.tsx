@@ -7,6 +7,13 @@ import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
 import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
 import { TransactionBuilder, Account, Operation, TimeoutInfinite, Networks } from '@stellar/stellar-sdk';
 
+/** Resolve network passphrase from env */
+const getNetworkPassphrase = () =>
+  import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? Networks.PUBLIC : Networks.TESTNET;
+
+const getNetworkId = () =>
+  import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'MAINNET' : 'TESTNET';
+
 interface WalletContextType {
   walletAddress: string | null;
   fullWalletAddress: string | null;
@@ -39,7 +46,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           new xBullModule()
         ],
         selectedWalletId: activeWalletId || 'freighter',
-        network: 'TESTNET' as any
+        network: getNetworkId() as any
       });
     } catch (e) {
       console.error("Error initializing StellarWalletsKit:", e);
@@ -143,7 +150,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const account = new Account(publicKey, '0');
       const tx = new TransactionBuilder(account, {
         fee: '100',
-        networkPassphrase: Networks.TESTNET
+        networkPassphrase: getNetworkPassphrase()
       })
       .addOperation(Operation.manageData({
         name: 'auth',
@@ -153,7 +160,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .setTimeout(TimeoutInfinite)
       .build();
 
-      const result = await StellarWalletsKit.signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      const result = await StellarWalletsKit.signTransaction(tx.toXDR(), { networkPassphrase: getNetworkPassphrase() });
       signedTxXdr = result.signedTxXdr;
     } catch (signErr: any) {
       const msg = signErr?.message || String(signErr);

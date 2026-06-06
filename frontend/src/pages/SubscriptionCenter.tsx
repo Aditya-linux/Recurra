@@ -446,7 +446,7 @@ const SubscriptionCenter: React.FC = () => {
                           </div>
                           {!isInactive && sub.subscription_id_on_chain && (
                             <a
-                              href={`https://stellar.expert/explorer/testnet/tx/${sub.subscription_id_on_chain}`}
+                              href={`https://stellar.expert/explorer/${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'public' : 'testnet'}/tx/${sub.subscription_id_on_chain}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs font-medium mt-2 flex items-center gap-1 hover:underline"

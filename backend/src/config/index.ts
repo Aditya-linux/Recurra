@@ -56,9 +56,23 @@ export const config = {
   // Stellar Network
   stellar: {
     network: process.env['STELLAR_NETWORK'] ?? 'testnet',
-    rpcUrl: process.env['STELLAR_RPC_URL'] ?? 'https://soroban-testnet.stellar.org',
-    horizonUrl: process.env['STELLAR_HORIZON_URL'] ?? 'https://horizon-testnet.stellar.org',
-    networkPassphrase: process.env['STELLAR_NETWORK_PASSPHRASE'] ?? 'Test SDF Network ; September 2015',
+    rpcUrl: process.env['STELLAR_RPC_URL'] ?? (
+      (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet'
+        ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+        : 'https://soroban-testnet.stellar.org'
+    ),
+    horizonUrl: process.env['STELLAR_HORIZON_URL'] ?? (
+      (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet'
+        ? 'https://horizon.stellar.org'
+        : 'https://horizon-testnet.stellar.org'
+    ),
+    networkPassphrase: process.env['STELLAR_NETWORK_PASSPHRASE'] ?? (
+      (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet'
+        ? 'Public Global Stellar Network ; September 2015'
+        : 'Test SDF Network ; September 2015'
+    ),
+    /** Whether we are targeting mainnet */
+    isMainnet: (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet',
   },
 
   // Contract Addresses

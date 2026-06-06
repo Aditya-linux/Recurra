@@ -12,6 +12,7 @@ import { errors } from '../../middleware/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { Keypair, Transaction, Networks } from '@stellar/stellar-sdk';
 import { UserRepository } from '../../database/repositories/UserRepository.js';
+import { config } from '../../config/index.js';
 
 export const authRoutes = Router();
 
@@ -28,7 +29,7 @@ authRoutes.post('/connect', async (req: Request, res: Response, next: NextFuncti
 
     // Verify wallet signature against the challenge transaction
     try {
-      const tx = new Transaction(input.signedTxXdr, Networks.TESTNET);
+      const tx = new Transaction(input.signedTxXdr, config.stellar.networkPassphrase);
       const keypair = Keypair.fromPublicKey(input.publicKey);
       
       const hash = tx.hash();

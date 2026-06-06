@@ -1,27 +1,31 @@
-#  Recurra (SurePay) - Web3 Recurring Payments
+# Recurra (SurePay) - Web3 Recurring Payments
+
+**Live Demo:** [https://recurra-omega.vercel.app/merchant](https://recurra-omega.vercel.app/merchant)
+**Video Demo:** [https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing](https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing)
+
 
 Recurra is a decentralized B2B & B2C platform built on the **Stellar Soroban** smart contract network. It brings "Stripe-like" automated, recurring subscriptions to Web3, empowering merchants to create customizable subscription plans and allowing consumers to subscribe to services using their smart wallets.
 
 ---
 
-##  The Problem it Solves
+## The Problem it Solves
 In the traditional Web2 world, recurring payments are simple: you enter your credit card, and the merchant pulls funds automatically every month. 
 
 In Web3, this is traditionally impossible. Smart contracts **cannot self-execute**, and cryptographic wallets require the user to explicitly sign a transaction every single time funds move. This means for a Web3 subscription, the user has to manually log in and sign a transaction every 30 days—resulting in massive churn and terrible User Experience (UX).
 
-##  The Recurra Solution
+## The Recurra Solution
 Recurra solves this by implementing a **delegated allowance system coupled with an off-chain Keeper network**. 
 1. The user approves a one-time "allowance" to the Recurra smart contract.
 2. The user signs a single transaction to initiate the subscription.
 3. Our backend **Keeper Node** wakes up periodically to execute the `process_payment` function on the Soroban smart contract on behalf of the merchant, pulling the funds automatically based on the agreed-upon interval (e.g., 30 days).
 
-##  Target Audience
+## Target Audience
 - **B2B (Merchants, DAOs, SaaS Providers, Creators):** Businesses that want to accept recurring crypto payments (e.g., USDC) seamlessly without building their own smart contracts or indexing infrastructure.
 - **B2C (Everyday Consumers):** Web3 users who want a unified "Subscription Center" to track, manage, and cancel their active subscriptions with a single click, paying directly from their self-custody wallets.
 
 ---
 
-##  System Architecture
+## System Architecture
 
 Recurra is a full-stack Web3 application comprising three core layers:
 
@@ -43,7 +47,7 @@ A premium, dark-mode, responsive user interface.
 
 ---
 
-##  User Flow: How it Works
+## User Flow: How it Works
 
 1. **Merchant Onboarding:** A merchant connects their wallet, registers their business name, and creates a "Plan" (e.g., 10 USDC every 30 days).
 2. **Consumer Discovery:** A consumer browses the Retail Storefront on the frontend and clicks "Subscribe" on the merchant's plan.
@@ -52,7 +56,7 @@ A premium, dark-mode, responsive user interface.
 
 ---
 
-##  Technical Setup & Installation
+## Technical Setup & Installation
 
 ### Prerequisites
 - Node.js (v18+)
@@ -106,7 +110,7 @@ soroban contract deploy \
 
 ---
 
-##  Project Structure
+## Project Structure
 
 ```text
 ├── backend/                  # Node.js/Express API & Workers
@@ -126,5 +130,5 @@ soroban contract deploy \
 └── README.md
 ```
 
-##  License
+## License
 This project is licensed under the MIT License.

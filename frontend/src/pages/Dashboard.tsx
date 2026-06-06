@@ -12,7 +12,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-  // Fetch wallet balances from Horizon Testnet
+  // Fetch wallet balances from Horizon
   useEffect(() => {
     if (!fullWalletAddress) {
       setBalances(null);
@@ -23,9 +23,12 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${fullWalletAddress}`);
+        const horizonUrl = import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET'
+          ? 'https://horizon.stellar.org'
+          : 'https://horizon-testnet.stellar.org';
+        const response = await fetch(`${horizonUrl}/accounts/${fullWalletAddress}`);
         if (!response.ok) {
-          setBalances({ error: 'Account not yet funded on Testnet. Use friendbot to fund it.' });
+          setBalances({ error: `Account not yet funded on ${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'Mainnet' : 'Testnet'}.${import.meta.env.VITE_STELLAR_NETWORK !== 'MAINNET' ? ' Use friendbot to fund it.' : ''}` });
         } else {
           const data = await response.json();
           setBalances(data.balances);
