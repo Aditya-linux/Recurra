@@ -10,7 +10,7 @@ import { connectWalletSchema, refreshTokenSchema } from '../../utils/validation.
 import { generateAccessToken, generateRefreshToken } from '../../middleware/auth.js';
 import { errors } from '../../middleware/errorHandler.js';
 import { logger } from '../../utils/logger.js';
-import { Keypair, Transaction, Networks } from '@stellar/stellar-sdk';
+import { Keypair, Transaction } from '@stellar/stellar-sdk';
 import { UserRepository } from '../../database/repositories/UserRepository.js';
 import { config } from '../../config/index.js';
 

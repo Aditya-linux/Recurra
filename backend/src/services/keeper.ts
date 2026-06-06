@@ -40,7 +40,6 @@ async function processPayment(sub: any): Promise<void> {
     Contract,
     rpc,
     TransactionBuilder,
-    Networks,
     TimeoutInfinite,
     nativeToScVal,
   } = await import('@stellar/stellar-sdk');
