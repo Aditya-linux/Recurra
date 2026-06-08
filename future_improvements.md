@@ -36,6 +36,9 @@ Render is great for MVP, but to support high concurrency, ultra-low latency glob
 - [ ] **Database Read Replicas:** Move the PostgreSQL database to a managed service like Amazon RDS with "Multi-AZ" and read replicas in different continents (e.g., US, Europe, Asia). This ensures that if a user in Tokyo fetches their subscriptions, it reads from an Asian database instantly rather than traveling to the US.
 - [ ] **Private VPC & Secrets Manager:** Move all sensitive variables (like the Keeper private key) out of `.env` files and into AWS Secrets Manager or HashiCorp Vault. Ensure the database and Redis instances are in a Private Subnet (no public internet access) and can only be accessed by the backend servers.
 
+## ⚙️ 5. Automated Smart Contract Deployments
+- [ ] **On-Chain Plan Registration:** Update the backend architecture so that whenever a merchant creates a new plan via the Merchant Portal, the system automatically builds, signs, and submits a transaction to register/deploy that plan directly onto the Stellar Mainnet without manual intervention.
+
 ---
 
 > [!TIP]
