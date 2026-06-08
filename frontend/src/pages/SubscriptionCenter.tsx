@@ -81,7 +81,7 @@ const SubscriptionCenter: React.FC = () => {
       const { Contract, rpc, TransactionBuilder, Networks, nativeToScVal, Transaction } = await import('@stellar/stellar-sdk');
       
       const rpcUrl = import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' 
-        ? 'https://soroban-mainnet.stellar.org'
+        ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
         : 'https://soroban-testnet.stellar.org';
       const server = new rpc.Server(rpcUrl);
       const account = await server.getAccount(fullWalletAddress);
