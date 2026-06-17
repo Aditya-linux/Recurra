@@ -4,6 +4,7 @@ import { WalletProvider, useWallet } from './context/WalletContext';
 import Navbar from './components/Navbar';
 import WalletModal from './components/WalletModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import AnalyticsWrapper from './components/AnalyticsWrapper';
 
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -38,15 +39,17 @@ const App: React.FC = () => {
         <Navbar />
         <WalletModal />
         <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/dashboard" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><Dashboard /></ErrorBoundary></RoleGuard></RequireWallet>} />
-            <Route path="/merchant" element={<RequireWallet><ErrorBoundary><MerchantIntegration /></ErrorBoundary></RequireWallet>} />
-            <Route path="/user" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><UserIntegration /></ErrorBoundary></RoleGuard></RequireWallet>} />
-            <Route path="/subscriptions" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><SubscriptionCenter /></ErrorBoundary></RoleGuard></RequireWallet>} />
-            <Route path="/demo-merchant" element={<ErrorBoundary><DemoMerchant /></ErrorBoundary>} />
-            <Route path="/checkout" element={<ErrorBoundary><CheckoutWidget /></ErrorBoundary>} />
-          </Routes>
+          <AnalyticsWrapper>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/dashboard" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><Dashboard /></ErrorBoundary></RoleGuard></RequireWallet>} />
+              <Route path="/merchant" element={<RequireWallet><ErrorBoundary><MerchantIntegration /></ErrorBoundary></RequireWallet>} />
+              <Route path="/user" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><UserIntegration /></ErrorBoundary></RoleGuard></RequireWallet>} />
+              <Route path="/subscriptions" element={<RequireWallet><RoleGuard restrictRole="merchant" redirectTo="/merchant"><ErrorBoundary><SubscriptionCenter /></ErrorBoundary></RoleGuard></RequireWallet>} />
+              <Route path="/demo-merchant" element={<ErrorBoundary><DemoMerchant /></ErrorBoundary>} />
+              <Route path="/checkout" element={<ErrorBoundary><CheckoutWidget /></ErrorBoundary>} />
+            </Routes>
+          </AnalyticsWrapper>
         </ErrorBoundary>
       </Router>
     </WalletProvider>

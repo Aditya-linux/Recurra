@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '../context/WalletContext';
 import { api, getValidToken } from '../utils/api';
 import { Card, CardContent } from "@/components/ui/card";
-import { Wallet, RefreshCw, DollarSign, Loader2, ExternalLink } from "lucide-react";
+import { Wallet, RefreshCw, DollarSign, Loader2, ExternalLink, Share2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from '../utils/analytics';
 
 const Dashboard: React.FC = () => {
   const { fullWalletAddress } = useWallet();
@@ -11,6 +12,14 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyReferral = () => {
+    navigator.clipboard.writeText(`https://rekura.com/invite/${fullWalletAddress?.substring(0, 8) || 'user'}`);
+    setCopiedLink(true);
+    trackEvent('copy_referral_link', { user: fullWalletAddress });
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   // Fetch wallet balances from Horizon
   useEffect(() => {
@@ -155,6 +164,29 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Referral Card */}
+        <Card style={{ marginBottom: '40px', background: 'rgba(52, 120, 246, 0.05)', border: '1px solid rgba(52, 120, 246, 0.2)' }}>
+          <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div style={{ padding: '12px', background: 'rgba(52, 120, 246, 0.1)', color: 'var(--accent-blue)', borderRadius: '12px' }}>
+                <Share2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-h3" style={{ fontSize: '20px', marginBottom: '4px' }}>Refer a Friend, Earn USDC</h3>
+                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Invite your friends and get 5 USDC when they make their first subscription.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2" style={{ width: '100%', maxWidth: '350px' }}>
+              <div style={{ flex: 1, padding: '10px 16px', background: 'var(--surface)', borderRadius: '8px', border: '1px solid var(--outline-variant)', fontSize: '14px', color: 'var(--on-surface-variant)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {`https://rekura.com/invite/${fullWalletAddress?.substring(0, 8) || 'user'}`}
+              </div>
+              <Button onClick={handleCopyReferral} variant="outline" style={{ display: 'flex', gap: '8px', minWidth: '100px' }}>
+                {copiedLink ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy</>}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Active Subscriptions List */}
         <h3 className="text-h3" style={{ marginBottom: '24px', fontSize: '24px' }}>Active Subscriptions</h3>
         <div className="panel flex flex-col gap-4">
@@ -190,7 +222,10 @@ const Dashboard: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(sub.redirect.url, '_blank', 'noopener,noreferrer')}
+                      onClick={() => {
+                        trackEvent('open_merchant_platform', { merchant: sub.name });
+                        window.open(sub.redirect.url, '_blank', 'noopener,noreferrer');
+                      }}
                       style={{ gap: '4px', fontSize: '12px' }}
                     >
                       <ExternalLink size={12} />

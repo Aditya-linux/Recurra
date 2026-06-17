@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
 import { useTheme } from '../hooks/useTheme';
+import FeedbackModal from './FeedbackModal';
 
 const Navbar: React.FC = () => {
   const { walletAddress, userRole, openModal, disconnect } = useWallet();
   const { isDark, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const location = useLocation();
 
   const getNavClass = ({ isActive }: { isActive: boolean }) => {
@@ -70,6 +72,24 @@ const Navbar: React.FC = () => {
               }}
             >
               <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
+            </button>
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className="btn-ghost"
+              style={{
+                padding: '8px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--on-surface-variant)',
+                cursor: 'pointer',
+                borderRadius: 'var(--rounded)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Send Feedback"
+            >
+              <span className="material-symbols-outlined">feedback</span>
             </button>
             {walletAddress ? (
               <div style={{ position: 'relative' }}>
@@ -148,6 +168,7 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </nav>
   );
 };

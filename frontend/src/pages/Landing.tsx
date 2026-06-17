@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Blocks, Wallet, ShieldCheck, Activity, Zap, Repeat, CheckCircle } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
+import { trackEvent } from '../utils/analytics';
 
 const Landing: React.FC = () => {
   const chartData = [35, 55, 42, 68, 50, 75, 60, 85, 72, 90, 78, 95];
@@ -17,6 +18,7 @@ const Landing: React.FC = () => {
   }, [walletAddress, intent, navigate]);
 
   const handleAction = (type: 'merchant' | 'user') => {
+    trackEvent('landing_cta_click', { type });
     if (walletAddress) {
       navigate(type === 'merchant' ? '/merchant' : '/subscriptions');
     } else {
@@ -263,6 +265,27 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* ─── Ecosystem & Partners Section ─── */}
+      <section className="container" style={{ marginTop: '140px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h2 className="text-display" style={{ fontSize: '40px', marginBottom: '16px' }}>Ecosystem & Partners</h2>
+          <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px', margin: '0 auto' }}>
+            Powered by the robust infrastructure of the Stellar network and growing through community partnerships.
+          </p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '48px', flexWrap: 'wrap', opacity: 0.7 }}>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={32} /> Stellar
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Wallet size={32} /> Freighter
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Blocks size={32} /> Soroban
+          </div>
+        </div>
+      </section>
+
       {/* ─── CTA Section ─── */}
       <section className="container" style={{ marginTop: '140px', marginBottom: '60px' }}>
         <div className="cta-banner animate-in animate-delay-5">
@@ -297,9 +320,19 @@ const Landing: React.FC = () => {
 
       {/* ─── Footer ─── */}
       <section className="container">
-        <footer className="landing-footer">
-          <span className="landing-footer-text text-body-md" style={{ fontWeight: 500 }}>© 2026 Rekura.</span>
-          <span className="landing-footer-text text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Built on Stellar</span>
+        <footer className="landing-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', padding: '40px 0' }}>
+          <div>
+            <span className="landing-footer-text text-body-md" style={{ fontWeight: 500 }}>© 2026 Rekura.</span>
+            <span className="landing-footer-text text-body-md" style={{ color: 'var(--on-surface-variant)', marginLeft: '12px' }}>Built on Stellar</span>
+          </div>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <a href="https://discord.gg/hrBrdNhA" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--on-surface)', textDecoration: 'none', fontWeight: 500 }} onClick={() => trackEvent('social_click', { platform: 'discord' })}>
+              Discord
+            </a>
+            <a href="https://x.com/recurra116" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--on-surface)', textDecoration: 'none', fontWeight: 500 }} onClick={() => trackEvent('social_click', { platform: 'x' })}>
+              X (Twitter)
+            </a>
+          </div>
         </footer>
       </section>
     </main>

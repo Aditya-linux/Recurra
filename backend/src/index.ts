@@ -140,6 +140,7 @@ import { plansRoutes } from './api/routes/plans.js';
 import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
 import { analyticsRoutes } from './api/routes/analytics.js';
 import { uploadRoutes } from './api/routes/upload.js';
+import { feedbackRoutes } from './api/routes/feedback.js';
 
 // Serve static files from the public directory
 app.use(express.static('public'));
@@ -153,6 +154,7 @@ app.use('/api/v1/plans', plansRoutes);
 app.use('/api/v1/demo-merchant', demoMerchantRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/feedback', feedbackRoutes);
 
 // ============================================================
 // ERROR HANDLING
