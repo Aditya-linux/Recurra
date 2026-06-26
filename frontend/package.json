@@ -20,6 +20,7 @@
     "@types/three": "^0.184.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "form-data": "^4.0.6",
     "framer-motion": "^12.41.0",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
@@ -29,7 +30,8 @@
     "recharts": "^3.8.1",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
