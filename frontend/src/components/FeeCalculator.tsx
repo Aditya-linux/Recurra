@@ -108,7 +108,7 @@ export const FeeCalculator: React.FC = () => {
 
         <div className="flex justify-between items-center mb-2">
           <span style={{ fontWeight: 600, color: 'var(--on-surface)', fontSize: '15px' }}>Monthly Processing Volume</span>
-          <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '32px', letterSpacing: '-0.03em' }}>
+          <span style={{ color: 'var(--on-surface)', fontWeight: 700, fontSize: '32px', letterSpacing: '-0.03em' }}>
             <SmoothNumber value={volume} prefix="$" />
           </span>
         </div>
@@ -125,7 +125,7 @@ export const FeeCalculator: React.FC = () => {
             onPointerUp={() => setIsDragging(false)}
             onTouchStart={() => setIsDragging(true)}
             onTouchEnd={() => setIsDragging(false)}
-            style={{ width: '100%', accentColor: '#ffffff', height: '4px', borderRadius: '4px', cursor: 'grab', background: 'var(--surface-variant)' }}
+            style={{ width: '100%', accentColor: 'var(--on-surface)', height: '4px', borderRadius: '4px', cursor: 'grab', background: 'var(--surface-variant)' }}
           />
         </div>
         
@@ -158,7 +158,7 @@ export const FeeCalculator: React.FC = () => {
 
       <div className="savings-shimmer" style={{ padding: '32px', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--glass-border)', position: 'relative', overflow: 'hidden', marginTop: '8px', zIndex: 1 }}>
         <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 2 }}>
-          <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-white/10 text-white border border-white/30">
+          <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-[var(--surface-container-highest)] text-[var(--on-surface)] border border-[var(--glass-border)]">
             Top {getPercentile(volume)}% saver
           </span>
         </div>
@@ -166,7 +166,7 @@ export const FeeCalculator: React.FC = () => {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--on-surface)' }}>Annual Savings</div>
           <motion.div 
-            style={{ fontSize: '56px', fontWeight: 800, letterSpacing: '-0.04em', color: '#ffffff' }}
+            style={{ fontSize: '56px', fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--on-surface)' }}
           >
             <SmoothNumber value={annualSavings} prefix="$" />
           </motion.div>
@@ -179,7 +179,7 @@ export const FeeCalculator: React.FC = () => {
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.3 }}
               className="flex items-center justify-center gap-2 mt-3"
-              style={{ color: '#ffffff', fontSize: '14px', fontWeight: 500 }}
+              style={{ color: 'var(--on-surface)', fontSize: '14px', fontWeight: 500 }}
             >
               {context.icon}
               <span>{context.text}</span>
@@ -196,7 +196,7 @@ export const FeeCalculator: React.FC = () => {
         >
           <button 
             onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-200 text-black rounded-full font-semibold text-sm transition-colors shadow-lg cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--on-surface)] hover:opacity-80 text-[var(--surface)] rounded-full font-semibold text-sm transition-opacity shadow-lg cursor-pointer"
           >
             <Share2 size={16} /> Share my savings
           </button>
