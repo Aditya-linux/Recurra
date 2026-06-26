@@ -19,6 +19,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { RedisLock } from '../utils/redisLock.js';
+import { isRedisAvailable, getRedisClient } from '../utils/redis.js';
 import { transactionBatcher } from './TransactionBatcher.js';
 
 // ============================================================
@@ -48,7 +49,7 @@ interface KeeperStats {
 // ============================================================
 
 export class KeeperService {
-  private queue: Queue<PaymentJob>;
+  private queue: Queue<PaymentJob> | null = null;
   private worker: Worker<PaymentJob> | null = null;
   private cronJob: cron.ScheduledTask | null = null;
   private stats: KeeperStats = {
@@ -60,11 +61,25 @@ export class KeeperService {
   };
 
   constructor() {
-    // Initialize BullMQ queue with Redis
+    // Queue is now lazily initialized in start()
+    logger.info('Keeper service created (queue will be initialized on start)');
+  }
+
+  /**
+   * Initialize the BullMQ queue (only if Redis is available)
+   */
+  private initQueue(): boolean {
+    if (this.queue) return true;
+    if (!isRedisAvailable()) {
+      logger.warn('Keeper service: Redis unavailable — queue disabled');
+      return false;
+    }
+
+    const client = getRedisClient();
+    if (!client) return false;
+
     this.queue = new Queue<PaymentJob>('recurra-payments', {
-      connection: {
-        url: config.redis.url,
-      },
+      connection: client.duplicate() as any,
       defaultJobOptions: {
         attempts: config.keeper.maxRetryAttempts,
         backoff: {
@@ -83,12 +98,18 @@ export class KeeperService {
     });
 
     logger.info('Keeper service queue initialized');
+    return true;
   }
 
   /**
    * Start the keeper service — scheduler + worker
    */
   async start(): Promise<void> {
+    if (!this.initQueue()) {
+      logger.warn('⚠️ Keeper service running in degraded mode (no Redis)');
+      // Still start the scheduler for monitoring, but skip queue operations
+    }
+
     // Start worker(s)
     this.startWorker();
 
@@ -101,6 +122,7 @@ export class KeeperService {
     logger.info('Keeper service started', {
       schedule: config.keeper.cronSchedule,
       workers: config.keeper.maxConcurrentWorkers,
+      redisAvailable: isRedisAvailable(),
     });
   }
 
@@ -118,7 +140,9 @@ export class KeeperService {
       await this.worker.close();
     }
 
-    await this.queue.close();
+    if (this.queue) {
+      await this.queue.close();
+    }
     logger.info('Keeper service stopped');
   }
 
@@ -143,6 +167,11 @@ export class KeeperService {
    * Scan database for subscriptions with due payments
    */
   private async scanDuePayments(): Promise<void> {
+    if (!this.queue) {
+      logger.debug('Keeper scan skipped — no queue available');
+      return;
+    }
+
     const lock = new RedisLock('keeper:scan_due_payments', 120); // 2 minute lock
     const acquired = await lock.acquire();
 
@@ -181,6 +210,14 @@ export class KeeperService {
    * Worker — processes payment jobs from the queue
    */
   private startWorker(): void {
+    if (!isRedisAvailable()) {
+      logger.debug('Keeper worker skipped — Redis unavailable');
+      return;
+    }
+
+    const client = getRedisClient();
+    if (!client) return;
+
     this.worker = new Worker<PaymentJob>(
       'recurra-payments',
       async (job: Job<PaymentJob>) => {
@@ -239,7 +276,7 @@ export class KeeperService {
         }
       },
       {
-        connection: { url: config.redis.url },
+        connection: client.duplicate() as any,
         concurrency: config.keeper.maxConcurrentWorkers,
         limiter: {
           max: 10,      // Max 10 jobs
@@ -272,6 +309,8 @@ export class KeeperService {
   private startMonitoring(): void {
     setInterval(async () => {
       try {
+        if (!this.queue) return; // No queue = no monitoring needed
+
         const waiting = await this.queue.getWaitingCount();
         const failed = await this.queue.getFailedCount();
 

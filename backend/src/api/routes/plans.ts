@@ -11,7 +11,7 @@ plansRoutes.get('/', async (_req: Request, res: Response, next: NextFunction) =>
   try {
     const query = `
       SELECT p.id, p.plan_id_on_chain, p.name as plan_name, p.amount, p.interval_seconds, p.token_address,
-             p.redirect_url, p.redirect_label,
+             p.redirect_url, p.redirect_label, p.tier, p.trial_days, p.features, p.accepted_tokens,
              m.business_name as merchant_name, m.logo_url,
              m.platform_url, m.platform_name, m.platform_logo_url, m.redirect_url_template,
              m.wallet_address as merchant_address

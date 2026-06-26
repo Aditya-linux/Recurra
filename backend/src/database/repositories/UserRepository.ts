@@ -5,6 +5,7 @@ export interface User {
   id: string;
   wallet_address: string;
   email: string | null;
+  phone_number: string | null;
   name: string | null;
   c_address: string | null;
   is_active: boolean;

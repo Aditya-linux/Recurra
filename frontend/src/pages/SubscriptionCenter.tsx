@@ -3,10 +3,13 @@ import { useWallet } from '../context/WalletContext';
 import { api, getValidToken } from '../utils/api';
 import { useSocket } from '../hooks/useSocket';
 import { Button } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, ExternalLink } from "lucide-react";
 import toast from 'react-hot-toast';
 import SubscriptionSuccessModal from '../components/SubscriptionSuccessModal';
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '../components/ui/animations';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 
 const SubscriptionCenter: React.FC = () => {
   const { fullWalletAddress, openModal, signTransaction } = useWallet();
@@ -18,7 +21,10 @@ const SubscriptionCenter: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubscribedPlan, setLastSubscribedPlan] = useState<{ name: string; amount: string; redirect: any; txHash?: string | null } | null>(null);
   const [selectedMerchantAddress, setSelectedMerchantAddress] = useState<string | null>(null);
+
   const socket = useSocket();
+
+  const formatStellarAmount = (amount: number) => (Number(amount) / 10000000).toFixed(2);
 
   const fetchSubscriptions = useCallback(async () => {
     try {
@@ -169,17 +175,19 @@ const SubscriptionCenter: React.FC = () => {
     // Step 2: Register subscription in backend
     try {
       const toastId = toast.loading('Registering subscription on backend...');
+      const discountCode = undefined;
       const { ok, data, error } = await api('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ 
           planId: plan.id,
-          subscriptionIdOnChain: txHash
+          subscriptionIdOnChain: txHash,
+          discountCode
         })
       });
 
       if (ok) {
         const planName = plan.plan_name || plan.name;
-        const amountStr = `$${(Number(plan.amount) / 10000000).toFixed(2)} / mo`;
+        const amountStr = `$${formatStellarAmount(plan.amount)} / mo`;
         toast.success(`Successfully subscribed to ${planName}!`, { id: toastId });
         await fetchSubscriptions();
 
@@ -261,18 +269,20 @@ const SubscriptionCenter: React.FC = () => {
   const inactiveCount = subscriptions.filter(s => s.status === 'inactive').length;
 
   return (
-    <>
+    <PageWrapper>
     <main className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
-        <h2 className="text-h2">Subscription Center & Retail Store</h2>
-        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
-          Manage your active recurring payments and explore retail subscriptions powered by Rekura.
-        </p>
+        <FadeIn delay={0.1}>
+          <h2 className="text-h2">Subscription Center & Retail Store</h2>
+          <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
+            Manage your active recurring payments and explore retail subscriptions powered by Rekura.
+          </p>
+        </FadeIn>
 
         <div className="grid-12">
           {/* Subscriptions List */}
           <div className="flex flex-col gap-6" style={{ gridColumn: 'span 12' }}>
-            <div className="flex gap-4 sm-flex-col sm-w-full">
+            <FadeIn delay={0.2} className="flex gap-4 sm-flex-col sm-w-full">
               <Button
                 variant={filter === 'available' ? 'outline' : 'ghost'}
                 onClick={() => { setFilter('available'); setSelectedMerchantAddress(null); }}
@@ -291,9 +301,9 @@ const SubscriptionCenter: React.FC = () => {
               >
                 Inactive ({inactiveCount})
               </Button>
-            </div>
+            </FadeIn>
 
-            <div id="subscriptions-container" className="flex flex-col gap-4">
+            <StaggerContainer id="subscriptions-container" className="flex flex-col gap-4">
               {fetchError && <p className="text-body-lg" style={{ color: 'var(--error)', textAlign: 'center', padding: '40px' }}>{fetchError}</p>}
               {!fetchError && filtered.length === 0 && (
                 <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', textAlign: 'center', padding: '40px' }}>
@@ -310,23 +320,27 @@ const SubscriptionCenter: React.FC = () => {
                     const style = getMerchantStyle(plan.merchant_name, plan.logo_url);
                     const planCount = availablePlans.filter(p => p.merchant_address === address).length;
                     return (
-                      <Card key={address} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)', cursor: 'pointer' }} onClick={() => setSelectedMerchantAddress(address)}>
-                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                          <div style={{
-                            width: '48px', height: '48px', borderRadius: '12px',
-                            background: style.color, display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', overflow: 'hidden', flexShrink: 0
-                          }}>
-                            {style.logo ? <img src={style.logo} alt={plan.merchant_name} style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} /> : <span style={{color:'white', fontWeight:700, fontSize:'20px'}}>{plan.merchant_name.charAt(0)}</span>}
-                          </div>
-                          <div>
-                            <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.merchant_name}</h3>
-                            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
-                              {planCount} plan{planCount > 1 ? 's' : ''} available
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <StaggerItem key={address}>
+                        <HoverCard>
+                          <Card style={{ transition: 'transform 0.2s', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', cursor: 'pointer' }} onClick={() => setSelectedMerchantAddress(address)}>
+                            <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                              <div style={{
+                                width: '48px', height: '48px', borderRadius: '12px',
+                                background: style.color, display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', overflow: 'hidden', flexShrink: 0
+                              }}>
+                                <ImageWithFallback src={style.logo} fallbackText={plan.merchant_name} fallbackColor="transparent" style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} alt={plan.merchant_name} />
+                              </div>
+                              <div>
+                                <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.merchant_name}</h3>
+                                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                                  {planCount} plan{planCount > 1 ? 's' : ''} available
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </HoverCard>
+                      </StaggerItem>
                     );
                   })}
                 </div>
@@ -342,48 +356,58 @@ const SubscriptionCenter: React.FC = () => {
                     const style = getMerchantStyle(plan.merchant_name, plan.logo_url);
                     const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
                     return (
-                      <Card key={plan.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)' }}>
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-4">
-                              <div style={{
-                                width: '52px', height: '52px', borderRadius: '14px',
-                                background: style.color, display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', overflow: 'hidden', flexShrink: 0
-                              }}>
-                                {style.logo ? <img src={style.logo} alt={baseName} style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} /> : <span style={{color:'white', fontWeight:600}}>{baseName.charAt(0)}</span>}
-                              </div>
-                              <div>
-                                <h3 className="text-h3" style={{ fontSize: '20px' }}>{plan.plan_name}</h3>
-                                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '2px' }}>
-                                  by {plan.merchant_name}
-                                </p>
-                              </div>
+                      <StaggerItem key={plan.id}>
+                        <div className="flex flex-col md:flex-row items-center justify-between bg-[var(--surface-container)] border border-[var(--glass-border)] rounded-2xl p-4 md:p-6 w-full gap-6">
+                          {/* Left: Logo & Name */}
+                          <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div style={{
+                              width: '48px', height: '48px', borderRadius: '12px',
+                              background: style.color, display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', overflow: 'hidden', flexShrink: 0
+                            }}>
+                              <ImageWithFallback src={style.logo} fallbackText={baseName} fallbackColor="transparent" style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} alt={baseName} />
                             </div>
-                            <div className="flex flex-col items-end gap-2 sm-items-start sm-mt-4 sm-w-full">
-                              <div className="text-h3" style={{ fontSize: '22px', fontWeight: 700 }}>
-                                ${(plan.amount / 10000000).toFixed(2)} <span className="text-body-md" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>/ mo</span>
+                            <div>
+                              <h3 className="text-xl font-bold text-white leading-tight tracking-tight">{plan.plan_name}</h3>
+                              <p className="text-sm text-[var(--on-surface-variant)] mt-1">
+                                by {plan.merchant_name}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Right: Price & Actions */}
+                          <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto ml-auto">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[36px] font-bold text-white tracking-tighter leading-none">${formatStellarAmount(plan.amount)}</span>
+                              <span className="text-sm font-medium text-[var(--on-surface-variant)] ml-1">/ {plan.interval_seconds === 2592000 ? 'mo' : plan.interval_seconds === 31536000 ? 'yr' : 'cycle'}</span>
+                            </div>
+                            
+                            {plan.tier && (
+                              <div className="hidden sm:block px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] border border-[var(--glass-border)] rounded-md bg-[var(--surface-container-high)]">
+                                {plan.tier}
                               </div>
+                            )}
+
+                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                              <Button variant="outline" onClick={() => toast('Discount codes coming soon')} className="w-full sm:w-auto text-sm h-10 px-4 text-[var(--on-surface-variant)] hover:text-white border-[var(--glass-border)]">
+                                Discount Code
+                              </Button>
+                              
                               {alreadySubscribed ? (
-                                <span style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: 'rgba(29,185,84,0.15)', color: '#1DB954' }}>
-                                   Subscribed
-                                </span>
+                                <span className="text-sm font-medium text-[var(--on-surface-variant)] px-4">Subscribed</span>
                               ) : (
-                                <Button
-                                  className="sm-w-full"
+                                <Button 
                                   onClick={() => handleSubscribe(plan)}
                                   disabled={loadingAction === plan.id}
-                                  style={{ minWidth: '120px' }}
+                                  className="w-full sm:w-auto h-10 px-6 bg-[var(--on-surface)] hover:opacity-90 text-[var(--surface)] font-medium transition-opacity"
                                 >
-                                  {loadingAction === plan.id ? (
-                                    <><Loader2 className="animate-spin mr-2" size={16} /> Subscribing...</>
-                                  ) : 'Subscribe'}
+                                  {loadingAction === plan.id ? <><Loader2 className="animate-spin mr-2" size={16} /> Subscribing...</> : 'Subscribe'}
                                 </Button>
                               )}
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </StaggerItem>
                     );
                   })}
                 </>
@@ -395,7 +419,7 @@ const SubscriptionCenter: React.FC = () => {
                 const subBaseName = sub.name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
                 const style = getMerchantStyle(subBaseName || sub.name);
 
-                return <Card key={sub.id} style={{ transition: 'transform 0.2s', border: '1px solid var(--outline-variant)', opacity: isInactive ? 0.6 : 1 }}>
+                return <StaggerItem key={sub.id}><Card style={{ transition: 'transform 0.2s', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', opacity: isInactive ? 0.6 : 1 }}>
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
@@ -420,28 +444,32 @@ const SubscriptionCenter: React.FC = () => {
                           <div className="flex gap-2 sm-w-full">
                             {/* Platform redirect button */}
                             {!isInactive && sub.redirect?.url && (
-                              <Button
-                                variant="outline"
-                                className="sm-w-full"
-                                onClick={() => window.open(sub.redirect.url, '_blank', 'noopener,noreferrer')}
-                                style={{ minWidth: '120px', gap: '6px' }}
-                              >
-                                <ExternalLink size={14} />
-                                {sub.redirect.label || `Open ${sub.redirect.platformName || 'Platform'}`}
-                              </Button>
+                              <HoverCard>
+                                <Button
+                                  variant="outline"
+                                  className="sm-w-full"
+                                  onClick={() => window.open(sub.redirect.url, '_blank', 'noopener,noreferrer')}
+                                  style={{ minWidth: '120px', gap: '6px' }}
+                                >
+                                  <ExternalLink size={14} />
+                                  {sub.redirect.label || `Open ${sub.redirect.platformName || 'Platform'}`}
+                                </Button>
+                              </HoverCard>
                             )}
                             {!isInactive && (
-                              <Button
-                                variant="destructive"
-                                className="sm-w-full"
-                                onClick={() => handleAction(sub)}
-                                disabled={loadingAction === sub.id}
-                                style={{ minWidth: '120px' }}
-                              >
-                                {loadingAction === sub.id ? (
-                                  <><Loader2 className="animate-spin mr-2" size={16} /> Cancelling...</>
-                                ) : 'Cancel Plan'}
-                              </Button>
+                              <HoverCard>
+                                <Button
+                                  variant="destructive"
+                                  className="sm-w-full"
+                                  onClick={() => handleAction(sub)}
+                                  disabled={loadingAction === sub.id}
+                                  style={{ minWidth: '120px' }}
+                                >
+                                  {loadingAction === sub.id ? (
+                                    <><Loader2 className="animate-spin mr-2" size={16} /> Cancelling...</>
+                                  ) : 'Cancel Plan'}
+                                </Button>
+                              </HoverCard>
                             )}
                           </div>
                           {!isInactive && sub.subscription_id_on_chain && (
@@ -458,9 +486,9 @@ const SubscriptionCenter: React.FC = () => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>;
+                  </Card></StaggerItem>;
               })}
-            </div>
+            </StaggerContainer>
           </div>
         </div>
       </section>
@@ -478,8 +506,8 @@ const SubscriptionCenter: React.FC = () => {
       amount={lastSubscribedPlan?.amount || ''}
       redirect={lastSubscribedPlan?.redirect || null}
       txHash={lastSubscribedPlan?.txHash || null}
-    />
-    </>
+      />
+    </PageWrapper>
   );
 };
 

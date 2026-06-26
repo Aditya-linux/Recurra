@@ -16,15 +16,19 @@ import {
   paginationSchema,
   updateMerchantSettingsSchema,
   updatePlanSchema,
+  createDiscountCodeSchema,
+  updateDiscountCodeSchema,
 } from '../../utils/validation.js';
 import { logger } from '../../utils/logger.js';
+import { PlanRepository } from '../../database/repositories/PlanRepository.js';
+import { DiscountCodeRepository } from '../../database/repositories/DiscountCodeRepository.js';
 
 export const merchantRoutes = Router();
 
 /**
  * POST /api/v1/merchant/register — Public (auth required)
  */
-merchantRoutes.post('/register', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.post('/register', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const input = registerMerchantSchema.parse(req.body);
     const { dbPool } = await import('../../database/index.js');
@@ -33,6 +37,13 @@ merchantRoutes.post('/register', authenticate, async (req: Request, res: Respons
     const existing = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [input.walletAddress]);
     if (existing.rowCount && existing.rowCount > 0) {
       res.status(400).json({ error: 'Wallet address already registered as merchant' });
+      return;
+    }
+
+    // Check if user has already acted as a subscriber
+    const existingSub = await dbPool.query('SELECT id FROM subscriptions WHERE user_id = $1 LIMIT 1', [req.user!.userId]);
+    if (existingSub.rowCount && existingSub.rowCount > 0) {
+      res.status(400).json({ error: 'Wallet already used as a subscriber, cannot be registered as a merchant' });
       return;
     }
 
@@ -76,7 +87,7 @@ merchantRoutes.post('/register', authenticate, async (req: Request, res: Respons
 /**
  * POST /api/v1/merchant/plans — Create subscription plan
  */
-merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const input = createPlanSchema.parse(req.body);
     const { dbPool } = await import('../../database/index.js');
@@ -92,16 +103,23 @@ merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), as
     // Generate a mock plan_id_on_chain for now until smart contract deployment is integrated
     const planIdOnChain = `PLAN_${Date.now()}`;
 
-    // Insert plan in database
-    const result = await dbPool.query(
-      `INSERT INTO plans (plan_id_on_chain, merchant_id, name, description, amount, token_address, interval_seconds, max_payments, redirect_url, redirect_label)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [planIdOnChain, merchantId, input.name, input.description || null, input.amount, input.tokenAddress, input.intervalSeconds, input.maxPayments || 0,
-       input.redirectUrl || null, input.redirectLabel || 'Go to Platform']
-    );
-
-    const plan = result.rows[0];
+    // Insert plan using Repository
+    const plan = await PlanRepository.create({
+       plan_id_on_chain: planIdOnChain,
+       merchant_id: merchantId,
+       name: input.name,
+       description: input.description,
+       amount: input.amount,
+       token_address: input.tokenAddress,
+       interval_seconds: input.intervalSeconds,
+       max_payments: input.maxPayments,
+       redirect_url: input.redirectUrl,
+       redirect_label: input.redirectLabel,
+       tier: input.tier,
+       trial_days: input.trialDays,
+       features: input.features,
+       accepted_tokens: input.acceptedTokens
+    });
 
     logger.info('Plan created', { name: input.name, amount: input.amount });
 
@@ -117,9 +135,9 @@ merchantRoutes.post('/plans', authenticate, requireRole('merchant', 'admin'), as
 /**
  * PUT /api/v1/merchant/plans/:id — Update subscription plan
  */
-merchantRoutes.put('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.put('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const planId = req.params.id;
+    const planId = req.params.id as string;
     const input = updatePlanSchema.parse(req.body);
     const { dbPool } = await import('../../database/index.js');
 
@@ -138,49 +156,12 @@ merchantRoutes.put('/plans/:id', authenticate, requireRole('merchant', 'admin'),
       return;
     }
 
-    // Build update query
-    const setClauses: string[] = [];
-    const values: any[] = [];
-    let argCounter = 1;
-
-    const fieldMap: Record<string, string> = {
-      name: 'name',
-      description: 'description',
-      amount: 'amount',
-      intervalSeconds: 'interval_seconds',
-      is_active: 'is_active'
-    };
-
-    for (const [jsKey, dbCol] of Object.entries(fieldMap)) {
-      if ((input as any)[jsKey] !== undefined) {
-        setClauses.push(`${dbCol} = $${argCounter}`);
-        values.push((input as any)[jsKey]);
-        argCounter++;
-      }
-    }
-    
-    if (req.body.is_active !== undefined) {
-       setClauses.push(`is_active = $${argCounter}`);
-       values.push(req.body.is_active);
-       argCounter++;
-    }
-
-    if (setClauses.length === 0) {
-      res.status(400).json({ error: 'No fields to update' });
-      return;
-    }
-
-    values.push(planId);
-    values.push(merchantId);
-
-    const updateResult = await dbPool.query(
-      `UPDATE plans SET ${setClauses.join(', ')} WHERE id = $${argCounter - 2} AND merchant_id = $${argCounter - 1} RETURNING *`,
-      values
-    );
+    // Update using repository
+    const updatedPlan = await PlanRepository.update(planId, input as any);
 
     res.json({
       message: 'Plan updated successfully',
-      plan: updateResult.rows[0],
+      plan: updatedPlan,
     });
   } catch (err) {
     next(err);
@@ -190,9 +171,9 @@ merchantRoutes.put('/plans/:id', authenticate, requireRole('merchant', 'admin'),
 /**
  * DELETE /api/v1/merchant/plans/:id — Delete (deactivate) subscription plan
  */
-merchantRoutes.delete('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.delete('/plans/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const planId = req.params.id;
+    const planId = req.params.id as string;
     const { dbPool } = await import('../../database/index.js');
 
     // Get merchant ID
@@ -225,7 +206,7 @@ merchantRoutes.delete('/plans/:id', authenticate, requireRole('merchant', 'admin
 /**
  * GET /api/v1/merchant/plans — List merchant's plans
  */
-merchantRoutes.get('/plans', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.get('/plans', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const pagination = paginationSchema.parse(req.query);
     const { dbPool } = await import('../../database/index.js');
@@ -250,6 +231,7 @@ merchantRoutes.get('/plans', authenticate, requireRole('merchant', 'admin'), asy
     const plansResult = await dbPool.query(
       `SELECT id, plan_id_on_chain, name, description, amount, token_address,
               interval_seconds, max_payments, is_active, subscriber_count,
+              tier, trial_days, features, accepted_tokens,
               created_at, updated_at
        FROM plans
        WHERE merchant_id = $1
@@ -270,7 +252,7 @@ merchantRoutes.get('/plans', authenticate, requireRole('merchant', 'admin'), asy
 /**
  * PUT /api/v1/merchant/settings — Update merchant platform settings
  */
-merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const input = updateMerchantSettingsSchema.parse(req.body);
     const { dbPool } = await import('../../database/index.js');
@@ -330,7 +312,7 @@ merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), 
 /**
  * GET /api/v1/merchant/analytics — Revenue dashboard
  */
-merchantRoutes.get('/analytics', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.get('/analytics', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const input = analyticsSchema.parse(req.query);
     const { dbPool } = await import('../../database/index.js');
@@ -390,6 +372,17 @@ merchantRoutes.get('/analytics', authenticate, requireRole('merchant', 'admin'),
     );
     const totalRevenue = Number(revenueResult.rows[0].total);
 
+    // Total Refunds in the period
+    const refundResult = await dbPool.query(
+      `SELECT COALESCE(SUM(refund_amount), 0)::bigint AS total
+       FROM refunds
+       WHERE merchant_id = $1
+         AND status = 'completed'
+         AND processed_at >= NOW() - $2::interval`,
+      [merchantId, interval]
+    );
+    const totalRefunds = Number(refundResult.rows[0].total);
+
     // MRR = sum of (amount / interval_seconds * seconds_in_month) for active subscriptions
     const mrrResult = await dbPool.query(
       `SELECT COALESCE(SUM(
@@ -412,6 +405,8 @@ merchantRoutes.get('/analytics', authenticate, requireRole('merchant', 'admin'),
       period: input.period,
       mrr,
       totalRevenue,
+      totalRefunds,
+      netRevenue: totalRevenue - totalRefunds,
       activeSubscribers,
       churnRate,
       newSubscribers,
@@ -425,7 +420,7 @@ merchantRoutes.get('/analytics', authenticate, requireRole('merchant', 'admin'),
 /**
  * GET /api/v1/merchant/subscribers — List subscribers
  */
-merchantRoutes.get('/subscribers', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction) => {
+merchantRoutes.get('/subscribers', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const pagination = paginationSchema.parse(req.query);
     const { dbPool } = await import('../../database/index.js');
@@ -468,6 +463,89 @@ merchantRoutes.get('/subscribers', authenticate, requireRole('merchant', 'admin'
       data: subsResult.rows,
       pagination: { ...pagination, total },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================================
+// DISCOUNT CODES
+// ============================================================
+
+merchantRoutes.post('/discounts', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const input = createDiscountCodeSchema.parse(req.body);
+    const { dbPool } = await import('../../database/index.js');
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    
+    try {
+      const code = await DiscountCodeRepository.create({
+        ...input,
+        merchant_id: merchantResult.rows[0].id
+      });
+      res.status(201).json(code);
+    } catch (e: any) {
+      if (e.code === '23505') { // Unique constraint violation
+        res.status(400).json({ error: 'Discount code already exists for this merchant' });
+      } else {
+        throw e;
+      }
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+merchantRoutes.get('/discounts', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { dbPool } = await import('../../database/index.js');
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    
+    const stats = await DiscountCodeRepository.getRedemptionStats(merchantResult.rows[0].id);
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+merchantRoutes.put('/discounts/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const input = updateDiscountCodeSchema.parse(req.body);
+    
+    const { dbPool } = await import('../../database/index.js');
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    
+    const existing = await DiscountCodeRepository.findById(id);
+    if (!existing || existing.merchant_id !== merchantResult.rows[0].id) {
+       res.status(404).json({ error: 'Discount code not found' });
+       return;
+    }
+
+    const updated = await DiscountCodeRepository.update(id, input);
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
+merchantRoutes.delete('/discounts/:id', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { dbPool } = await import('../../database/index.js');
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    
+    const success = await DiscountCodeRepository.deactivate(id, merchantResult.rows[0].id);
+    if (!success) {
+       res.status(404).json({ error: 'Discount code not found' });
+       return;
+    }
+    
+    res.json({ message: 'Discount code deactivated' });
   } catch (err) {
     next(err);
   }

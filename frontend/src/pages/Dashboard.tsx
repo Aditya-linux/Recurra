@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '../context/WalletContext';
-import { api, getValidToken } from '../utils/api';
+import { api, getValidToken, API_BASE } from '../utils/api';
 import { Card, CardContent } from "@/components/ui/card";
-import { Wallet, RefreshCw, DollarSign, Loader2, ExternalLink, Share2, Copy, Check } from "lucide-react";
+import { Wallet, RefreshCw, DollarSign, ExternalLink, Share2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from '../utils/analytics';
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '../components/ui/animations';
 
 const Dashboard: React.FC = () => {
   const { fullWalletAddress } = useWallet();
@@ -12,6 +13,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
 
   const handleCopyReferral = () => {
@@ -62,6 +64,11 @@ const Dashboard: React.FC = () => {
       if (ok && data) {
         setSubscriptions(data.data || []);
       }
+      
+      const paymentsRes = await api('/payments/history?limit=5');
+      if (paymentsRes.ok && paymentsRes.data) {
+        setPayments(paymentsRes.data.data || []);
+      }
     };
     fetchSubs();
   }, [fullWalletAddress]);
@@ -81,16 +88,19 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+    <PageWrapper className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
-        <h2 className="text-h2">Dashboard Overview</h2>
-        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
-          Monitor your automated Web3 payments and account balance.
-        </p>
+        <FadeIn delay={0.1}>
+          <h2 className="text-h2">Dashboard Overview</h2>
+          <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px' }}>
+            Monitor your automated Web3 payments and account balance.
+          </p>
+        </FadeIn>
 
-        <div className="grid-12" style={{ marginBottom: '40px' }}>
+        <StaggerContainer className="grid-12" style={{ marginBottom: '40px' }}>
           {/* Balance Card */}
-          <Card style={{ gridColumn: 'span 8', background: 'linear-gradient(135deg, var(--surface-container-low), var(--surface-container-highest))' }}>
+          <StaggerItem style={{ gridColumn: 'span 8' }}>
+          <Card style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)', position: 'relative', overflow: 'hidden', height: '100%' }}>
             <CardContent className="p-6 flex flex-col h-full justify-between">
               <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
                 <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Total Balance</span>
@@ -104,8 +114,9 @@ const Dashboard: React.FC = () => {
                   </>
                 )}
                 {loading && (
-                  <div className="flex items-center gap-2 text-h3">
-                    <Loader2 className="animate-spin text-primary" size={24} /> Fetching on-chain assets...
+                  <div className="flex flex-col gap-3">
+                    <div className="skeleton" style={{ width: '60%', height: '64px', borderRadius: '8px' }}></div>
+                    <div className="skeleton" style={{ width: '40%', height: '24px', borderRadius: '4px' }}></div>
                   </div>
                 )}
                 {error && <div className="text-h3" style={{ color: 'var(--error)' }}>{error}</div>}
@@ -130,10 +141,12 @@ const Dashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+          </StaggerItem>
 
           {/* Quick Stats */}
           <div className="flex flex-col gap-4" style={{ gridColumn: 'span 4' }}>
-            <Card style={{ flex: 1 }}>
+            <StaggerItem style={{ flex: 1 }}>
+              <Card style={{ height: '100%' }}>
               <CardContent className="p-6 flex flex-col justify-between h-full">
                 <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
                   <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Active Subscriptions</span>
@@ -147,8 +160,10 @@ const Dashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card style={{ flex: 1 }}>
-              <CardContent className="p-6 flex flex-col justify-between h-full">
+            </StaggerItem>
+            <StaggerItem style={{ flex: 1 }}>
+              <Card style={{ height: '100%' }}>
+                <CardContent className="p-6 flex flex-col justify-between h-full">
                 <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
                   <span className="text-label-caps" style={{ color: 'var(--on-surface-variant)' }}>Monthly Spend</span>
                   <DollarSign className="text-primary" size={20} />
@@ -161,11 +176,14 @@ const Dashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+            </StaggerItem>
           </div>
-        </div>
+        </StaggerContainer>
 
         {/* Referral Card */}
-        <Card style={{ marginBottom: '40px', background: 'rgba(52, 120, 246, 0.05)', border: '1px solid rgba(52, 120, 246, 0.2)' }}>
+        <FadeIn delay={0.3}>
+          <HoverCard>
+            <Card style={{ marginBottom: '40px', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid rgba(6, 214, 160, 0.2)' }}>
           <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div style={{ padding: '12px', background: 'rgba(52, 120, 246, 0.1)', color: 'var(--accent-blue)', borderRadius: '12px' }}>
@@ -186,21 +204,31 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        </HoverCard>
+        </FadeIn>
 
         {/* Active Subscriptions List */}
-        <h3 className="text-h3" style={{ marginBottom: '24px', fontSize: '24px' }}>Active Subscriptions</h3>
-        <div className="panel flex flex-col gap-4">
-          {activeSubs.length === 0 && (
+        <FadeIn delay={0.4}>
+          <h3 className="text-h3" style={{ marginBottom: '24px', fontSize: '24px' }}>Active Subscriptions</h3>
+          <div className="panel flex flex-col gap-4">
+          {activeSubs.length === 0 && !loading && (
             <Card style={{ padding: '24px', textAlign: 'center' }}>
               <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)' }}>
                 No active subscriptions. Head to the <strong>Subscriptions</strong> tab to subscribe to your favorite services!
               </p>
             </Card>
           )}
+          {loading && activeSubs.length === 0 && (
+            <>
+              <div className="skeleton" style={{ width: '100%', height: '80px', borderRadius: '12px' }}></div>
+              <div className="skeleton" style={{ width: '100%', height: '80px', borderRadius: '12px' }}></div>
+            </>
+          )}
           {activeSubs.map((sub, idx) => {
             const style = merchantStyles[sub.name] || { color: '#3B82F6', icon: sub.name?.charAt(0) || '?' };
             return (
-              <Card key={idx} className="flex justify-between items-center p-4">
+              <HoverCard key={idx}>
+              <Card className="flex justify-between items-center p-4">
                 <div className="flex items-center gap-4">
                   <div style={{
                     width: '48px', height: '48px', borderRadius: '12px',
@@ -240,11 +268,71 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </Card>
+              </HoverCard>
             );
           })}
-        </div>
+          </div>
+        </FadeIn>
+
+        {/* Payment History List */}
+        <FadeIn delay={0.5}>
+          <h3 className="text-h3" style={{ marginBottom: '24px', fontSize: '24px', marginTop: '40px' }}>Payment History</h3>
+          <div className="panel flex flex-col gap-4">
+            {payments.length === 0 && !loading && (
+              <Card style={{ padding: '24px', textAlign: 'center' }}>
+                <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)' }}>
+                  No payment history available yet.
+                </p>
+              </Card>
+            )}
+            {payments.map((payment, idx) => {
+              const statusColor = payment.status === 'completed' ? '#1DB954' : payment.status === 'failed' ? '#E50914' : '#F59E0B';
+              return (
+                <HoverCard key={idx}>
+                  <Card className="flex justify-between items-center p-4">
+                    <div className="flex items-center gap-4">
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '10px',
+                        background: 'var(--surface-container-high)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: '18px', color: 'var(--primary)'
+                      }}>
+                        <DollarSign size={20} />
+                      </div>
+                      <div>
+                        <div className="text-body-lg" style={{ fontWeight: 500 }}>{payment.plan_name}</div>
+                        <div className="text-label-caps" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                          {new Date(payment.executed_at).toLocaleDateString()} • {payment.merchant_name}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {payment.status === 'completed' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(`${API_BASE}/payments/${payment.id}/receipt?token=${getValidToken()}`, '_blank')}
+                          style={{ gap: '4px', fontSize: '12px' }}
+                        >
+                          <ExternalLink size={12} /> Receipt
+                        </Button>
+                      )}
+                      <div className="flex flex-col items-end">
+                        <div className="text-body-lg" style={{ fontWeight: 600 }}>
+                          {(parseFloat(payment.amount) / 10000000).toFixed(2)} {payment.token_address === 'USDC' ? 'USDC' : 'Token'}
+                        </div>
+                        <div className="status-chip" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', color: statusColor, borderColor: statusColor, textTransform: 'capitalize' }}>
+                          {payment.status}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </HoverCard>
+              );
+            })}
+          </div>
+        </FadeIn>
       </section>
-    </main>
+    </PageWrapper>
   );
 };
 

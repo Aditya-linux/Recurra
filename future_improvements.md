@@ -2,6 +2,10 @@
 
 Now that the core Stellar Mainnet deployment is live, here is a roadmap for future updates. This checklist is divided into **Architecture/Multi-chain**, **Frontend/UI Improvements**, and **Backend Resilience**.
 
+Items marked ✅ have been implemented. Items marked ⬜ are remaining work.
+
+---
+
 ## 🌐 1. Multi-Chain Expansion (EVM)
 The goal here is to allow users on Ethereum, Polygon, or Arbitrum to pay subscriptions using their native EVM wallets (e.g., MetaMask), which then bridge to the Stellar backend.
 
@@ -13,16 +17,16 @@ The goal here is to allow users on Ethereum, Polygon, or Arbitrum to pay subscri
 ## 🎨 2. UI / UX Improvements
 To make the platform feel premium and build trust, the frontend needs a polish pass.
 
-- [ ] **Dashboard Charts:** Add Recharts or Chart.js to the Merchant Dashboard to show MRR (Monthly Recurring Revenue) and Churn Rate over time.
-- [ ] **Dark Mode Polish:** Ensure the dark mode theme is consistent, using modern glassmorphism (translucency + blur) on modals and cards.
-- [ ] **Micro-Animations:** Add Framer Motion for smooth page transitions and success animations (e.g., when a subscription is confirmed).
+- [x] **Dashboard Charts:** ✅ Recharts integrated in `AnalyticsPage.tsx` — includes BarChart, AreaChart, PieChart for MRR, subscriber growth, and payment distribution.
+- [x] **Dark Mode Polish:** ✅ Glassmorphism (`backdrop-blur`) applied to UI primitives (Button, Card, Input, Select) and consistent dark theme across pages.
+- [x] **Micro-Animations:** ✅ Framer Motion integrated — used in `SubscriptionSuccessModal.tsx`, `FeeCalculator.tsx`, `Landing.tsx`, and shared `animations.tsx` (PageWrapper, FadeIn, StaggerContainer).
 - [ ] **Transaction History Timeline:** Build a visual "Timeline" view for users to see exactly when they were charged in the past and when the next charge is scheduled.
-- [ ] **Toast Notifications:** Replace native browser alerts with custom, branded toast notifications (e.g., React Hot Toast).
+- [ ] **Toast Notifications:** Replace native browser alerts with custom, branded toast notifications (e.g., React Hot Toast or Sonner).
 - [ ] **Responsive Design Audit:** Thoroughly test the Checkout Widget on mobile viewports (iOS/Android) to ensure padding and touch targets are optimal.
 
 ## 🛡️ 3. Backend & Keeper Resilience
 - [ ] **Mainnet Keeper Key:** Update the `KEEPER_PRIVATE_KEY` in production to a securely stored, funded Mainnet account.
-- [ ] **Keeper Retry Logic:** Enhance the Cron job to handle temporary Soroban RPC outages gracefully (exponential backoff).
+- [x] **Keeper Retry Logic:** ✅ BullMQ queue with exponential backoff (5s → 25s → 125s) and configurable `maxRetryAttempts` in `keeper/index.ts`.
 - [ ] **Alerting:** Integrate Datadog or Sentry to alert you immediately if a scheduled Keeper transaction fails on-chain.
 - [ ] **Multi-Sig Admin:** Transfer ownership of the Soroban contracts from the single deployer key to a Multi-Sig wallet for enhanced security.
 - [ ] **Fiat On-Ramp:** Integrate MoonPay or Transak so non-crypto users can pay for subscriptions using a credit card.
@@ -38,6 +42,19 @@ Render is great for MVP, but to support high concurrency, ultra-low latency glob
 
 ## ⚙️ 5. Automated Smart Contract Deployments
 - [ ] **On-Chain Plan Registration:** Update the backend architecture so that whenever a merchant creates a new plan via the Merchant Portal, the system automatically builds, signs, and submits a transaction to register/deploy that plan directly onto the Stellar Mainnet without manual intervention.
+
+---
+
+## 📊 Progress Summary
+
+| Section | Done | Remaining | Total |
+|---------|------|-----------|-------|
+| 🌐 Multi-Chain Expansion | 0 | 4 | 4 |
+| 🎨 UI / UX Improvements | 3 | 3 | 6 |
+| 🛡️ Backend & Keeper | 1 | 4 | 5 |
+| 🌍 Global Infrastructure | 0 | 5 | 5 |
+| ⚙️ Smart Contract Automation | 0 | 1 | 1 |
+| **Total** | **4** | **17** | **21** |
 
 ---
 

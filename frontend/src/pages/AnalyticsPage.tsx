@@ -3,8 +3,9 @@ import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem } from '../components/ui/animations';
 
-import { Loader2, TrendingUp, TrendingDown, Users, CreditCard, BarChart3, PieChart } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Users, CreditCard, BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend, Area, AreaChart
@@ -43,22 +44,26 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
 
   if (!walletAddress || userRole !== 'merchant') {
     return (
-      <main className="pt-nav" style={{ paddingBottom: '64px' }}>
-        <section className="container" style={{ marginTop: '40px' }}>
-          <Card className="flex flex-col items-center gap-4 text-center p-8 max-w-md mx-auto mt-20">
-            <BarChart3 size={48} className="text-primary" />
-            <h2 className="text-h3">Merchant Analytics</h2>
-            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-              Register as a merchant to access detailed analytics and revenue insights.
-            </p>
-          </Card>
-        </section>
-      </main>
+      <PageWrapper>
+        <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+          <section className="container" style={{ marginTop: '40px' }}>
+            <FadeIn>
+              <Card className="flex flex-col items-center gap-4 text-center p-8 max-w-md mx-auto mt-20">
+                <BarChart3 size={48} className="text-primary" />
+                <h2 className="text-h3">Merchant Analytics</h2>
+                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                  Register as a merchant to access detailed analytics and revenue insights.
+                </p>
+              </Card>
+            </FadeIn>
+          </section>
+        </main>
+      </PageWrapper>
     );
   }
 
   const content = (
-    <>
+    <StaggerContainer>
       {!isEmbedded && (
         <div className="flex justify-between items-end" style={{ marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -68,15 +73,15 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
             </p>
           </div>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[160px] bg-white text-black border border-[var(--outline-variant)] focus:ring-[var(--primary)] outline-none rounded-[10px]">
+            <SelectTrigger className="w-[160px] border border-[var(--glass-border)] focus:ring-[var(--accent-cyan)] outline-none rounded-[10px]">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
-            <SelectContent className="bg-white text-black border border-[var(--outline-variant)] rounded-[10px] shadow-lg">
-              <SelectItem value="day" className="cursor-pointer text-black">Today</SelectItem>
-              <SelectItem value="week" className="cursor-pointer text-black">This Week</SelectItem>
-              <SelectItem value="month" className="cursor-pointer text-black">This Month</SelectItem>
-              <SelectItem value="quarter" className="cursor-pointer text-black">This Quarter</SelectItem>
-              <SelectItem value="year" className="cursor-pointer text-black">This Year</SelectItem>
+            <SelectContent className="border border-[var(--glass-border)] rounded-[10px] shadow-lg">
+              <SelectItem value="day" className="cursor-pointer">Today</SelectItem>
+              <SelectItem value="week" className="cursor-pointer">This Week</SelectItem>
+              <SelectItem value="month" className="cursor-pointer">This Month</SelectItem>
+              <SelectItem value="quarter" className="cursor-pointer">This Quarter</SelectItem>
+              <SelectItem value="year" className="cursor-pointer">This Year</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -86,15 +91,15 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-h3">Performance Analytics</h3>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[160px] bg-white text-black border border-[var(--outline-variant)] focus:ring-[var(--primary)] outline-none rounded-[10px]">
+            <SelectTrigger className="w-[160px] border border-[var(--glass-border)] focus:ring-[var(--accent-cyan)] outline-none rounded-[10px]">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
-            <SelectContent className="bg-white text-black border border-[var(--outline-variant)] rounded-[10px] shadow-lg">
-              <SelectItem value="day" className="cursor-pointer text-black">Today</SelectItem>
-              <SelectItem value="week" className="cursor-pointer text-black">This Week</SelectItem>
-              <SelectItem value="month" className="cursor-pointer text-black">This Month</SelectItem>
-              <SelectItem value="quarter" className="cursor-pointer text-black">This Quarter</SelectItem>
-              <SelectItem value="year" className="cursor-pointer text-black">This Year</SelectItem>
+            <SelectContent className="border border-[var(--glass-border)] rounded-[10px] shadow-lg">
+              <SelectItem value="day" className="cursor-pointer">Today</SelectItem>
+              <SelectItem value="week" className="cursor-pointer">This Week</SelectItem>
+              <SelectItem value="month" className="cursor-pointer">This Month</SelectItem>
+              <SelectItem value="quarter" className="cursor-pointer">This Quarter</SelectItem>
+              <SelectItem value="year" className="cursor-pointer">This Year</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -102,97 +107,113 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
 
 
         {loading && !overviewData ? (
-          <Card className="flex justify-center items-center" style={{ minHeight: '400px' }}>
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="animate-spin text-primary" size={40} />
-              <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Loading analytics...</p>
-            </div>
-          </Card>
+          <StaggerItem>
+            <Card className="flex justify-center items-center" style={{ minHeight: '400px' }}>
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin text-primary" size={40} />
+                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Loading analytics...</p>
+              </div>
+            </Card>
+          </StaggerItem>
         ) : (
           <>
             {/* KPI Cards Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-              <KPICard
-                label="Monthly Recurring Revenue"
-                value={overviewData ? `$${(overviewData.mrr / 10000000).toFixed(2)}` : '$0.00'}
-                icon={<TrendingUp size={20} />}
-                color="#10b981"
-                subtitle="USDC / month"
-              />
-              <KPICard
-                label="Total Revenue"
-                value={overviewData ? `$${(overviewData.totalRevenue / 10000000).toFixed(2)}` : '$0.00'}
-                icon={<CreditCard size={20} />}
-                color="var(--primary)"
-                subtitle={`${period} period`}
-              />
-              <KPICard
-                label="Active Subscribers"
-                value={overviewData?.activeSubscribers?.toString() || '0'}
-                icon={<Users size={20} />}
-                color="#3B82F6"
-                subtitle={overviewData ? `+${overviewData.newSubscribers} new` : ''}
-                subtitleColor="#10b981"
-              />
-              <KPICard
-                label="Churn Rate"
-                value={overviewData ? `${overviewData.churnRate}%` : '0%'}
-                icon={<TrendingDown size={20} />}
-                color={overviewData?.churnRate > 5 ? '#ef4444' : '#10b981'}
-                subtitle={overviewData ? `${overviewData.cancelledSubscriptions} cancelled` : ''}
-              />
-              <KPICard
-                label="Payment Success"
-                value={paymentData ? `${paymentData.successRate}%` : '0%'}
-                icon={<PieChart size={20} />}
-                color="#8b5cf6"
-                subtitle={paymentData ? `${paymentData.totalPayments} total` : ''}
-              />
-            </div>
+            <StaggerContainer style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+              <StaggerItem>
+                <KPICard
+                  label="Monthly Recurring Revenue"
+                  value={overviewData ? `$${(overviewData.mrr / 10000000).toFixed(2)}` : '$0.00'}
+                  icon={<TrendingUp size={20} />}
+                  color="#10b981"
+                  subtitle="USDC / month"
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <KPICard
+                  label="Gross Revenue"
+                  value={overviewData ? `$${(overviewData.totalRevenue / 10000000).toFixed(2)}` : '$0.00'}
+                  icon={<CreditCard size={20} />}
+                  color="var(--primary)"
+                  subtitle={`${period} period`}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <KPICard
+                  label="Net Revenue"
+                  value={overviewData ? `$${(overviewData.netRevenue / 10000000).toFixed(2)}` : '$0.00'}
+                  icon={<TrendingUp size={20} />}
+                  color="#10b981"
+                  subtitle={overviewData?.totalRefunds > 0 ? `-$${(overviewData.totalRefunds / 10000000).toFixed(2)} refunded` : 'No refunds'}
+                  subtitleColor={overviewData?.totalRefunds > 0 ? '#ef4444' : 'var(--on-surface-variant)'}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <KPICard
+                  label="Active Subscribers"
+                  value={overviewData?.activeSubscribers?.toString() || '0'}
+                  icon={<Users size={20} />}
+                  color="#3B82F6"
+                  subtitle={overviewData ? `+${overviewData.newSubscribers} new` : ''}
+                  subtitleColor="#10b981"
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <KPICard
+                  label="Churn Rate"
+                  value={overviewData ? `${overviewData.churnRate}%` : '0%'}
+                  icon={<TrendingDown size={20} />}
+                  color={overviewData?.churnRate > 5 ? '#ef4444' : '#10b981'}
+                  subtitle={overviewData ? `${overviewData.cancelledSubscriptions} cancelled` : ''}
+                />
+              </StaggerItem>
+            </StaggerContainer>
 
             {/* Revenue Chart */}
-            <Card style={{ marginBottom: '24px' }}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
-                  <div>
-                    <h3 className="text-h3" style={{ fontSize: '20px' }}>Revenue Over Time</h3>
-                    <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
-                      {revenueData?.granularity === 'hour' ? 'Hourly' : revenueData?.granularity === 'day' ? 'Daily' : revenueData?.granularity === 'week' ? 'Weekly' : 'Monthly'} revenue in USDC
-                    </p>
+            <StaggerItem>
+              <Card style={{ marginBottom: '24px' }}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
+                    <div>
+                      <h3 className="text-h3" style={{ fontSize: '20px' }}>Revenue Over Time</h3>
+                      <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                        {revenueData?.granularity === 'hour' ? 'Hourly' : revenueData?.granularity === 'day' ? 'Daily' : revenueData?.granularity === 'week' ? 'Weekly' : 'Monthly'} revenue in USDC
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div style={{ height: '320px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueData?.data || []} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                      <defs>
-                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
-                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--on-surface-variant)', fontSize: 12 }} dy={10} />
-                      <YAxis
-                        axisLine={false} tickLine={false}
-                        tick={{ fill: 'var(--on-surface-variant)', fontSize: 12 }}
-                        tickFormatter={(val) => `$${(val / 10000000).toFixed(0)}`}
-                        dx={-10}
-                      />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)', borderRadius: '12px', color: 'var(--on-surface)', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
-                        formatter={(value: any) => [`$${(Number(value) / 10000000).toFixed(2)}`, 'Revenue']}
-                      />
-                      <Area type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2.5} fill="url(#revenueGradient)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+                  <div style={{ height: '320px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData?.data || []} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                        <defs>
+                          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
+                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--on-surface-variant)', fontSize: 12 }} dy={10} />
+                        <YAxis
+                          axisLine={false} tickLine={false}
+                          tick={{ fill: 'var(--on-surface-variant)', fontSize: 12 }}
+                          tickFormatter={(val) => `$${(val / 10000000).toFixed(0)}`}
+                          dx={-10}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)', borderRadius: '12px', color: 'var(--on-surface)', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
+                          formatter={(value: any) => [`$${(Number(value) / 10000000).toFixed(2)}`, 'Revenue']}
+                        />
+                        <Area type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2.5} fill="url(#revenueGradient)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
 
             {/* Two-column: Subscriber Growth + Payment Breakdown */}
-            <div className="grid-12" style={{ gap: '24px', marginBottom: '24px' }}>
+            <StaggerContainer className="grid-12" style={{ gap: '24px', marginBottom: '24px' }}>
               {/* Subscriber Growth */}
-              <Card style={{ gridColumn: 'span 7' }}>
+              <StaggerItem style={{ gridColumn: 'span 7' }}>
+                <Card>
                 <CardContent className="p-6">
                   <h3 className="text-h3" style={{ fontSize: '20px', marginBottom: '20px' }}>Subscriber Growth</h3>
                   <div style={{ height: '280px' }}>
@@ -217,10 +238,12 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
-              </Card>
+                </Card>
+              </StaggerItem>
 
               {/* Payment Breakdown Pie */}
-              <Card style={{ gridColumn: 'span 5' }}>
+              <StaggerItem style={{ gridColumn: 'span 5' }}>
+                <Card>
                 <CardContent className="p-6">
                   <h3 className="text-h3" style={{ fontSize: '20px', marginBottom: '20px' }}>Payment Health</h3>
                   <div style={{ height: '280px' }}>
@@ -257,10 +280,12 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+              </StaggerItem>
+            </StaggerContainer>
 
             {/* Top Plans */}
             {paymentData?.topPlans?.length > 0 && (
+              <StaggerItem>
               <Card>
                 <CardContent className="p-6">
                   <h3 className="text-h3" style={{ fontSize: '20px', marginBottom: '20px' }}>Top Plans by Revenue</h3>
@@ -296,10 +321,11 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
                   </div>
                 </CardContent>
               </Card>
+              </StaggerItem>
             )}
           </>
         )}
-    </>
+    </StaggerContainer>
   );
 
   if (isEmbedded) {
@@ -307,11 +333,13 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
   }
 
   return (
+    <PageWrapper>
     <main className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
         {content}
       </section>
     </main>
+    </PageWrapper>
   );
 };
 

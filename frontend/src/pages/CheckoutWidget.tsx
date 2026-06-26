@@ -4,6 +4,7 @@ import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import SubscriptionSuccessModal from '../components/SubscriptionSuccessModal';
+import { PageWrapper, FadeIn, HoverCard } from '../components/ui/animations';
 
 const CheckoutWidget: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,7 @@ const CheckoutWidget: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [redirectInfo, setRedirectInfo] = useState<any>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
 
   useEffect(() => {
     // Fetch plan details (public endpoint, no auth needed)
@@ -97,6 +99,14 @@ const CheckoutWidget: React.FC = () => {
     }
 
     try {
+      // If phone number is provided, update profile first
+      if (phoneNumber) {
+        await api('/user/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ phoneNumber })
+        });
+      }
+
       const { ok, data, error } = await api('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ 
@@ -121,72 +131,107 @@ const CheckoutWidget: React.FC = () => {
     }
   };
 
-  if (!planId) return <div className="p-10 text-center">Invalid checkout link</div>;
+  if (!planId) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--on-surface-variant)' }}>Invalid checkout link</div>;
 
   return (
-    <>
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-blue-600 p-6 text-white text-center">
-          <h1 className="text-2xl font-bold">Rekura Checkout</h1>
-          <p className="text-blue-200 text-sm mt-1">Secure crypto payments</p>
+    <PageWrapper>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <FadeIn className="card" style={{ maxWidth: '440px', width: '100%', padding: 0, overflow: 'hidden' }}>
+        {/* Header with fractal gradient */}
+        <div style={{
+          background: 'var(--fractal-gradient)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmerBtn 4s ease infinite',
+          padding: '32px 24px',
+          textAlign: 'center',
+        }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff' }}>Rekura Checkout</h1>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '14px', marginTop: '4px' }}>Secure crypto payments</p>
         </div>
         
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-gray-500 font-medium">Merchant</span>
-            <span className="font-bold text-gray-900">{merchantName}</span>
+        <div style={{ padding: '28px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <span className="text-body-md" style={{ color: 'var(--on-surface-variant)', fontWeight: 500 }}>Merchant</span>
+            <span className="text-body-md" style={{ fontWeight: 700, color: 'var(--on-surface)' }}>{merchantName}</span>
           </div>
           
           {plan ? (
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-lg">{plan.name}</span>
-                <span className="font-bold text-xl">${plan.amount} <span className="text-sm text-gray-500 font-normal">USDC</span></span>
+            <div className="panel" style={{ padding: '20px', marginBottom: '24px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '18px', color: 'var(--on-surface)' }}>{plan.name}</span>
+                <span style={{ fontWeight: 700, fontSize: '20px', color: 'var(--on-surface)' }}>
+                  ${plan.amount} <span className="text-body-sm" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>USDC</span>
+                </span>
               </div>
-              <p className="text-sm text-gray-500">Billed every month. Cancel anytime.</p>
+              <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)' }}>Billed every month. Cancel anytime.</p>
             </div>
           ) : (
-            <div className="animate-pulse bg-gray-200 h-24 rounded-xl mb-6"></div>
+            <div style={{ height: '96px', borderRadius: '16px', marginBottom: '24px', background: 'var(--surface-container)', animation: 'pulse 2s infinite' }}></div>
           )}
 
-          <div className="border-t border-gray-200 pt-6">
+          <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px' }}>
             {!fullWalletAddress ? (
-              <button 
-                onClick={openModal}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 px-4 rounded-xl font-bold transition-colors"
-              >
-                Connect Wallet to Pay
-              </button>
+              <HoverCard>
+                <button 
+                  onClick={openModal}
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '14px 24px' }}
+                >
+                  Connect Wallet to Pay
+                </button>
+              </HoverCard>
             ) : (
               <div>
-                <p className="text-sm text-gray-500 text-center mb-4">
-                  Connected as: <span className="font-mono text-gray-900">{fullWalletAddress.substring(0,6)}...{fullWalletAddress.substring(52)}</span>
+                <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)', textAlign: 'center', marginBottom: '16px' }}>
+                  Connected as: <span style={{ fontFamily: 'monospace', color: 'var(--on-surface)' }}>{fullWalletAddress.substring(0,6)}...{fullWalletAddress.substring(52)}</span>
                 </p>
-                <button 
-                  onClick={handleCheckout}
-                  disabled={loading || !plan}
-                  className={`w-full ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} text-white py-3 px-4 rounded-xl font-bold transition-colors flex justify-center items-center gap-2`}
-                >
-                  {loading ? (
-                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    'Confirm Subscription'
-                  )}
-                </button>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="text-body-sm" style={{ fontWeight: 600, color: 'var(--on-surface)' }}>WhatsApp Number for Receipts (Optional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="+1 (555) 000-0000" 
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      marginTop: '4px',
+                      background: 'var(--surface-container-high)', 
+                      border: '1px solid var(--outline-variant)', 
+                      padding: '12px', 
+                      borderRadius: '8px', 
+                      color: 'var(--on-surface)', 
+                      outline: 'none' 
+                    }}
+                  />
+                </div>
+
+                <HoverCard>
+                  <button 
+                    onClick={handleCheckout}
+                    disabled={loading || !plan}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '14px 24px', opacity: loading ? 0.7 : 1 }}
+                  >
+                    {loading ? (
+                      <svg style={{ animation: 'spin 1s linear infinite', width: '20px', height: '20px', color: 'white' }} fill="none" viewBox="0 0 24 24">
+                        <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      'Confirm Subscription'
+                    )}
+                  </button>
+                </HoverCard>
               </div>
             )}
           </div>
           
-          <p className="text-xs text-gray-400 text-center mt-6">
+          <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)', textAlign: 'center', marginTop: '24px', fontSize: '12px', opacity: 0.7 }}>
             By confirming, you agree to the smart contract terms. Powered by Stellar.
           </p>
         </div>
-      </div>
+      </FadeIn>
     </div>
 
     {/* Success Modal with auto-redirect */}
@@ -199,7 +244,7 @@ const CheckoutWidget: React.FC = () => {
       autoRedirectSeconds={5}
       txHash={transactionHash}
     />
-    </>
+    </PageWrapper>
   );
 };
 

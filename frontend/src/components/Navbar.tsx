@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
 import { useTheme } from '../hooks/useTheme';
@@ -11,6 +11,7 @@ const Navbar: React.FC = () => {
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const location = useLocation();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const getNavClass = ({ isActive }: { isActive: boolean }) => {
     return `text-nav-link ${isActive ? 'active' : ''}`;
@@ -18,11 +19,33 @@ const Navbar: React.FC = () => {
 
   const closeMenu = () => setMobileOpen(false);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setWalletMenuOpen(false);
+      }
+    };
+    if (walletMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [walletMenuOpen]);
+
   return (
     <nav className="navbar">
       <div className="container flex items-center justify-between" style={{ width: '100%', flexWrap: 'wrap' }}>
-        <Link to="/" className="logo-text" onClick={closeMenu} style={{ fontSize: '24px' }}>
-          Rekura.
+        <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center' }}>
+          <img 
+            src={`/rekura-logo.png?v=${Date.now()}`} 
+            alt="Rekura." 
+            style={{ 
+              height: '56px', 
+              width: 'auto',
+              filter: isDark ? 'invert(1)' : 'none',
+              transition: 'all 0.3s ease'
+            }} 
+          />
         </Link>
 
         {/* Nav links (Middle on desktop, bottom on mobile) */}
@@ -55,7 +78,7 @@ const Navbar: React.FC = () => {
           </button>
 
           {/* Actions */}
-          <div className="nav-actions flex gap-4 items-center">
+          <div className="nav-actions flex gap-2 items-center">
             <button
               onClick={toggleTheme}
               className="btn-ghost"
@@ -65,10 +88,11 @@ const Navbar: React.FC = () => {
                 border: 'none',
                 color: 'var(--on-surface-variant)',
                 cursor: 'pointer',
-                borderRadius: 'var(--rounded)',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                transition: 'all 0.15s ease',
               }}
             >
               <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
@@ -82,17 +106,18 @@ const Navbar: React.FC = () => {
                 border: 'none',
                 color: 'var(--on-surface-variant)',
                 cursor: 'pointer',
-                borderRadius: 'var(--rounded)',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                transition: 'all 0.15s ease',
               }}
               title="Send Feedback"
             >
               <span className="material-symbols-outlined">feedback</span>
             </button>
             {walletAddress ? (
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative' }} ref={dropdownRef}>
                 <div
                   className="chip flex items-center gap-2"
                   onClick={() => setWalletMenuOpen(!walletMenuOpen)}
@@ -102,59 +127,33 @@ const Navbar: React.FC = () => {
                   <span>{walletAddress}</span>
                 </div>
                 {walletMenuOpen && (
-                  <div style={{
+                  <div className="dropdown-menu" style={{
                     position: 'absolute',
                     top: '100%',
                     right: 0,
                     marginTop: '8px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--outline-variant)',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    overflow: 'hidden',
                     zIndex: 100,
-                    minWidth: '150px'
                   }}>
                     <button
+                      className="dropdown-item"
                       onClick={() => {
                         disconnect();
                         openModal();
                         setWalletMenuOpen(false);
                       }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderBottom: '1px solid var(--outline-variant)',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        color: 'var(--on-surface)',
-                        fontSize: '14px'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = 'var(--surface-container-high)'}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.7 }}>swap_horiz</span>
                       Change Wallet
                     </button>
+                    <div className="dropdown-separator" />
                     <button
+                      className="dropdown-item dropdown-item--danger"
                       onClick={() => {
                         disconnect();
                         setWalletMenuOpen(false);
                       }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        background: 'transparent',
-                        border: 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        color: 'var(--error, #ef4444)',
-                        fontSize: '14px'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = 'var(--surface-container-high)'}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
                       Disconnect
                     </button>
                   </div>

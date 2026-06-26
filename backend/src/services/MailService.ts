@@ -131,6 +131,69 @@ export class MailService {
     `;
     await this.sendEmail(to, subject, html);
   }
+
+  public static async sendRenewalReminderEmail(to: string, planName: string, amountStr: string, daysUntilRenewal: number, nextDate: string) {
+    const subject = `Upcoming Payment: ${planName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #3b82f6;">Payment Reminder</h2>
+        <p>Hi there,</p>
+        <p>This is a reminder that your subscription to <strong>${planName}</strong> will automatically renew in <strong>${daysUntilRenewal} days</strong> on ${nextDate}.</p>
+        <p><strong>Amount:</strong> ${amountStr}</p>
+        <p>If you wish to make changes to your subscription, please visit your Recurra Dashboard.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  public static async sendTrialEndingEmail(to: string, planName: string, daysRemaining: number) {
+    const subject = `Your trial for ${planName} ends in ${daysRemaining} days`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #8b5cf6;">Trial Ending Soon</h2>
+        <p>Hi there,</p>
+        <p>We hope you're enjoying <strong>${planName}</strong>!</p>
+        <p>Your free trial will end in <strong>${daysRemaining} days</strong>. After that, your first payment will be processed automatically.</p>
+        <p>If you don't wish to continue, you can cancel anytime from your Recurra Dashboard before the trial ends.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  public static async sendRefundProcessedEmail(to: string, planName: string, refundAmount: string, txHash: string) {
+    const subject = `Refund Processed: ${planName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #10b981;">Refund Successful</h2>
+        <p>Hi there,</p>
+        <p>We've processed a prorated refund for your cancelled <strong>${planName}</strong> subscription.</p>
+        <p><strong>Amount Refunded:</strong> ${refundAmount}</p>
+        <p><strong>Transaction Hash:</strong> ${txHash}</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  public static async sendDiscountAppliedEmail(to: string, planName: string, discountCode: string, discountedAmount: string) {
+    const subject = `Discount Applied: ${planName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+        <h2 style="color: #10b981;">Discount Redeemed</h2>
+        <p>Hi there,</p>
+        <p>The promo code <strong>${discountCode}</strong> has been applied to your <strong>${planName}</strong> subscription.</p>
+        <p>Your upcoming payment will be <strong>${discountedAmount}</strong>.</p>
+        <br/>
+        <p>Thanks for using Recurra!</p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
 }
 
 // Initialize on load

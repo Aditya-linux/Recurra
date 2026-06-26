@@ -170,7 +170,7 @@ userRoutes.get('/profile', async (req: Request, res: Response, next: NextFunctio
 
     // Fetch full user profile from database
     const userResult = await dbPool.query(
-      `SELECT id, wallet_address, email, name, c_address, is_active, created_at, last_login
+      `SELECT id, wallet_address, email, name, phone_number, c_address, is_active, created_at, last_login
        FROM users WHERE id = $1`,
       [req.user!.userId]
     );
@@ -199,6 +199,7 @@ userRoutes.get('/profile', async (req: Request, res: Response, next: NextFunctio
       walletAddress: user.wallet_address,
       email: user.email,
       name: user.name,
+      phoneNumber: user.phone_number,
       cAddress: user.c_address,
       role: req.user!.role,
       isActive: user.is_active,
@@ -211,6 +212,25 @@ userRoutes.get('/profile', async (req: Request, res: Response, next: NextFunctio
         },
       }),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PUT /api/v1/user/profile
+ */
+userRoutes.put('/profile', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phoneNumber } = req.body;
+    const { dbPool } = await import('../../database/index.js');
+
+    await dbPool.query(
+      'UPDATE users SET phone_number = $1 WHERE id = $2',
+      [phoneNumber || null, req.user!.userId]
+    );
+
+    res.json({ success: true, message: 'Profile updated' });
   } catch (err) {
     next(err);
   }

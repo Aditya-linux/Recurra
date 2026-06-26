@@ -17,7 +17,7 @@ function escapeCSV(field: string | number | undefined | null): string {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, walletAddress, userRole, spend, type, message } = req.body;
+    const { name, email, walletAddress, spend, type, message } = req.body;
     
     // Required fields check (basic)
     if (!name || !message) {
@@ -30,8 +30,8 @@ router.post('/', async (req, res) => {
     const newRow = [
       escapeCSV(date),
       escapeCSV(name),
+      escapeCSV(email || 'N/A'),
       escapeCSV(walletAddress || 'N/A'),
-      escapeCSV(userRole || 'N/A'),
       escapeCSV(spend || '0'),
       escapeCSV(type),
       escapeCSV(message)
@@ -39,7 +39,7 @@ router.post('/', async (req, res) => {
 
     // If file doesn't exist, create it with headers
     if (!fs.existsSync(csvFilePath)) {
-      const headers = 'Date,Name,Wallet Address,User Role,Spend,Type,Message\n';
+      const headers = 'Date,Name,Email,Address,Transactions,Type,Area for Improvement\n';
       fs.writeFileSync(csvFilePath, headers + newRow);
     } else {
       fs.appendFileSync(csvFilePath, newRow);

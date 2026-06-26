@@ -11,7 +11,7 @@
 
 import toast from 'react-hot-toast';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const RAW_API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '');
 const ENV_API_URL = RAW_API_URL.replace(/\/$/, '');
 export const API_BASE = `${ENV_API_URL}/api/v1`;
 

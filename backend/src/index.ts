@@ -18,6 +18,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import xss from 'xss-clean';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { ipRateLimiter } from './middleware/rateLimiter.js';
@@ -141,9 +142,11 @@ import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
 import { analyticsRoutes } from './api/routes/analytics.js';
 import { uploadRoutes } from './api/routes/upload.js';
 import { feedbackRoutes } from './api/routes/feedback.js';
+import paymentsRoutes from './api/routes/payments.js';
 
-// Serve static files from the public directory
+// Serve static files from the public directory and frontend build
 app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
@@ -155,6 +158,18 @@ app.use('/api/v1/demo-merchant', demoMerchantRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/feedback', feedbackRoutes);
+app.use('/api/v1/payments', paymentsRoutes);
+
+// ============================================================
+// CATCH-ALL ROUTE FOR REACT ROUTER
+// ============================================================
+// Any route not matching the APIs above should serve the frontend application
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/graphql')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+});
 
 // ============================================================
 // ERROR HANDLING
@@ -170,21 +185,41 @@ app.use(errorHandler);
 import { WebhookDeliveryService } from './webhooks/WebhookDeliveryService.js';
 import { initSocket } from './utils/socket.js';
 import { startKeepAlive, stopKeepAlive } from './services/KeepAliveService.js';
+import { initRedis } from './utils/redis.js';
+import { initKeeperWorker } from './services/keeper.js';
+import { NotificationScheduler } from './services/NotificationScheduler.js';
 
-const webhookService = new WebhookDeliveryService();
+let webhookService: WebhookDeliveryService | null = null;
 
 async function startServer() {
   try {
-    // 1. Test Database Connection
+    // 1. Test Database Connection (Bypassed for local dev without Docker)
     const dbConnected = await checkDatabaseConnection();
     if (!dbConnected) {
-      throw new Error("Failed to connect to database");
+      logger.warn("⚠️ Bypassing Database Connection Error for local development mode.");
+    }
+
+    // 2. Initialize Redis (optional in development)
+    const redisConnected = await initRedis();
+    if (!redisConnected) {
+      logger.warn('⚠️ Redis unavailable — webhooks, queues, and caching will be disabled');
+    }
+
+    // 3. Initialize Webhook Service (only if Redis is up)
+    webhookService = new WebhookDeliveryService();
+
+    // 4. Initialize Keeper Worker (only if Redis is up)
+    if (redisConnected) {
+      initKeeperWorker();
     }
     
-    // 2. Start Blockchain Event Indexer
+    // 5. Start Blockchain Event Indexer
     startIndexer();
 
-    // 3. Start Apollo GraphQL server
+    // Start Daily Notification Scheduler
+    NotificationScheduler.start();
+
+    // 6. Start Apollo GraphQL server
     await apolloServer.start();
     app.use('/graphql', expressMiddleware(apolloServer, {
       context: async ({ req }) => {
@@ -215,7 +250,8 @@ async function startServer() {
       logger.info('SIGTERM received — shutting down gracefully');
       stopIndexer();
       stopKeepAlive();
-      webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
+      NotificationScheduler.stop();
+      webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
       server.close(() => {
         logger.info('Server closed');
         process.exit(0);
@@ -226,7 +262,8 @@ async function startServer() {
       logger.info('SIGINT received — shutting down gracefully');
       stopIndexer();
       stopKeepAlive();
-      webhookService.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
+      NotificationScheduler.stop();
+      webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
       server.close(() => {
         logger.info('Server closed');
         process.exit(0);

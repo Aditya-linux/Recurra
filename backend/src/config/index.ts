@@ -71,6 +71,7 @@ export const config = {
         ? 'Public Global Stellar Network ; September 2015'
         : 'Test SDF Network ; September 2015'
     ),
+    platformFeeWallet: requireEnv('PLATFORM_FEE_WALLET', 'GATZRECURRADEVWALLETFEECOLLECTORAAAAAAAAAAAAAAAAAAAAAA'),
     /** Whether we are targeting mainnet */
     isMainnet: (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet',
   },

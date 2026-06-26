@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, ExternalLink, ArrowRight, X } from 'lucide-react';
+import { CheckCircle2, ExternalLink, ArrowRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { motion } from 'framer-motion';
 
 interface RedirectInfo {
   url: string | null;
@@ -25,7 +34,7 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
   planName,
   amount,
   redirect,
-  autoRedirectSeconds = 0, // 0 = no auto-redirect
+  autoRedirectSeconds = 0,
   txHash,
 }) => {
   const [countdown, setCountdown] = useState(autoRedirectSeconds);
@@ -49,8 +58,6 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen, redirect, autoRedirectSeconds, onClose]);
 
-  if (!isOpen) return null;
-
   const handleRedirect = () => {
     if (redirect?.url) {
       window.open(redirect.url, '_blank', 'noopener,noreferrer');
@@ -59,296 +66,128 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
   };
 
   return (
-    <div
-      id="subscription-success-modal"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
-    >
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          backdropFilter: 'blur(8px)',
-          animation: 'fadeIn 0.3s ease-out',
-        }}
-      />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-[var(--surface-container)] border-[var(--glass-border)] rounded-2xl shadow-xl">
+        <div className="relative p-8">
+          
+          {/* Animated Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-500/20 blur-[100px] rounded-full pointer-events-none" />
 
-      {/* Modal */}
-      <div
-        style={{
-          position: 'relative',
-          backgroundColor: 'var(--surface, #fff)',
-          borderRadius: '24px',
-          padding: '48px 40px 40px',
-          maxWidth: '460px',
-          width: '100%',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.15)',
-          border: '1px solid var(--outline-variant, #e5e5e5)',
-          animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          textAlign: 'center',
-        }}
-      >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            color: 'var(--on-surface-variant, #666)',
-            borderRadius: '8px',
-          }}
-        >
-          <X size={20} />
-        </button>
-
-        {/* Animated checkmark ring */}
-        <div
-          style={{
-            width: '88px',
-            height: '88px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-            animation: 'pulseRing 2s ease-in-out infinite',
-          }}
-        >
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both',
-            }}
-          >
-            <CheckCircle2 size={32} color="white" />
+          {/* Icon Animation Container */}
+          <div className="flex justify-center mb-8 relative">
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+              className="relative z-10 w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}
+                className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/25"
+              >
+                <CheckCircle2 size={36} className="text-white drop-shadow-md" strokeWidth={2.5} />
+              </motion.div>
+            </motion.div>
           </div>
-        </div>
 
-        <h2
-          style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: 'var(--on-surface, #1a1a1a)',
-            marginBottom: '8px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Subscription Active!
-        </h2>
-        <p
-          style={{
-            fontSize: '15px',
-            color: 'var(--on-surface-variant, #666)',
-            marginBottom: '28px',
-            lineHeight: 1.5,
-          }}
-        >
-          You have successfully subscribed to <strong>{planName}</strong> for{' '}
-          <strong>{amount}</strong>.
-        </p>
+          <DialogHeader className="text-center space-y-3 mb-8">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-[var(--on-surface)]">
+              Subscription Active!
+            </DialogTitle>
+            <DialogDescription className="text-[15px] text-[var(--on-surface-variant)] leading-relaxed">
+              You have successfully subscribed to <strong className="text-[var(--on-surface)] font-semibold">{planName}</strong> for{' '}
+              <strong className="text-[var(--on-surface)] font-semibold">{amount}</strong>.
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Subscription summary card */}
-        <div
-          style={{
-            background: 'var(--surface-container-low, #f8f8f8)',
-            borderRadius: '16px',
-            padding: '20px',
-            marginBottom: '28px',
-            border: '1px solid var(--outline-variant, #e5e5e5)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Subscription Summary Card */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-[var(--surface-container-high)] border border-[var(--glass-border)] rounded-xl p-4 mb-8 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
               {redirect?.platformLogoUrl ? (
                 <img
                   src={redirect.platformLogoUrl}
                   alt={redirect.platformName || ''}
-                  style={{ width: '36px', height: '36px', borderRadius: '10px' }}
+                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-white/10"
                 />
               ) : (
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, var(--primary, #3B82F6), #2563eb)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                  }}
-                >
-                  {(planName || '?').charAt(0)}
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg ring-1 ring-white/10">
+                  {(planName || '?').charAt(0).toUpperCase()}
                 </div>
               )}
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--on-surface, #1a1a1a)' }}>
+              <div className="text-left">
+                <div className="font-semibold text-[15px] text-[var(--on-surface)] tracking-tight">
                   {planName}
                 </div>
                 {redirect?.platformName && (
-                  <div style={{ fontSize: '12px', color: 'var(--on-surface-variant, #888)', marginTop: '2px' }}>
+                  <div className="text-[13px] text-[var(--on-surface-variant)] mt-0.5 font-medium">
                     via {redirect.platformName}
                   </div>
                 )}
               </div>
             </div>
-            <div
-              style={{
-                padding: '4px 12px',
-                borderRadius: '20px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10b981',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}
-            >
+            <div className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[13px] font-semibold border border-emerald-500/20 shadow-sm">
               Active
             </div>
+          </motion.div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-3">
+            {redirect?.url ? (
+              <>
+                <Button
+                  onClick={handleRedirect}
+                  className="w-full py-5 text-[15px] rounded-xl bg-[var(--on-surface)] text-[var(--surface)] font-semibold shadow-sm hover:opacity-90 transition-all duration-150"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2 opacity-80" strokeWidth={2.5} />
+                  {redirect.label || `Go to ${redirect.platformName || 'Platform'}`}
+                  <ArrowRight className="w-4 h-4 ml-2 opacity-80" strokeWidth={2.5} />
+                </Button>
+                {countdown > 0 && (
+                  <p className="text-center text-[13px] text-[var(--on-surface-variant)] font-medium">
+                    Redirecting in {countdown}s...
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="w-full py-5 text-[15px] rounded-xl border-[var(--glass-border)] bg-transparent hover:bg-[rgba(255,255,255,0.04)] text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] font-medium transition-all"
+                >
+                  Stay on Rekura
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={onClose}
+                className="w-full py-5 text-[15px] rounded-xl bg-[var(--on-surface)] text-[var(--surface)] font-semibold shadow-sm hover:opacity-90 transition-all duration-150"
+              >
+                View in Dashboard
+                <ArrowRight className="w-4 h-4 ml-2 opacity-80" strokeWidth={2.5} />
+              </Button>
+            )}
+            
+            {txHash && (
+              <div className="text-center mt-3">
+                <a
+                  href={`https://stellar.expert/explorer/${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'public' : 'testnet'}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 text-[13px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                >
+                  Verify on Stellar Explorer <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {redirect?.url ? (
-            <>
-              <button
-                onClick={handleRedirect}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  padding: '14px 24px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, var(--primary, #3B82F6), #2563eb)',
-                  color: 'white',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                }}
-              >
-                <ExternalLink size={18} />
-                {redirect.label || `Go to ${redirect.platformName || 'Platform'}`}
-                <ArrowRight size={16} />
-              </button>
-              {countdown > 0 && (
-                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant, #888)' }}>
-                  Redirecting in {countdown}s...
-                </p>
-              )}
-              <button
-                onClick={onClose}
-                style={{
-                  width: '100%',
-                  padding: '12px 24px',
-                  borderRadius: '14px',
-                  border: '1px solid var(--outline-variant, #e0e0e0)',
-                  background: 'transparent',
-                  color: 'var(--on-surface-variant, #666)',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Stay on Rekura
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onClose}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '14px 24px',
-                borderRadius: '14px',
-                border: 'none',
-                background: 'linear-gradient(135deg, var(--primary, #3B82F6), #2563eb)',
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-              }}
-            >
-              View in Dashboard
-              <ArrowRight size={16} />
-            </button>
-          )}
-          
-          {txHash && (
-            <a
-              href={`https://stellar.expert/explorer/${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'public' : 'testnet'}/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                fontSize: '13px',
-                color: 'var(--primary, #3B82F6)',
-                textDecoration: 'none',
-                marginTop: '12px',
-                fontWeight: 500,
-              }}
-            >
-              Verify on Stellar Explorer <ExternalLink size={12} />
-            </a>
-          )}
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes scaleIn {
-          from { transform: scale(0); }
-          to { transform: scale(1); }
-        }
-        @keyframes pulseRing {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.05); opacity: 0.8; }
-        }
-      `}</style>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -20,6 +20,9 @@ import { MailService } from '../../services/MailService.js';
 import { getIO } from '../../utils/socket.js';
 import { WebhookDeliveryService } from '../../webhooks/WebhookDeliveryService.js';
 import { config } from '../../config/index.js';
+import { DiscountCodeRepository } from '../../database/repositories/DiscountCodeRepository.js';
+import { RefundService } from '../../services/RefundService.js';
+import { WhatsAppService } from '../../services/WhatsAppService.js';
 
 export const subscriptionRoutes = Router();
 
@@ -33,6 +36,12 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
   try {
     const input = createSubscriptionSchema.parse(req.body);
 
+    // Enforce strict role segregation: Merchants cannot subscribe
+    if (req.user!.role === 'merchant') {
+      res.status(403).json({ error: 'Wallet already registered as a merchant, cannot subscribe to plans' });
+      return;
+    }
+
     const plan = await PlanRepository.findById(input.planId);
     if (!plan || !plan.is_active) {
       res.status(400).json({ error: 'Plan does not exist or is inactive' });
@@ -41,7 +50,32 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
 
     // Calculate dates
     const now = new Date();
-    const nextPayment = new Date(now.getTime() + (plan.interval_seconds * 1000));
+    const trialDays = plan.trial_days || 0;
+    const isTrial = trialDays > 0;
+    
+    // First payment time is delayed if there is a trial
+    const nextPayment = new Date(now.getTime() + (isTrial ? trialDays * 24 * 3600 * 1000 : plan.interval_seconds * 1000));
+    const trialEndTime = isTrial ? nextPayment : null;
+
+    // Handle Discount Code Validation
+    let validDiscountCodeId: string | null = null;
+    let validDiscountCode = null;
+    if (input.discountCode) {
+      const validation = await DiscountCodeRepository.isValid(input.discountCode, plan.merchant_id as string);
+      if (!validation.valid) {
+         res.status(400).json({ error: validation.reason });
+         return;
+      }
+      
+      const hasRedeemed = await DiscountCodeRepository.hasUserRedeemed(req.user!.userId as string, validation.discountCode!.id);
+      if (hasRedeemed) {
+         res.status(400).json({ error: 'You have already redeemed this discount code' });
+         return;
+      }
+
+      validDiscountCodeId = validation.discountCode!.id;
+      validDiscountCode = validation.discountCode;
+    }
 
     // Verify transaction on-chain
     if (req.body.subscriptionIdOnChain) {
@@ -70,11 +104,32 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
       user_id: req.user!.userId as string,
       plan_id: input.planId,
       merchant_id: plan.merchant_id as string,
-      status: 'active',
+      status: isTrial ? 'trialing' : 'active',
       subscription_id_on_chain: req.body.subscriptionIdOnChain || null,
       start_time: now,
-      next_payment_time: nextPayment
+      next_payment_time: nextPayment,
+      trial_end_time: trialEndTime,
+      discount_code_id: validDiscountCodeId
     });
+
+    // Record redemption if applicable
+    if (validDiscountCodeId && validDiscountCode) {
+       let originalAmount = Number(plan.amount);
+       let discountedAmount = originalAmount;
+       if (validDiscountCode.discount_percent) {
+           discountedAmount = Math.floor(originalAmount * (100 - validDiscountCode.discount_percent) / 100);
+       } else if (validDiscountCode.discount_amount) {
+           discountedAmount = Math.max(0, originalAmount - Number(validDiscountCode.discount_amount));
+       }
+       
+       await DiscountCodeRepository.recordRedemption(
+         validDiscountCodeId,
+         sub.id,
+         req.user!.userId as string,
+         originalAmount,
+         discountedAmount
+       );
+    }
 
     logger.info('Subscription created', {
       userId: req.user!.userId,
@@ -119,9 +174,21 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
 
     // Send Email Notification Async
     const user = await UserRepository.findById(req.user!.userId as string);
-    if (user && user.email) {
+    if (user) {
       const amountFormatted = `${Number(plan.amount) / 10000000} ${plan.token_address === 'USDC' ? 'USDC' : 'Token'}`;
-      MailService.sendSubscriptionCreatedEmail(user.email, plan.name, amountFormatted).catch(e => logger.error('Mail error', { error: e }));
+      
+      if (user.email) {
+        MailService.sendSubscriptionCreatedEmail(user.email, plan.name, amountFormatted).catch(e => logger.error('Mail error', { error: e }));
+      }
+
+      if (user.phone_number) {
+        const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'hello_world';
+        WhatsAppService.sendSubscriptionReceipt(
+          user.phone_number,
+          templateName,
+          [user.name || 'Subscriber', plan.name, amountFormatted]
+        ).catch(e => logger.error('WhatsApp error', { error: e }));
+      }
     }
 
     // Dispatch Webhook to Merchant endpoints
@@ -214,6 +281,21 @@ subscriptionRoutes.post('/:id/cancel', async (req: Request, res: Response, next:
 
     const updatedSub = await SubscriptionRepository.updateStatus(id, 'cancelled');
 
+    // Calculate Prorated Refund if active
+    let refundInfo = null;
+    if (sub.status === 'active') {
+       try {
+         const refund = await RefundService.processRefund(id, input.reason);
+         refundInfo = {
+            amount: refund.refund_amount,
+            status: refund.status,
+            txHash: refund.refund_tx_hash
+         };
+       } catch (err) {
+         logger.error('Failed to process refund on cancel', { error: (err as Error).message });
+       }
+    }
+
     logger.info('Subscription cancelled', {
       subscriptionId: id,
       reason: input.reason,
@@ -222,6 +304,7 @@ subscriptionRoutes.post('/:id/cancel', async (req: Request, res: Response, next:
     res.json({
       message: 'Subscription cancelled successfully',
       subscription: updatedSub,
+      refund: refundInfo
     });
 
     try {

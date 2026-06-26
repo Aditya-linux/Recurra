@@ -1,24 +1,29 @@
 /**
  * KeepAlive Service — Free-tier cold-start prevention
  *
- * Pings the /health endpoint every 14 minutes to keep Render's free tier
- * from spinning down the service (which causes 50-second cold starts).
+ * Prevents TWO free-tier services from sleeping:
  *
- * When we upgrade to Render Starter ($7/month), this service becomes a no-op
- * because paid plans are always warm. The env flag KEEPALIVE_ENABLED lets us
- * toggle it without code changes.
+ * 1. Render free tier — spins down after 15 min of inactivity
+ *    → Self-pings /health every 14 minutes
  *
- * Also pings Supabase to keep the DB connection alive (free tier sleeps too).
+ * 2. Supabase free tier — pauses DB after 7 days of inactivity
+ *    → Runs a lightweight SELECT 1 every 3 days
+ *
+ * When we upgrade to paid plans, set KEEPALIVE_ENABLED=false.
  */
 
 import { logger } from '../utils/logger.js';
+import { dbPool } from '../database/index.js';
 
-// Ping every 14 minutes — Render free tier sleeps after 15 min of inactivity
-const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
+// ============================================================
+// Render Keep-Alive (every 14 minutes)
+// ============================================================
 
-let pingIntervalId: ReturnType<typeof setInterval> | null = null;
+const RENDER_PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
 
-async function pingHealth(): Promise<void> {
+let renderPingIntervalId: ReturnType<typeof setInterval> | null = null;
+
+async function pingRenderHealth(): Promise<void> {
   const selfUrl = process.env.RENDER_EXTERNAL_URL || process.env.KEEPALIVE_URL;
 
   if (!selfUrl) {
@@ -34,17 +39,42 @@ async function pingHealth(): Promise<void> {
     });
 
     if (response.ok) {
-      logger.info(`[KeepAlive] ✓ Pinged ${selfUrl}/health → ${response.status}`);
+      logger.debug(`[KeepAlive] ✓ Render ping → ${response.status}`);
     } else {
-      logger.warn(`[KeepAlive] ⚠ Health ping returned ${response.status}`);
+      logger.warn(`[KeepAlive] ⚠ Render ping returned ${response.status}`);
     }
   } catch (err: any) {
-    logger.warn(`[KeepAlive] ✗ Ping failed: ${err.message}`);
+    logger.warn(`[KeepAlive] ✗ Render ping failed: ${err.message}`);
   }
 }
 
+// ============================================================
+// Supabase Keep-Alive (every 3 days)
+// ============================================================
+
+// Supabase free tier pauses after 7 days of inactivity.
+// Pinging every 3 days gives us comfortable margin.
+const SUPABASE_PING_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+let supabasePingIntervalId: ReturnType<typeof setInterval> | null = null;
+
+async function pingSupabase(): Promise<void> {
+  try {
+    const result = await dbPool.query('SELECT 1 AS alive');
+    if (result.rows[0]?.alive === 1) {
+      logger.info('[KeepAlive] ✓ Supabase DB alive');
+    }
+  } catch (err: any) {
+    logger.warn(`[KeepAlive] ✗ Supabase ping failed: ${err.message}`);
+  }
+}
+
+// ============================================================
+// Public API
+// ============================================================
+
 /**
- * Start the keepalive pinger.
+ * Start all keepalive pingers.
  * Called once during server startup.
  */
 export function startKeepAlive(): void {
@@ -55,25 +85,34 @@ export function startKeepAlive(): void {
     return;
   }
 
-  // Fire immediately on startup to verify connectivity
-  pingHealth().catch(() => {});
+  // --- Render keep-alive ---
+  pingRenderHealth().catch(() => {});
+  renderPingIntervalId = setInterval(() => {
+    pingRenderHealth().catch(() => {});
+  }, RENDER_PING_INTERVAL_MS);
 
-  pingIntervalId = setInterval(() => {
-    pingHealth().catch(() => {});
-  }, PING_INTERVAL_MS);
+  // --- Supabase keep-alive ---
+  // Don't ping immediately on startup (DB connection is already fresh)
+  supabasePingIntervalId = setInterval(() => {
+    pingSupabase().catch(() => {});
+  }, SUPABASE_PING_INTERVAL_MS);
 
   logger.info(
-    `[KeepAlive] Started — pinging every ${PING_INTERVAL_MS / 60000} minutes to prevent cold starts`
+    `[KeepAlive] Started — Render: every 14min, Supabase: every 3 days`
   );
 }
 
 /**
- * Stop the keepalive pinger gracefully (called on SIGTERM/SIGINT).
+ * Stop all keepalive pingers gracefully (called on SIGTERM/SIGINT).
  */
 export function stopKeepAlive(): void {
-  if (pingIntervalId) {
-    clearInterval(pingIntervalId);
-    pingIntervalId = null;
-    logger.info('[KeepAlive] Stopped');
+  if (renderPingIntervalId) {
+    clearInterval(renderPingIntervalId);
+    renderPingIntervalId = null;
   }
+  if (supabasePingIntervalId) {
+    clearInterval(supabasePingIntervalId);
+    supabasePingIntervalId = null;
+  }
+  logger.info('[KeepAlive] Stopped');
 }

@@ -16,6 +16,10 @@ export interface Plan {
   redirect_url: string | null;
   redirect_label: string | null;
   subscriber_count: number;
+  tier: string;
+  trial_days: number;
+  features: string[];
+  accepted_tokens: string[];
   created_at: Date;
   updated_at: Date;
 }
@@ -39,21 +43,29 @@ export class PlanRepository {
     return result.rows;
   }
 
+  static async findByTier(merchantId: string, tier: string, client?: PoolClient): Promise<Plan[]> {
+    const db = client || dbPool;
+    const result = await db.query<Plan>('SELECT * FROM plans WHERE merchant_id = $1 AND tier = $2 ORDER BY created_at DESC', [merchantId, tier]);
+    return result.rows;
+  }
+
   static async create(plan: Partial<Plan>, client?: PoolClient): Promise<Plan> {
     const db = client || dbPool;
     const query = `
       INSERT INTO plans (
         plan_id_on_chain, merchant_id, name, description, 
         amount, token_address, interval_seconds, max_payments, metadata_uri,
-        redirect_url, redirect_label
+        redirect_url, redirect_label, tier, trial_days, features, accepted_tokens
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
     const values = [
       plan.plan_id_on_chain, plan.merchant_id, plan.name, plan.description || null,
       plan.amount, plan.token_address, plan.interval_seconds, plan.max_payments || 0,
-      plan.metadata_uri || null, plan.redirect_url || null, plan.redirect_label || 'Go to Platform'
+      plan.metadata_uri || null, plan.redirect_url || null, plan.redirect_label || 'Go to Platform',
+      plan.tier || 'standard', plan.trial_days || 0, plan.features ? JSON.stringify(plan.features) : '[]',
+      plan.accepted_tokens || '{}'
     ];
     const result = await db.query<Plan>(query, values);
     return result.rows[0] as Plan;
@@ -67,9 +79,13 @@ export class PlanRepository {
     let argCounter = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'description', 'is_active', 'metadata_uri', 'subscriber_count', 'redirect_url', 'redirect_label'].includes(key)) {
+      if (['name', 'description', 'is_active', 'metadata_uri', 'subscriber_count', 'redirect_url', 'redirect_label', 'tier', 'trial_days', 'features', 'accepted_tokens'].includes(key)) {
         setClauses.push(`${key} = $${argCounter}`);
-        values.push(value);
+        if (key === 'features') {
+          values.push(JSON.stringify(value));
+        } else {
+          values.push(value);
+        }
         argCounter++;
       }
     }

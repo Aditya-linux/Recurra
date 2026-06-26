@@ -8,12 +8,8 @@ import { PlanRepository } from '../database/repositories/PlanRepository.js';
 import { RetailFulfillmentService } from './RetailFulfillmentService.js';
 import { MailService } from './MailService.js';
 import { config } from '../config/index.js';
-
-// Redis connection details from env
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-};
+import { isRedisAvailable, getRedisClient } from '../utils/redis.js';
+import { DiscountCodeRepository } from '../database/repositories/DiscountCodeRepository.js';
 
 // ── Batch limit: how many subscriptions to process in one keeper run ──
 // Defaulting to 500 to support the mainnet gate test.
@@ -62,6 +58,31 @@ async function processPayment(sub: any): Promise<void> {
   // merchant_amount to merchant AND protocol_fee to the treasury in one tx.
   let txHash = 'mock_tx_hash_' + Date.now();
 
+  let amountToCharge = 10_000_000; // 1 USDC Default
+  let tokenAddress = process.env.USDC_TOKEN_ADDRESS || 'USDC';
+
+  try {
+    const plan = await PlanRepository.findById(sub.plan_id);
+    if (plan) {
+       amountToCharge = Number(plan.amount);
+       tokenAddress = plan.token_address;
+
+       // Handle discount on first payment
+       if (sub.payments_made === 0 && sub.discount_code_id) {
+           const dc = await DiscountCodeRepository.findById(sub.discount_code_id);
+           if (dc) {
+               if (dc.discount_percent) {
+                   amountToCharge = Math.floor(amountToCharge * (100 - dc.discount_percent) / 100);
+               } else if (dc.discount_amount) {
+                   amountToCharge = Math.max(0, amountToCharge - Number(dc.discount_amount));
+               }
+           }
+       }
+    }
+  } catch (e) {
+      logger.warn(`Could not load plan/discount for sub ${sub.id}`, e);
+  }
+
   try {
     const account = await server.getAccount(keeperKeypair.publicKey());
     const tx = new TransactionBuilder(account, {
@@ -104,8 +125,8 @@ async function processPayment(sub: any): Promise<void> {
     [
       sub.id,
       txHash,
-      10_000_000, // 1 USDC in stroops (7 decimal places)
-      process.env.USDC_TOKEN_ADDRESS || 'USDC',
+      amountToCharge,
+      tokenAddress,
       sub.user_id,
       sub.merchant_id,
       updateRes.rows[0].payments_made,
@@ -130,7 +151,7 @@ async function processPayment(sub: any): Promise<void> {
       WebhookDeliveryService.dispatch(sub.merchant_id, 'payment.executed', {
         subscriptionId: sub.id,
         transactionHash: txHash,
-        amount: 10_000_000,
+        amount: amountToCharge,
         paymentNumber: updateRes.rows[0].payments_made,
       }).catch(e =>
         logger.error('Failed to dispatch payment webhook', { error: e.message })
@@ -147,7 +168,7 @@ async function processPayment(sub: any): Promise<void> {
     const user = await UserRepository.findById(sub.user_id);
     const plan = await PlanRepository.findById(sub.plan_id);
     if (user?.email && plan) {
-      const amountStr = `${Number(plan.amount) / 10_000_000} USDC`;
+      const amountStr = `${amountToCharge / 10_000_000} ${tokenAddress === process.env.USDC_TOKEN_ADDRESS ? 'USDC' : 'Token'}`;
       const paymentsMade = updateRes.rows[0].payments_made;
 
       const nextPmtResult = await dbPool.query(
@@ -191,80 +212,126 @@ async function processPayment(sub: any): Promise<void> {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Keeper Worker — C10K-safe parallel batch processor
+// Keeper Worker — C10K-safe parallel batch processor (lazily initialized)
 // ────────────────────────────────────────────────────────────────────────────
 
+let _keeperWorker: Worker | null = null;
+
 /**
- * Keeper Service Worker
- *
- * C10K-safe design: all due subscriptions are launched SIMULTANEOUSLY via
- * Promise.allSettled(). This mirrors the async event-loop approach:
- *   - One thread (event loop) manages 500 concurrent Soroban RPC calls
- *   - Zero blocked waiting — each `await` yields control back immediately
- *   - One failure never blocks or crashes others
- *
- * Mainnet gate:
- *   Set MAINNET_GATE_TEST=true to enable strict mode.
- *   All 500 transactions must succeed for the job to pass.
+ * Initialize the keeper worker. Must be called AFTER Redis is connected.
+ * Returns the worker instance, or null if Redis is unavailable.
  */
-export const keeperWorker = new Worker(
-  'keeperQueue',
-  async (job: Job) => {
-    logger.info(`Processing keeper job ${job.id}`);
+export function initKeeperWorker(): Worker | null {
+  if (_keeperWorker) return _keeperWorker;
+  if (!isRedisAvailable()) {
+    logger.warn('Keeper worker: Redis unavailable — worker disabled');
+    return null;
+  }
 
-    // Query due subscriptions up to batch limit
-    const result = await dbPool.query(
-      `SELECT id, subscription_id_on_chain, plan_id, user_id, merchant_id, next_payment_time
-       FROM subscriptions
-       WHERE next_payment_time <= NOW() AND status IN ('active', 'past_due')
-       LIMIT $1`,
-      [KEEPER_BATCH_SIZE]
-    );
-    const dueSubscriptions = result.rows;
+  const client = getRedisClient();
+  if (!client) return null;
 
-    logger.info(
-      `Found ${dueSubscriptions.length} due subscriptions (batch limit: ${KEEPER_BATCH_SIZE})`
-    );
+  /**
+   * Keeper Service Worker
+   *
+   * C10K-safe design: all due subscriptions are launched SIMULTANEOUSLY via
+   * Promise.allSettled(). This mirrors the async event-loop approach:
+   *   - One thread (event loop) manages 500 concurrent Soroban RPC calls
+   *   - Zero blocked waiting — each `await` yields control back immediately
+   *   - One failure never blocks or crashes others
+   *
+   * Mainnet gate:
+   *   Set MAINNET_GATE_TEST=true to enable strict mode.
+   *   All 500 transactions must succeed for the job to pass.
+   */
+  _keeperWorker = new Worker(
+    'keeperQueue',
+    async (job: Job) => {
+      logger.info(`Processing keeper job ${job.id}`);
 
-    if (dueSubscriptions.length === 0) return;
+      // Query due subscriptions up to batch limit (both active and past_due)
+      const result = await dbPool.query(
+        `SELECT id, subscription_id_on_chain, plan_id, user_id, merchant_id, next_payment_time, payments_made, discount_code_id
+         FROM subscriptions
+         WHERE next_payment_time <= NOW() AND status IN ('active', 'past_due')
+         LIMIT $1`,
+        [KEEPER_BATCH_SIZE]
+      );
+      const dueSubscriptions = result.rows;
 
-    // ── C10K PARALLEL EXECUTION ──
-    // Promise.allSettled: never throws, captures each result individually.
-    // This is the async-restaurant model: all 500 orders go to the kitchen at once.
-    const results = await Promise.allSettled(
-      dueSubscriptions.map(sub => processPayment(sub))
-    );
+      // Handle trials that are ending
+      const trialResult = await dbPool.query(
+        `SELECT id, trial_end_time, plan_id FROM subscriptions WHERE status = 'trialing' AND trial_end_time <= NOW()`
+      );
+      const endedTrials = trialResult.rows;
+      if (endedTrials.length > 0) {
+         logger.info(`Found ${endedTrials.length} trials ending today. Transitioning to active.`);
+         for (const trial of endedTrials) {
+            const plan = await PlanRepository.findById(trial.plan_id);
+            if (plan) {
+               await dbPool.query(`UPDATE subscriptions SET status = 'active', next_payment_time = NOW() WHERE id = $1`, [trial.id]);
+               dueSubscriptions.push({
+                   ...trial,
+                   status: 'active',
+                   next_payment_time: new Date(),
+                   payments_made: 0
+               });
+            }
+         }
+      }
 
-    const succeeded = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+      logger.info(
+        `Found ${dueSubscriptions.length} due subscriptions (batch limit: ${KEEPER_BATCH_SIZE})`
+      );
 
-    logger.info(
-      `Keeper batch done: ${succeeded} succeeded / ${failed} failed / ${dueSubscriptions.length} total`
-    );
+      if (dueSubscriptions.length === 0) return;
 
-    // Log each individual failure for debugging
-    results.forEach((result, i) => {
-      if (result.status === 'rejected') {
-        logger.error(
-          `✗ sub[${i}] ${dueSubscriptions[i]?.subscription_id_on_chain}: ${result.reason}`
+      // ── C10K PARALLEL EXECUTION ──
+      // Promise.allSettled: never throws, captures each result individually.
+      // This is the async-restaurant model: all 500 orders go to the kitchen at once.
+      const results = await Promise.allSettled(
+        dueSubscriptions.map(sub => processPayment(sub))
+      );
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      logger.info(
+        `Keeper batch done: ${succeeded} succeeded / ${failed} failed / ${dueSubscriptions.length} total`
+      );
+
+      // Log each individual failure for debugging
+      results.forEach((result, i) => {
+        if (result.status === 'rejected') {
+          logger.error(
+            `✗ sub[${i}] ${dueSubscriptions[i]?.subscription_id_on_chain}: ${result.reason}`
+          );
+        }
+      });
+
+      // Mainnet gate strict mode — ALL must succeed
+      if (failed > 0 && process.env.MAINNET_GATE_TEST === 'true') {
+        throw new Error(
+          `Mainnet gate FAILED: ${failed}/${dueSubscriptions.length} payments failed. Fix all failures before promoting to mainnet.`
         );
       }
-    });
+    },
+    { connection: client.duplicate() as any }
+  );
 
-    // Mainnet gate strict mode — ALL must succeed
-    if (failed > 0 && process.env.MAINNET_GATE_TEST === 'true') {
-      throw new Error(
-        `Mainnet gate FAILED: ${failed}/${dueSubscriptions.length} payments failed. Fix all failures before promoting to mainnet.`
-      );
-    }
-  },
-  { connection }
-);
+  _keeperWorker.on('completed', job => {
+    logger.info(`Keeper job ${job.id} completed`);
+  });
 
-keeperWorker.on('completed', job => {
-  logger.info(`Keeper job ${job.id} completed`);
-});
+  _keeperWorker.on('failed', (job, err) => {
+    logger.error(`Keeper job ${job?.id} failed: ${err.message}`);
+  });
 
-keeperWorker.on('failed', (job, err) => {
-  logger.error(`Keeper job ${job?.id} failed: ${err.message}`);
-});
+  logger.info('Keeper worker initialized');
+  return _keeperWorker;
+}
+
+/** Get the existing keeper worker (or null if not initialized) */
+export function getKeeperWorker(): Worker | null {
+  return _keeperWorker;
+}

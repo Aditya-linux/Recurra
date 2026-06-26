@@ -8,6 +8,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, requireRole } from '../../middleware/auth.js';
 import { analyticsSchema } from '../../utils/validation.js';
+import fs from 'fs';
+import path from 'path';
 
 export const analyticsRoutes = Router();
 
@@ -173,6 +175,18 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
     };
     const interval = periodMap[input.period] || '30 days';
 
+    // Total revenue from completed payments in the period
+    const revenueResult = await dbPool.query(
+      `SELECT COALESCE(SUM(p.amount), 0)::bigint AS total
+       FROM payments p
+       JOIN subscriptions s ON p.subscription_id = s.id
+       WHERE s.merchant_id = $1
+         AND p.status = 'completed'
+         AND p.executed_at >= NOW() - $2::interval`,
+      [merchantId, interval]
+    );
+    const totalRevenue = Number(revenueResult.rows[0].total);
+
     const result = await dbPool.query(
       `SELECT 
         p.status,
@@ -222,6 +236,7 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
       period: input.period,
       breakdown,
       totalPayments,
+      totalRevenue,
       successRate: parseFloat(successRate as string),
       topPlans: topPlansResult.rows.map((row: any) => ({
         name: row.name,
@@ -230,6 +245,114 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
         revenueFormatted: `$${(Number(row.total_revenue) / 10000000).toFixed(2)}`,
       })),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/v1/analytics/platform — Global platform stats
+ */
+analyticsRoutes.get('/platform', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { dbPool } = await import('../../database/index.js');
+    
+    const subsResult = await dbPool.query(`SELECT COUNT(*)::int as total FROM subscriptions`);
+    const activeSubsResult = await dbPool.query(`SELECT COUNT(*)::int as total FROM subscriptions WHERE status = 'active'`);
+    const volumeResult = await dbPool.query(`SELECT COALESCE(SUM(amount), 0)::bigint as total_volume, COUNT(*)::int as tx_count FROM payments WHERE status = 'completed'`);
+
+    const totalVolume = Number(volumeResult.rows[0].total_volume);
+    const platformFee = Math.floor(totalVolume * 0.005); // 0.5%
+
+    res.json({
+      totalSubscriptions: subsResult.rows[0].total,
+      activeSubscriptions: activeSubsResult.rows[0].total,
+      totalTransactions: volumeResult.rows[0].tx_count,
+      totalVolume,
+      totalVolumeFormatted: `$${(totalVolume / 10000000).toFixed(2)}`,
+      platformFee,
+      platformFeeFormatted: `$${(platformFee / 10000000).toFixed(2)}`,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/v1/analytics/export-users — Unified CSV export
+ */
+analyticsRoutes.get('/export-users', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { dbPool } = await import('../../database/index.js');
+    
+    // 1. Fetch Users & Subscriptions
+    const usersResult = await dbPool.query(`
+      SELECT u.wallet_address, u.email, COUNT(s.id)::int as active_subs 
+      FROM users u 
+      LEFT JOIN subscriptions s ON s.user_id = u.id AND s.status = 'active'
+      GROUP BY u.id
+    `);
+
+    // 2. Fetch Merchants & Plans
+    const merchantsResult = await dbPool.query(`
+      SELECT m.wallet_address, m.business_email as email, COUNT(p.id)::int as plans_created 
+      FROM merchants m
+      LEFT JOIN plans p ON p.merchant_id = m.id
+      GROUP BY m.id
+    `);
+
+    // 3. Read Feedback
+    let feedbackMap: Record<string, string> = {};
+    try {
+      const feedbackPath = path.join(process.cwd(), 'feedback.csv');
+      if (fs.existsSync(feedbackPath)) {
+        const fileContent = fs.readFileSync(feedbackPath, 'utf-8');
+        const lines = fileContent.split('\n').slice(1); // skip header
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          // Format: Date,Name,Email,Address,Transactions,Type,Message
+          const parts = line.split(',');
+          if (parts.length >= 7) {
+            const wallet = parts[3]?.replace(/"/g, '').trim() || '';
+            const message = parts.slice(6).join(',').replace(/"/g, '').trim();
+            if (wallet && wallet !== 'N/A') {
+              feedbackMap[wallet] = message;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse feedback.csv', e);
+    }
+
+    // 4. Generate CSV
+    let csvString = 'Wallet Address,Role,Email,Actions Done,General Feedback\n';
+
+    // Helper to escape CSV strings
+    const escapeCSV = (str: string | null | undefined) => {
+      if (!str) return '';
+      const safeStr = String(str);
+      return safeStr.includes(',') || safeStr.includes('"') || safeStr.includes('\n') 
+        ? `"${safeStr.replace(/"/g, '""')}"` 
+        : safeStr;
+    };
+
+    // Users
+    for (const u of usersResult.rows) {
+      const feedback = feedbackMap[u.wallet_address] || '';
+      csvString += `${u.wallet_address},User,${escapeCSV(u.email)},${u.active_subs} active subscriptions,${escapeCSV(feedback)}\n`;
+    }
+
+    // Merchants
+    for (const m of merchantsResult.rows) {
+      const feedback = feedbackMap[m.wallet_address] || '';
+      csvString += `${m.wallet_address},Merchant,${escapeCSV(m.email)},${m.plans_created} plans created,${escapeCSV(feedback)}\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="platform_data.csv"');
+    res.send(csvString);
+
   } catch (err) {
     next(err);
   }

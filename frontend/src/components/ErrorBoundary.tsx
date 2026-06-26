@@ -64,7 +64,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 width: '56px',
                 height: '56px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                background: 'linear-gradient(135deg, var(--error), #dc2626)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -123,14 +123,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 style={{
                   marginTop: '8px',
                   padding: '12px',
-                  background: 'var(--surface-container-low, #f5f5f5)',
+                  background: 'var(--surface-container)',
                   borderRadius: '8px',
                   fontSize: '12px',
-                  color: '#ef4444',
+                  color: 'var(--error)',
                   textAlign: 'left',
                   overflow: 'auto',
                   maxHeight: '150px',
-                  border: '1px solid var(--outline-variant, #e5e5e5)',
+                  border: '1px solid var(--glass-border)',
                 }}
               >
                 {this.state.error.message}
@@ -145,12 +145,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 padding: '12px 28px',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, var(--primary, #3B82F6), #2563eb)',
+                background: 'var(--fractal-gradient)',
+                backgroundSize: '200% 100%',
                 color: 'white',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                boxShadow: 'var(--shadow-md)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -161,8 +162,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               style={{
                 padding: '12px 28px',
                 borderRadius: '12px',
-                border: '1px solid var(--outline-variant, #e0e0e0)',
-                background: 'transparent',
+                border: '1px solid var(--glass-border)',
+                background: 'var(--glass-bg)',
                 color: 'var(--on-surface-variant, #666)',
                 fontSize: '14px',
                 fontWeight: 500,

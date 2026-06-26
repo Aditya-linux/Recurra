@@ -14,6 +14,7 @@ interface FeedbackModalProps {
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   const { walletAddress, userRole } = useWallet();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [feedbackType, setFeedbackType] = useState('feature');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +54,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
+          email,
           walletAddress: walletAddress || 'Not connected',
           userRole: userRole || 'Unknown',
           spend: userSpend,
@@ -67,6 +69,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
         setSubmitted(false);
         setMessage('');
         setName('');
+        setEmail('');
         onClose();
       }, 2000);
     } catch (error) {
@@ -76,57 +79,73 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   };
 
   const modalContent = (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px'
-    }}>
-      <div className="card" style={{
-        width: '100%', maxWidth: '400px', padding: '24px',
-        backgroundColor: 'var(--surface-container-low)',
-        borderRadius: '16px', position: 'relative',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-      }}>
+    <div className="modal-overlay active" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
+          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)', padding: '4px', borderRadius: '8px', display: 'flex', transition: 'all 0.15s ease' }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'none'}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <div style={{ padding: '8px', background: 'rgba(52, 120, 246, 0.1)', color: 'var(--accent-blue)', borderRadius: '8px' }}>
-            <MessageSquare size={24} />
+          <div style={{ padding: '8px', background: 'rgba(96, 165, 250, 0.1)', color: 'var(--accent-blue)', borderRadius: '10px', display: 'flex' }}>
+            <MessageSquare size={22} />
           </div>
-          <h2 className="text-h3" style={{ fontSize: '20px' }}>Send Feedback</h2>
+          <h2 className="text-h4" style={{ fontWeight: 600 }}>Send Feedback</h2>
         </div>
 
         {submitted ? (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div style={{ color: 'var(--emerald-500)', marginBottom: '12px' }}>✓ Thank you!</div>
-            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Your feedback helps us improve.</p>
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ 
+              width: '56px', height: '56px', borderRadius: '50%', 
+              background: 'var(--emerald-500-15)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              margin: '0 auto 20px', color: 'var(--emerald-500)' 
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 className="text-h4" style={{ marginBottom: '10px' }}>Feedback Sent</h3>
+            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+              Thanks for your response, we look forward to your feedback!
+            </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px', color: 'var(--on-surface-variant)' }}>Name</label>
+              <label className="form-label">Name</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your Name"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container)', color: 'var(--on-surface)' }}
+                className="form-input"
               />
             </div>
 
             <div>
-              <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px', color: 'var(--on-surface-variant)' }}>Feedback Type</label>
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="form-input"
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Feedback Type</label>
               <select
                 value={feedbackType}
                 onChange={(e) => setFeedbackType(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container)', color: 'var(--on-surface)' }}
+                className="form-select"
               >
                 <option value="feature">Feature Request</option>
                 <option value="bug">Bug Report</option>
@@ -135,20 +154,20 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
             </div>
             
             <div>
-              <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px', color: 'var(--on-surface-variant)' }}>Message</label>
+              <label className="form-label">Area for improvement</label>
               <textarea
                 required
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what you think..."
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--outline-variant)', background: 'var(--surface-container)', color: 'var(--on-surface)', resize: 'none' }}
+                className="form-textarea"
               />
             </div>
 
-            <Button type="submit" disabled={isSubmitting || !message.trim()} style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            <Button type="submit" disabled={isSubmitting || !message.trim()} style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
               {isSubmitting ? 'Sending...' : 'Send Feedback'}
-              {!isSubmitting && <Send size={16} />}
+              {!isSubmitting && <Send size={15} />}
             </Button>
           </form>
         )}

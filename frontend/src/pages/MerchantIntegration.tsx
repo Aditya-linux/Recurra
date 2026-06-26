@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Trash2, Power, Upload } from "lucide-react";
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '../components/ui/animations';
+import { DiscountManager } from '../components/DiscountManager';
 
 const MerchantIntegration: React.FC = () => {
   const { walletAddress, fullWalletAddress, userRole, openModal, setUserRole } = useWallet();
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'discounts'>('overview');
 
   // Registration state
   const [businessName, setBusinessName] = useState('');
@@ -239,127 +241,140 @@ const MerchantIntegration: React.FC = () => {
 
   if (!walletAddress) {
     return (
-      <main className="pt-nav" style={{ paddingBottom: '64px' }}>
-        <section className="container" style={{ marginTop: '40px' }}>
-          <Card className="flex flex-col items-center gap-4 text-center p-8 max-w-md mx-auto mt-20">
-            <h2 className="text-h3">Connect Wallet to Continue</h2>
-            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-              You need to connect your wallet to access the Merchant Portal.
-            </p>
-            <Button onClick={openModal}>Connect Wallet</Button>
-          </Card>
-        </section>
-      </main>
+      <PageWrapper>
+        <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+          <section className="container" style={{ marginTop: '40px' }}>
+            <FadeIn>
+              <Card className="flex flex-col items-center gap-4 text-center p-8 max-w-md mx-auto mt-20">
+                <h2 className="text-h3">Connect Wallet to Continue</h2>
+                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                  You need to connect your wallet to access the Merchant Portal.
+                </p>
+                <Button onClick={openModal}>Connect Wallet</Button>
+              </Card>
+            </FadeIn>
+          </section>
+        </main>
+      </PageWrapper>
     );
   }
 
   if (userRole !== 'merchant') {
     return (
-      <main className="pt-nav" style={{ paddingBottom: '64px' }}>
-        <section className="container" style={{ marginTop: '40px' }}>
-          <Card className="max-w-[600px] mx-auto mt-10">
-            <CardHeader>
-              <CardTitle className="text-h2">Register as a Merchant</CardTitle>
-              <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-                Upgrade your account to create subscription plans and integrate Rekura payments.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={registerMerchant} className="flex flex-col gap-6">
-                <div>
-                  <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Name</label>
-                  <Input 
-                    type="text" 
-                    placeholder="e.g. Acme Streaming" 
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    required
-                    className="text-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Email</label>
-                  <Input 
-                    type="email" 
-                    placeholder="e.g. billing@acme.com" 
-                    value={businessEmail}
-                    onChange={(e) => setBusinessEmail(e.target.value)}
-                    required
-                    className="text-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Logo</label>
-                  {!logoUrl ? (
-                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-8 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center cursor-pointer">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={isUploadingLogo}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      <PageWrapper>
+        <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+          <section className="container" style={{ marginTop: '40px' }}>
+            <FadeIn>
+              <Card className="max-w-[600px] mx-auto mt-10">
+                <CardHeader>
+                  <CardTitle className="text-h2">Register as a Merchant</CardTitle>
+                  <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                    Upgrade your account to create subscription plans and integrate Rekura payments.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={registerMerchant} className="flex flex-col gap-6">
+                    <div>
+                      <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Name</label>
+                      <Input 
+                        type="text" 
+                        placeholder="e.g. Acme Streaming" 
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        required
+                        className="text-[var(--on-surface)]"
                       />
-                      {isUploadingLogo ? (
-                        <div className="flex flex-col items-center text-primary">
-                          <Loader2 className="animate-spin mb-2" size={28} />
-                          <span className="text-sm font-medium">Uploading...</span>
+                    </div>
+                    <div>
+                      <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Email</label>
+                      <Input 
+                        type="email" 
+                        placeholder="e.g. billing@acme.com" 
+                        value={businessEmail}
+                        onChange={(e) => setBusinessEmail(e.target.value)}
+                        required
+                        className="text-[var(--on-surface)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Logo</label>
+                      {!logoUrl ? (
+                        <div className="relative border-2 border-dashed rounded-lg p-8 transition-colors flex flex-col items-center justify-center cursor-pointer" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={isUploadingLogo}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          {isUploadingLogo ? (
+                            <div className="flex flex-col items-center text-primary">
+                              <Loader2 className="animate-spin mb-2" size={28} />
+                              <span className="text-sm font-medium">Uploading...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center" style={{ color: 'var(--on-surface-variant)' }}>
+                              <div className="p-3 rounded-full mb-3" style={{ background: 'var(--surface-container)', color: 'var(--on-surface-variant)' }}>
+                                <Upload size={24} />
+                              </div>
+                              <span className="text-sm font-semibold" style={{ color: 'var(--on-surface)' }}>Click to upload from device</span>
+                              <span className="text-xs mt-1" style={{ color: 'var(--on-surface-variant)' }}>SVG, PNG, JPG (max 5MB)</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center text-gray-500">
-                          <div className="bg-gray-100 p-3 rounded-full mb-3 text-gray-600">
-                            <Upload size={24} />
+                        <div className="relative border rounded-lg p-4 flex items-center justify-between shadow-sm" style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 border rounded-lg flex items-center justify-center" style={{ width: '60px', height: '60px', background: 'var(--surface-container)', borderColor: 'var(--glass-border)' }}>
+                              <img src={logoUrl} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold" style={{ color: 'var(--on-surface)' }}>Logo uploaded</span>
+                              <span className="text-xs font-medium" style={{ color: 'var(--accent-cyan)' }}>Ready for display</span>
+                            </div>
                           </div>
-                          <span className="text-sm font-semibold text-black">Click to upload from device</span>
-                          <span className="text-xs mt-1 text-gray-400">SVG, PNG, JPG (max 5MB)</span>
+                          <div className="relative">
+                            <Button type="button" variant="outline" size="sm" disabled={isUploadingLogo} className="text-[var(--on-surface)]">
+                              {isUploadingLogo ? <><Loader2 className="animate-spin mr-2" size={14} /> Replacing...</> : 'Replace'}
+                            </Button>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                              disabled={isUploadingLogo}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="relative border rounded-lg p-4 bg-white flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-gray-50 p-2 border border-gray-100 rounded-lg flex items-center justify-center" style={{ width: '60px', height: '60px' }}>
-                          <img src={logoUrl} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-black">Logo uploaded</span>
-                          <span className="text-xs text-emerald-600 font-medium">Ready for display</span>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <Button type="button" variant="outline" size="sm" disabled={isUploadingLogo} className="text-black">
-                          {isUploadingLogo ? <><Loader2 className="animate-spin mr-2" size={14} /> Replacing...</> : 'Replace'}
-                        </Button>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={isUploadingLogo}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <Button type="submit" disabled={isRegistering}>
-                  {isRegistering ? <><Loader2 className="animate-spin mr-2" size={16} /> Registering...</> : 'Complete Registration'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </section>
-      </main>
+                    <HoverCard>
+                      <Button type="submit" disabled={isRegistering} className="w-full">
+                        {isRegistering ? <><Loader2 className="animate-spin mr-2" size={16} /> Registering...</> : 'Complete Registration'}
+                      </Button>
+                    </HoverCard>
+                  </form>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </section>
+        </main>
+      </PageWrapper>
     );
   }
 
   return (
-    <main className="pt-nav" style={{ paddingBottom: '64px' }}>
-      <section className="container" style={{ marginTop: '40px' }}>
-        <h2 className="text-h2">Merchant Portal</h2>
-        <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '32px', maxWidth: '600px' }}>
-          Manage your subscription plans, webhooks, and performance analytics.
-        </p>
+    <PageWrapper>
+      <main className="pt-nav" style={{ paddingBottom: '64px' }}>
+        <section className="container" style={{ marginTop: '40px' }}>
+          <FadeIn delay={0.1}>
+            <h2 className="text-h2">Merchant Portal</h2>
+            <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '32px', maxWidth: '600px' }}>
+              Manage your subscription plans, webhooks, and performance analytics.
+            </p>
+          </FadeIn>
 
-        {/* Tab Navigation */}
+          {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', borderBottom: '1px solid var(--outline-variant)' }}>
           <button
             onClick={() => setActiveTab('overview')}
@@ -389,155 +404,184 @@ const MerchantIntegration: React.FC = () => {
           >
             Performance Analytics
           </button>
+          <button
+            onClick={() => setActiveTab('discounts')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '15px',
+              borderBottom: activeTab === 'discounts' ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === 'discounts' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
+              backgroundColor: 'transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            Discounts
+          </button>
         </div>
 
         {activeTab === 'analytics' ? (
-          <AnalyticsPage isEmbedded={true} />
+          <FadeIn delay={0.2}><AnalyticsPage isEmbedded={true} /></FadeIn>
+        ) : activeTab === 'discounts' ? (
+          <FadeIn delay={0.2}><DiscountManager /></FadeIn>
         ) : (
-        <div className="grid-12">
+        <StaggerContainer className="grid-12">
           {/* Plan Creation */}
-          <Card style={{ gridColumn: 'span 7' }}>
-            <CardHeader>
-              <CardTitle className="text-h3" style={{ fontSize: '24px' }}>Create Subscription Plan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={createPlan} className="grid-12" style={{ gap: '24px' }}>
-                <div style={{ gridColumn: 'span 6' }}>
-                  <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Plan Name</label>
-                  <Input required type="text" placeholder="e.g. Pro Tier" value={planName} onChange={(e) => setPlanName(e.target.value)} className="text-black" />
-                </div>
-                <div style={{ gridColumn: 'span 6' }}>
-                  <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Amount (USDC)</label>
-                  <Input required type="number" step="0.01" placeholder="e.g. 15.00" value={planAmount} onChange={(e) => setPlanAmount(e.target.value)} className="text-black" />
-                </div>
+          <StaggerItem style={{ gridColumn: 'span 7' }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-h3" style={{ fontSize: '24px' }}>Create Subscription Plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={createPlan} className="grid-12" style={{ gap: '24px' }}>
+                  <div style={{ gridColumn: 'span 6' }}>
+                    <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Plan Name</label>
+                    <Input required type="text" placeholder="e.g. Pro Tier" value={planName} onChange={(e) => setPlanName(e.target.value)} className="text-[var(--on-surface)]" />
+                  </div>
+                  <div style={{ gridColumn: 'span 6' }}>
+                    <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Amount (USDC)</label>
+                    <Input required type="number" step="0.01" placeholder="e.g. 15.00" value={planAmount} onChange={(e) => setPlanAmount(e.target.value)} className="text-[var(--on-surface)]" />
+                  </div>
 
-                <div style={{ gridColumn: 'span 12' }}>
-                  <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Billing Interval</label>
-                  <Select value={planInterval} onValueChange={(val) => setPlanInterval(val)}>
-                    <SelectTrigger className="w-full bg-white text-black border border-[var(--outline-variant)] focus:ring-[var(--primary)] outline-none rounded-[10px] h-[48px]">
-                      <SelectValue placeholder="Select billing interval" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white text-black border border-[var(--outline-variant)] rounded-[10px] shadow-lg">
-                      <SelectItem value="2592000" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Monthly (30 days)</SelectItem>
-                      <SelectItem value="604800" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Weekly (7 days)</SelectItem>
-                      <SelectItem value="31536000" className="cursor-pointer focus:bg-gray-100 focus:text-black text-black">Yearly (365 days)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div style={{ gridColumn: 'span 12' }}>
-                  <Button type="submit" disabled={isCreatingPlan} className="w-full">
-                    {isCreatingPlan ? <><Loader2 className="animate-spin mr-2" size={16} /> Deploying...</> : 'Deploy Plan to Contract'}
-                  </Button>
-                </div>
-              </form>
+                  <div style={{ gridColumn: 'span 12' }}>
+                    <label className="text-label-caps" style={{ color: 'var(--on-surface-variant)', display: 'block', marginBottom: '8px' }}>Billing Interval</label>
+                    <Select value={planInterval} onValueChange={(val) => setPlanInterval(val)}>
+                      <SelectTrigger className="w-full border border-[var(--glass-border)] focus:ring-[var(--accent-cyan)] outline-none rounded-[10px] h-[48px]">
+                        <SelectValue placeholder="Select billing interval" />
+                      </SelectTrigger>
+                      <SelectContent className="border border-[var(--glass-border)] rounded-[10px] shadow-lg">
+                        <SelectItem value="2592000" className="cursor-pointer">Monthly (30 days)</SelectItem>
+                        <SelectItem value="604800" className="cursor-pointer">Weekly (7 days)</SelectItem>
+                        <SelectItem value="31536000" className="cursor-pointer">Yearly (365 days)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div style={{ gridColumn: 'span 12' }}>
+                    <HoverCard>
+                      <Button type="submit" disabled={isCreatingPlan} className="w-full">
+                        {isCreatingPlan ? <><Loader2 className="animate-spin mr-2" size={16} /> Deploying...</> : 'Deploy Plan to Contract'}
+                      </Button>
+                    </HoverCard>
+                  </div>
+                </form>
 
-            {/* Plans List */}
-            {plans.length > 0 && (
-              <div style={{ marginTop: '8px' }}>
-                <h4 className="text-label-caps" style={{ marginBottom: '12px', color: 'var(--on-surface-variant)' }}>Your Plans</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {plans.map(plan => {
-                    const intervalLabel = plan.interval_seconds === 2592000 ? '/mo' : plan.interval_seconds === 604800 ? '/wk' : plan.interval_seconds === 31536000 ? '/yr' : `/${plan.interval_seconds}s`;
-                    const amountDisplay = (Number(plan.amount) / 10000000).toFixed(2);
-                    return (
-                      <div key={plan.id} style={{
-                        padding: '14px 18px',
-                        backgroundColor: 'var(--surface)',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        border: '1px solid var(--outline-variant)',
-                      }}>
-                        <div>
-                          <span style={{ fontWeight: 600, fontSize: '15px' }}>{plan.name}</span>
-                          <span style={{ color: 'var(--on-surface-variant)', fontSize: '13px', marginLeft: '8px' }}>
-                            {amountDisplay} USDC{intervalLabel}
-                          </span>
+              {/* Plans List */}
+              {plans.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <h4 className="text-label-caps" style={{ marginBottom: '12px', color: 'var(--on-surface-variant)' }}>Your Plans</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {plans.map(plan => {
+                      const intervalLabel = plan.interval_seconds === 2592000 ? '/mo' : plan.interval_seconds === 604800 ? '/wk' : plan.interval_seconds === 31536000 ? '/yr' : `/${plan.interval_seconds}s`;
+                      const amountDisplay = (Number(plan.amount) / 10000000).toFixed(2);
+                      return (
+                        <div key={plan.id} style={{
+                          padding: '14px 18px',
+                          backgroundColor: 'var(--surface)',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          border: '1px solid var(--outline-variant)',
+                        }}>
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: '15px' }}>{plan.name}</span>
+                            <span style={{ color: 'var(--on-surface-variant)', fontSize: '13px', marginLeft: '8px' }}>
+                              {amountDisplay} USDC{intervalLabel}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{
+                              fontSize: '12px',
+                              padding: '3px 10px',
+                              borderRadius: '20px',
+                              backgroundColor: plan.is_active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: plan.is_active ? 'var(--emerald-500, #10b981)' : '#ef4444',
+                            }}>
+                              {plan.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                            <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginRight: '8px' }}>
+                              {plan.subscriber_count || 0} subs
+                            </span>
+                            <HoverCard>
+                              <button 
+                                onClick={() => togglePlanStatus(plan)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
+                                title={plan.is_active ? 'Deactivate' : 'Activate'}
+                              >
+                                <Power size={16} />
+                              </button>
+                            </HoverCard>
+                            <HoverCard>
+                              <button 
+                                onClick={() => deletePlan(plan.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </HoverCard>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{
-                            fontSize: '12px',
-                            padding: '3px 10px',
-                            borderRadius: '20px',
-                            backgroundColor: plan.is_active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: plan.is_active ? 'var(--emerald-500, #10b981)' : '#ef4444',
-                          }}>
-                            {plan.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginRight: '8px' }}>
-                            {plan.subscriber_count || 0} subs
-                          </span>
-                          <button 
-                            onClick={() => togglePlanStatus(plan)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
-                            title={plan.is_active ? 'Deactivate' : 'Activate'}
-                          >
-                            <Power size={16} />
-                          </button>
-                          <button 
-                            onClick={() => deletePlan(plan.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-            </CardContent>
-          </Card>
+              )}
+              </CardContent>
+            </Card>
+          </StaggerItem>
 
           {/* Webhook Management */}
-          <Card style={{ gridColumn: 'span 5' }}>
-            <CardHeader>
-              <CardTitle className="text-h3" style={{ fontSize: '24px' }}>Webhook Configuration</CardTitle>
-              <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-                Receive real-time notifications when a user subscribes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={createWebhook} className="flex flex-col gap-4">
-                <div>
-                  <Input required type="url" placeholder="https://your-server.com/webhook" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="text-black" />
+          <StaggerItem style={{ gridColumn: 'span 5' }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-h3" style={{ fontSize: '24px' }}>Webhook Configuration</CardTitle>
+                <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                  Receive real-time notifications when a user subscribes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={createWebhook} className="flex flex-col gap-4">
+                  <div>
+                    <Input required type="url" placeholder="https://your-server.com/webhook" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="text-[var(--on-surface)]" />
+                  </div>
+                  <HoverCard>
+                    <Button type="submit" variant="secondary" disabled={isCreatingWebhook} className="w-full">
+                      {isCreatingWebhook ? <><Loader2 className="animate-spin mr-2" size={16} /> Saving...</> : 'Add Webhook Endpoint'}
+                    </Button>
+                  </HoverCard>
+                </form>
+
+              {webhookSecret && (
+                <div style={{ padding: '16px', backgroundColor: 'rgba(255, 204, 0, 0.1)', border: '1px solid var(--accent)', borderRadius: '8px', marginTop: '16px' }}>
+                  <p className="text-label-caps" style={{ color: 'var(--accent)', marginBottom: '8px' }}>Secret Key (Save this now!)</p>
+                  <code style={{ wordBreak: 'break-all', fontSize: '12px' }}>{webhookSecret}</code>
                 </div>
-                <Button type="submit" variant="secondary" disabled={isCreatingWebhook} className="w-full">
-                  {isCreatingWebhook ? <><Loader2 className="animate-spin mr-2" size={16} /> Saving...</> : 'Add Webhook Endpoint'}
-                </Button>
-              </form>
+              )}
 
-            {webhookSecret && (
-              <div style={{ padding: '16px', backgroundColor: 'rgba(255, 204, 0, 0.1)', border: '1px solid var(--accent)', borderRadius: '8px' }}>
-                <p className="text-label-caps" style={{ color: 'var(--accent)', marginBottom: '8px' }}>Secret Key (Save this now!)</p>
-                <code style={{ wordBreak: 'break-all', fontSize: '12px' }}>{webhookSecret}</code>
-              </div>
-            )}
-
-            {webhooks.length > 0 && (
-              <div style={{ marginTop: '16px' }}>
-                <h4 className="text-label-caps" style={{ marginBottom: '8px' }}>Active Webhooks</h4>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {webhooks.map(wh => (
-                    <li key={wh.id} style={{ padding: '12px', backgroundColor: 'var(--surface)', borderRadius: '8px', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{wh.url}</span>
-                      <span style={{ color: wh.is_active ? 'var(--emerald-500)' : 'var(--on-surface-variant)' }}>
-                        {wh.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            </CardContent>
-          </Card>
-        </div>
+              {webhooks.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <h4 className="text-label-caps" style={{ marginBottom: '8px' }}>Active Webhooks</h4>
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {webhooks.map(wh => (
+                      <li key={wh.id} style={{ padding: '12px', backgroundColor: 'var(--surface)', borderRadius: '8px', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{wh.url}</span>
+                        <span style={{ color: wh.is_active ? 'var(--emerald-500)' : 'var(--on-surface-variant)' }}>
+                          {wh.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              </CardContent>
+            </Card>
+          </StaggerItem>
+        </StaggerContainer>
         )}
       </section>
     </main>
+    </PageWrapper>
   );
 };
 

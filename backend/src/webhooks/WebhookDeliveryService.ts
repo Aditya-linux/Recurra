@@ -1,7 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import crypto from 'crypto';
 import fetch from 'node-fetch'; // native fetch in Node 18+ or polyfill
-import { redisClient } from '../utils/redis.js';
+import { redisClient, isRedisAvailable, getRedisClient } from '../utils/redis.js';
 import { dbPool } from '../database/index.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
@@ -23,30 +23,57 @@ export interface WebhookJobData {
 
 const WEBHOOK_QUEUE_NAME = 'webhook-delivery-queue';
 
-export const webhookQueue = new Queue<WebhookJobData, any, string>(WEBHOOK_QUEUE_NAME, {
-  connection: redisClient as any,
-  defaultJobOptions: {
-    attempts: config.webhook.maxRetries,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
+// ============================================================
+// Lazy-init: Queue and Worker are only created when Redis is up
+// ============================================================
+
+let _webhookQueue: Queue<WebhookJobData, any, string> | null = null;
+
+function getWebhookQueue(): Queue<WebhookJobData, any, string> | null {
+  if (_webhookQueue) return _webhookQueue;
+  if (!isRedisAvailable()) return null;
+
+  const client = getRedisClient();
+  if (!client) return null;
+
+  _webhookQueue = new Queue<WebhookJobData, any, string>(WEBHOOK_QUEUE_NAME, {
+    connection: client.duplicate() as any,
+    defaultJobOptions: {
+      attempts: config.webhook.maxRetries,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
     },
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-});
+  });
+
+  return _webhookQueue;
+}
+
+// Keep the named export for any external references
+export { getWebhookQueue as webhookQueue };
 
 export class WebhookDeliveryService {
-  private worker: Worker;
+  private worker: Worker | null = null;
 
   constructor() {
+    if (!isRedisAvailable()) {
+      logger.warn('WebhookDeliveryService: Redis unavailable — webhook queue disabled');
+      return;
+    }
+
+    const client = getRedisClient();
+    if (!client) return;
+
     this.worker = new Worker<WebhookJobData, any, string>(
       WEBHOOK_QUEUE_NAME,
       async (job) => {
         await this.processWebhook(job);
       },
       {
-        connection: redisClient as any,
+        connection: client.duplicate() as any,
         concurrency: 10,
       }
     );
@@ -64,6 +91,12 @@ export class WebhookDeliveryService {
   }
 
   static async dispatch(merchantId: string, eventType: WebhookPayload['eventType'], data: any) {
+    const queue = getWebhookQueue();
+    if (!queue) {
+      logger.warn('Webhook dispatch skipped — Redis/queue unavailable');
+      return;
+    }
+
     // Look up active endpoints for this merchant that subscribe to this event
     const client = await dbPool.connect();
     try {
@@ -81,7 +114,7 @@ export class WebhookDeliveryService {
           data
         };
 
-        await webhookQueue.add('deliver-webhook', {
+        await queue.add('deliver-webhook', {
           endpointId: row.id,
           merchantId,
           url: row.url,
@@ -202,6 +235,8 @@ export class WebhookDeliveryService {
   }
 
   async close() {
-    await this.worker.close();
+    if (this.worker) {
+      await this.worker.close();
+    }
   }
 }

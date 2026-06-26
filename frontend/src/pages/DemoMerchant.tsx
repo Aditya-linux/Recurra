@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '../components/ui/animations';
 
 const DemoMerchant: React.FC = () => {
   const [plans, setPlans] = useState<any[]>([]);
@@ -48,43 +49,61 @@ const DemoMerchant: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center pt-20">
-      <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-800 p-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight" style={{ fontFamily: 'sans-serif' }}>Subscription Hub</h1>
-          <p className="text-blue-200 mt-2">Manage all your premium subscriptions in one place.</p>
+    <PageWrapper>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '80px' }}>
+      <FadeIn className="card" style={{ width: '100%', maxWidth: '680px', padding: 0, overflow: 'hidden' }}>
+        {/* Header with fractal gradient */}
+        <div style={{
+          background: 'var(--fractal-gradient)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmerBtn 4s ease infinite',
+          padding: '48px 32px',
+          textAlign: 'center',
+        }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em', color: '#ffffff' }}>Subscription Hub</h1>
+          <p style={{ color: 'rgba(255,255,255,0.8)', marginTop: '8px', fontSize: '16px' }}>Manage all your premium subscriptions in one place.</p>
         </div>
         
-        <div className="p-8 flex flex-col items-center">
+        <div style={{ padding: '40px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {!fullWalletAddress ? (
-            <div className="text-center">
-              <p className="text-gray-400 mb-6">Please "log in" by connecting your wallet to view your account.</p>
-              <button 
-                onClick={openModal}
-                className="bg-red-600 hover:bg-red-500 px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)]"
-              >
-                Log In (Connect Wallet)
-              </button>
+            <div style={{ textAlign: 'center' }}>
+              <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '24px' }}>Please "log in" by connecting your wallet to view your account.</p>
+              <HoverCard>
+                <button 
+                  onClick={openModal}
+                  className="btn btn-primary"
+                  style={{ padding: '14px 32px' }}
+                >
+                  Log In (Connect Wallet)
+                </button>
+              </HoverCard>
             </div>
           ) : isActive ? (
-            <div className="text-center animate-fade-in">
-              <div className="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '80px', height: '80px', borderRadius: '50%',
+                background: 'rgba(6, 214, 160, 0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 24px',
+              }}>
+                <svg style={{ width: '40px', height: '40px', color: 'var(--accent-cyan)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Welcome Back!</h2>
-              <p className="text-gray-400 mb-6">Your Premium Subscription is active.</p>
-              <button className="bg-gray-700 hover:bg-gray-600 px-8 py-3 rounded-xl font-medium transition-colors">
-                Start Watching
-              </button>
+              <h2 className="text-h3" style={{ marginBottom: '8px' }}>Welcome Back!</h2>
+              <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '24px' }}>Your Premium Subscription is active.</p>
+              <HoverCard>
+                <button className="btn btn-secondary">
+                  Start Watching
+                </button>
+              </HoverCard>
             </div>
           ) : (
-            <div className="w-full">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">Available Subscriptions</h2>
-                <p className="text-gray-400">Subscribe with your Stellar wallet and pay in USDC.</p>
+            <div style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <h2 className="text-h3" style={{ marginBottom: '8px' }}>Available Subscriptions</h2>
+                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>Subscribe with your Stellar wallet and pay in USDC.</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <StaggerContainer style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                 {plans.map((plan, index) => {
                   let hostname = 'netflix.com';
                   if (plan.redirect_url) {
@@ -98,31 +117,52 @@ const DemoMerchant: React.FC = () => {
                   }
                   
                   return (
-                  <div key={plan.id} className="border border-gray-700 rounded-xl p-6 relative overflow-hidden bg-gray-900/50 hover:border-blue-500 transition-colors flex flex-col justify-between">
-                    {index === 0 && <div className="absolute top-0 right-0 bg-blue-600 text-xs font-bold px-3 py-1 rounded-bl-lg">RECOMMENDED</div>}
+                  <StaggerItem key={plan.id} className="card glass-shimmer" style={{ 
+                    padding: '24px', position: 'relative', overflow: 'hidden',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                  }}>
+                    {index === 0 && <div style={{ 
+                      position: 'absolute', top: 0, right: 0, 
+                      background: 'var(--fractal-gradient)', backgroundSize: '200% 100%',
+                      fontSize: '11px', fontWeight: 700, padding: '6px 14px', 
+                      borderBottomLeftRadius: '12px', color: 'white',
+                      letterSpacing: '0.05em',
+                    }}>RECOMMENDED</div>}
                     <div>
-                      <div className="w-14 h-14 rounded-2xl overflow-hidden mb-4 bg-white p-2 flex items-center justify-center">
-                        <img src={`https://logo.clearbit.com/${hostname}`} alt={plan.name} className="w-full h-full object-contain rounded-lg" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(plan.name)}&background=random&color=fff&size=150`; }} />
+                      <div style={{ 
+                        width: '56px', height: '56px', borderRadius: '16px', 
+                        overflow: 'hidden', marginBottom: '16px', 
+                        background: 'var(--surface-container)', padding: '8px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '1px solid var(--glass-border)',
+                      }}>
+                        <img src={`https://logo.clearbit.com/${hostname}`} alt={plan.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(plan.name)}&background=random&color=fff&size=150`; }} />
                       </div>
-                      <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                      <p className="text-3xl font-extrabold mb-4">{(Number(plan.amount) / 10000000).toFixed(2)} <span className="text-sm text-gray-400 font-normal">USDC/mo</span></p>
+                      <h3 className="text-h3" style={{ fontSize: '20px', marginBottom: '8px' }}>{plan.name}</h3>
+                      <p style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>
+                        {(Number(plan.amount) / 10000000).toFixed(2)} <span className="text-body-md" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>USDC/mo</span>
+                      </p>
                     </div>
                     
-                    <button 
-                      onClick={() => handleSubscribe(plan.id, plan.name)}
-                      className="w-full bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl font-bold transition-all shadow-md flex justify-center items-center gap-2 mt-4"
-                    >
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                      Pay with Crypto
-                    </button>
-                  </div>
+                    <HoverCard>
+                      <button 
+                        onClick={() => handleSubscribe(plan.id, plan.name)}
+                        className="btn btn-primary"
+                        style={{ width: '100%', marginTop: '20px', padding: '14px 24px', fontSize: '15px' }}
+                      >
+                        <svg style={{ width: '18px', height: '18px', marginRight: '8px', display: 'inline-block', verticalAlign: 'text-bottom' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        Pay with Crypto
+                      </button>
+                    </HoverCard>
+                  </StaggerItem>
                 )})}
-              </div>
+              </StaggerContainer>
             </div>
           )}
         </div>
-      </div>
+      </FadeIn>
     </div>
+    </PageWrapper>
   );
 };
 
