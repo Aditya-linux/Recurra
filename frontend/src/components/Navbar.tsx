@@ -36,15 +36,15 @@ const Navbar: React.FC = () => {
     <nav className="navbar">
       <div className="container flex items-center justify-between" style={{ width: '100%', flexWrap: 'wrap' }}>
         <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center' }}>
-          <img 
-            src={`/rekura-logo.png?v=${Date.now()}`} 
-            alt="Rekura." 
-            style={{ 
-              height: '56px', 
+          <img
+            src={isDark ? '/rekura-logo-white.png' : '/rekura-logo-black.png'}
+            alt="Rekura."
+            style={{
+              height: '87px',
               width: 'auto',
-              filter: isDark ? 'invert(1)' : 'none',
-              transition: 'all 0.3s ease'
-            }} 
+              transition: 'all 0.3s ease',
+              marginTop: '8px' // Small adjustment for perfect orientation if needed
+            }}
           />
         </Link>
 
