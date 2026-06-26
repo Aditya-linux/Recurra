@@ -114,7 +114,7 @@ subscriptionRoutes.post('/', async (req: Request, res: Response, next: NextFunct
 
     // Record redemption if applicable
     if (validDiscountCodeId && validDiscountCode) {
-       let originalAmount = Number(plan.amount);
+       const originalAmount = Number(plan.amount);
        let discountedAmount = originalAmount;
        if (validDiscountCode.discount_percent) {
            discountedAmount = Math.floor(originalAmount * (100 - validDiscountCode.discount_percent) / 100);

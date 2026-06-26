@@ -106,7 +106,7 @@ export class RefundService {
       // 2. Trigger on-chain transfer
       // For now, if MAINNET is disabled, we simulate the transfer
       // Real implementation would invoke Soroban contract here
-      let txHash = 'mock_refund_tx_' + Date.now();
+      const txHash = 'mock_refund_tx_' + Date.now();
       
       if (process.env.ENABLE_REAL_REFUND_TRANSFERS === 'true') {
          // TODO: Implement actual stellar sdk transfer

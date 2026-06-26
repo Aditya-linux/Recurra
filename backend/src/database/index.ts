@@ -11,7 +11,7 @@ const poolConfig: PoolConfig = {
 };
 
 // Auto-detect SSL for Supabase/cloud hosts even if DATABASE_SSL isn't set
-const dbHost = config.database.url.match(/@([^:\/]+)/)?.[1] || '';
+const dbHost = config.database.url.match(new RegExp('@([^:/]+)'))?.[1] || '';
 const isCloudDb = dbHost.includes('supabase') || dbHost.includes('neon') || dbHost.includes('render') || dbHost.includes('railway');
 const needsSsl = config.database.ssl || isCloudDb;
 
