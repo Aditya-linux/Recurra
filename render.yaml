@@ -8,7 +8,7 @@ services:
     region: oregon
     plan: free # ⚠ Free tier: 50-second cold starts. Upgrade to 'starter' ($7/mo) to eliminate.
               # When upgrading: also set KEEPALIVE_ENABLED=false to disable the ping workaround.
-    buildCommand: "cd frontend && npm install && npm run build && cd ../backend && npm install --include=dev && npm run build"
+    buildCommand: "cd frontend && npm install --include=dev && npm run build && cd ../backend && npm install --include=dev && npm run build"
     startCommand: "cd backend && npm start"
     envVars:
       - key: NODE_ENV
