@@ -32,96 +32,61 @@ const Navbar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [walletMenuOpen]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  const showNavLinks = walletAddress && location.pathname !== '/';
+  const isMerchant = userRole === 'merchant';
+
   return (
-    <nav className="navbar">
-      <div className="container flex items-center justify-between" style={{ width: '100%', flexWrap: 'wrap' }}>
-        <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center' }}>
-          <img
-            src={isDark ? '/rekura-logo-white.png' : '/rekura-logo-black.png'}
-            alt="Rekura."
-            style={{
-              height: '87px',
-              width: 'auto',
-              transition: 'all 0.3s ease',
-              marginTop: '8px' // Small adjustment for perfect orientation if needed
-            }}
-          />
-        </Link>
+    <>
+      {/* ─── Desktop / Tablet Top Navbar ─── */}
+      <div className="navbar-wrapper">
+        <nav className="navbar">
+          <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src={isDark ? '/logo-white.png' : '/logo-black.png'} alt="Rekura Logo" style={{ height: '28px', transform: 'scale(2.5)', transformOrigin: 'left center' }} />
+          </Link>
 
-        {/* Nav links (Middle on desktop, bottom on mobile) */}
-        <div className={`nav-links flex gap-6 items-center justify-center ${mobileOpen ? 'open' : ''}`} style={{ flex: 1, order: mobileOpen ? 3 : 2, minWidth: mobileOpen ? '100%' : 'auto' }}>
-          {walletAddress && location.pathname !== '/' && userRole !== 'merchant' && (
-            <>
-              <NavLink to="/dashboard" className={getNavClass} onClick={closeMenu}>Dashboard</NavLink>
-              <NavLink to="/user" className={getNavClass} onClick={closeMenu}>User Setup</NavLink>
-              <NavLink to="/subscriptions" className={getNavClass} onClick={closeMenu}>Storefront</NavLink>
-            </>
-          )}
-          {walletAddress && location.pathname !== '/' && userRole === 'merchant' && (
-            <NavLink to="/merchant" className={getNavClass} onClick={closeMenu}>
-              Merchant Portal
-            </NavLink>
-          )}
-        </div>
+          {/* Nav links – desktop only */}
+          <div className="nav-links-desktop flex gap-6 items-center justify-center" style={{ flex: 1 }}>
+            {showNavLinks && !isMerchant && (
+              <>
+                <NavLink to="/dashboard" className={getNavClass} onClick={closeMenu}>Dashboard</NavLink>
+                <NavLink to="/user" className={getNavClass} onClick={closeMenu}>User Setup</NavLink>
+                <NavLink to="/subscriptions" className={getNavClass} onClick={closeMenu}>Storefront</NavLink>
+              </>
+            )}
+            {showNavLinks && isMerchant && (
+              <NavLink to="/merchant" className={getNavClass} onClick={closeMenu}>
+                Merchant Portal
+              </NavLink>
+            )}
+          </div>
 
-        {/* Actions (Right on desktop) */}
-        <div className="flex items-center gap-2" style={{ order: mobileOpen ? 2 : 3 }}>
-          {/* Mobile hamburger */}
-          <button
-            className="nav-toggle"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle navigation"
-          >
-            <span className="material-symbols-outlined">
-              {mobileOpen ? 'close' : 'menu'}
-            </span>
-          </button>
-
-          {/* Actions */}
-          <div className="nav-actions flex gap-2 items-center">
+          {/* Actions – Right side */}
+          <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="btn-ghost"
-              style={{
-                padding: '8px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--on-surface-variant)',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
+              className="navbar-icon-btn"
+              aria-label="Toggle theme"
             >
               <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
             </button>
             <button
               onClick={() => setFeedbackOpen(true)}
-              className="btn-ghost"
-              style={{
-                padding: '8px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--on-surface-variant)',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
+              className="navbar-icon-btn desktop-only"
               title="Send Feedback"
             >
               <span className="material-symbols-outlined">feedback</span>
             </button>
             {walletAddress ? (
-              <div style={{ position: 'relative' }} ref={dropdownRef}>
+              <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">
                 <div
                   className="chip flex items-center gap-2"
                   onClick={() => setWalletMenuOpen(!walletMenuOpen)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }}
                 >
                   <div className="pulse-dot"></div>
                   <span>{walletAddress}</span>
@@ -160,15 +125,86 @@ const Navbar: React.FC = () => {
                 )}
               </div>
             ) : location.pathname !== '/' ? (
-              <button onClick={openModal} className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }}>
+              <button onClick={openModal} className="btn btn-primary desktop-only" style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '9999px' }}>
                 Connect Wallet
               </button>
             ) : null}
           </div>
+        </nav>
+      </div>
+
+      {/* ─── Mobile Bottom Tab Bar (iOS-style) ─── */}
+      {showNavLinks && (
+        <div className="mobile-tab-bar">
+          <div className="mobile-tab-bar-inner">
+            {!isMerchant ? (
+              <>
+                <NavLink to="/dashboard" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                  <span className="material-symbols-outlined">dashboard</span>
+                  <span className="mobile-tab-label">Dashboard</span>
+                </NavLink>
+                <NavLink to="/subscriptions" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                  <span className="material-symbols-outlined">storefront</span>
+                  <span className="mobile-tab-label">Storefront</span>
+                </NavLink>
+                <NavLink to="/user" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                  <span className="material-symbols-outlined">person</span>
+                  <span className="mobile-tab-label">Profile</span>
+                </NavLink>
+              </>
+            ) : (
+              <NavLink to="/merchant" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                <span className="material-symbols-outlined">store</span>
+                <span className="mobile-tab-label">Merchant</span>
+              </NavLink>
+            )}
+            <button className="mobile-tab" onClick={() => setMobileOpen(!mobileOpen)}>
+              <span className="material-symbols-outlined">more_horiz</span>
+              <span className="mobile-tab-label">More</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Mobile "More" Sheet (iOS Action Sheet style) ─── */}
+      <div className={`mobile-sheet-overlay ${mobileOpen ? 'active' : ''}`} onClick={closeMenu} />
+      <div className={`mobile-sheet ${mobileOpen ? 'active' : ''}`}>
+        <div className="mobile-sheet-handle" />
+        <div className="mobile-sheet-content">
+          {walletAddress && (
+            <div className="mobile-sheet-wallet">
+              <div className="pulse-dot"></div>
+              <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>{walletAddress}</span>
+            </div>
+          )}
+          <button className="mobile-sheet-item" onClick={() => { setFeedbackOpen(true); closeMenu(); }}>
+            <span className="material-symbols-outlined">feedback</span>
+            Send Feedback
+          </button>
+          {walletAddress && (
+            <>
+              <button className="mobile-sheet-item" onClick={() => { disconnect(); openModal(); closeMenu(); }}>
+                <span className="material-symbols-outlined">swap_horiz</span>
+                Change Wallet
+              </button>
+              <div className="mobile-sheet-separator" />
+              <button className="mobile-sheet-item mobile-sheet-item--danger" onClick={() => { disconnect(); closeMenu(); }}>
+                <span className="material-symbols-outlined">logout</span>
+                Disconnect
+              </button>
+            </>
+          )}
+          {!walletAddress && location.pathname !== '/' && (
+            <button className="mobile-sheet-item" onClick={() => { openModal(); closeMenu(); }}>
+              <span className="material-symbols-outlined">account_balance_wallet</span>
+              Connect Wallet
+            </button>
+          )}
         </div>
       </div>
+
       <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-    </nav>
+    </>
   );
 };
 
