@@ -38,6 +38,10 @@ router.post('/', async (req, res) => {
     // Use the first sheet
     const sheet = doc.sheetsByIndex[0];
     
+    if (!sheet) {
+      throw new Error('No sheet found in the document');
+    }
+    
     // Note: If the sheet is completely blank, we set the headers first.
     // However, it's safer to ensure the user sets the headers in Google Sheets as per the instructions.
     try {
