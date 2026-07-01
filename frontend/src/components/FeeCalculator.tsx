@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { Coffee, MonitorPlay, Plane, Laptop, Building, TrendingUp, ChevronDown, ChevronUp, Share2, X, ShoppingBag } from 'lucide-react';
+import { Coffee, MonitorPlay, Plane, TrendingUp, ChevronDown, ChevronUp, Share2, X, ShoppingBag } from 'lucide-react';
 
 const SmoothNumber: React.FC<{ value: number; prefix?: string }> = ({ value, prefix = '' }) => {
   const spring = useSpring(value, { stiffness: 300, damping: 25 }); // Snappy spring
