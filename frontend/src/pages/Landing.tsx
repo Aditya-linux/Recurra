@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Blocks, Wallet, ShieldCheck, Activity, Zap, Repeat, CheckCircle } from 'lucide-react';
+import { ArrowRight, Blocks, Wallet, Activity, Zap, Repeat, CheckCircle } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { trackEvent } from '../utils/analytics';
-import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard, CountUp } from '../components/ui/animations';
+import { PageWrapper, FadeIn, HoverCard } from '../components/ui/animations';
 import { FeeCalculator } from '../components/FeeCalculator';
 import BorderGlow from '../components/ui/BorderGlow';
 
@@ -23,6 +23,13 @@ const Landing: React.FC = () => {
   const handleAction = (type: 'merchant' | 'user') => {
     trackEvent('landing_cta_click', { type });
     localStorage.setItem('recurra_intent', type);
+    
+    // Trigger the feedback modal once per session
+    if (!sessionStorage.getItem('feedback_shown')) {
+      window.dispatchEvent(new Event('open-feedback'));
+      sessionStorage.setItem('feedback_shown', 'true');
+    }
+
     if (walletAddress) {
       navigate(type === 'merchant' ? '/merchant' : '/subscriptions');
     } else {
@@ -43,9 +50,12 @@ const Landing: React.FC = () => {
 
         <div className="container flex flex-col items-center gap-8" style={{ position: 'relative', zIndex: 1 }}>
           <FadeIn delay={0.1}>
-            <div className="hero-badge">
-              <Activity size={16} strokeWidth={2.5} />
-              Powered by Stellar
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <svg width="48" height="41" viewBox="0 0 236.36 200" xmlns="http://www.w3.org/2000/svg" style={{ fill: 'var(--on-surface)' }}>
+                <path d="M203,26.16l-28.46,14.5-137.43,70a82.49,82.49,0,0,1-.7-10.69A81.87,81.87,0,0,1,158.2,28.6l16.29-8.3,2.43-1.24A100,100,0,0,0,18.18,100q0,3.82.29,7.61a18.19,18.19,0,0,1-9.88,17.58L0,129.57V150l25.29-12.89,0,0,8.19-4.18,8.07-4.11v0L186.43,55l16.28-8.29,33.65-17.15V9.14Z"/>
+                <path d="M236.36,50,49.78,145,33.5,153.31,0,170.38v20.41l33.27-16.95,28.46-14.5L199.3,89.24A83.45,83.45,0,0,1,200,100,81.87,81.87,0,0,1,78.09,171.36l-1,.53-17.66,9A100,100,0,0,0,218.18,100c0-2.57-.1-5.14-.29-7.68a18.2,18.2,0,0,1,9.87-17.58l8.6-4.38Z"/>
+              </svg>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface-variant)', letterSpacing: '1px', textTransform: 'uppercase' }}>Powered by Stellar</span>
             </div>
           </FadeIn>
 
@@ -60,10 +70,9 @@ const Landing: React.FC = () => {
 
           <FadeIn delay={0.3}>
             <p className="text-body-lg hero-sub" style={{ maxWidth: '720px' }}>
-              Trustless subscription automation built on the Stellar network. 
-              Seamlessly manage recurring crypto payments for your business with enterprise-grade 
-              security, zero downtime, and absolute precision. Eliminate the need for legacy payment processors 
-              and take full control of your revenue streams globally.
+              The Ultimate Web3 Subscription Layer for Global Creators & SaaS. 
+              Bypass massive 4-5% forex spreads and receive international payments instantly in USDC. 
+              Built on the Stellar network with native UPI on/off-ramps, giving you full control of your revenue globally.
             </p>
           </FadeIn>
 
@@ -104,82 +113,58 @@ const Landing: React.FC = () => {
         </FadeIn>
       </section>
 
-      {/* ─── Feature Grid Section ─── */}
-      <StaggerContainer className="container">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* Feature 1: Proven Protocol */}
-          <StaggerItem>
-            <BorderGlow className="h-full" borderRadius={16} glowColor="200 80 80" colors={['#38bdf8', '#818cf8', '#c084fc']} backgroundColor="var(--surface-container)">
-              <div className="flex flex-col h-full p-8">
-                <div className="text-[56px] font-bold text-[var(--on-surface)] mb-2 tracking-tight">
-                  <CountUp to={10000} duration={2} suffix="+" />
-                </div>
-                <h3 className="text-xl font-semibold text-[var(--on-surface)] mb-4">Transactions Secured</h3>
-                <p className="text-[var(--on-surface-variant)] leading-relaxed">
-                  On-chain subscription payments processed seamlessly with zero downtime 
-                  and cryptographic verification at every step of the settlement process.
-                </p>
-                <div className="mt-8 pt-6 border-t border-[var(--glass-border)] grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-2xl font-bold text-[var(--on-surface)] tracking-tight">{'<'}2s</div>
-                    <div className="text-sm text-[var(--on-surface-variant)] mt-1">Settlement</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[var(--on-surface)] tracking-tight">$0.01</div>
-                    <div className="text-sm text-[var(--on-surface-variant)] mt-1">Avg. Fee</div>
-                  </div>
-                </div>
-              </div>
-            </BorderGlow>
-          </StaggerItem>
-
-          {/* Feature 2: Trustless Automation */}
-          <StaggerItem>
-            <BorderGlow className="h-full" borderRadius={16} glowColor="160 80 80" colors={['#06d6a0', '#118ab2', '#8338ec']} backgroundColor="var(--surface-container)">
-              <div className="flex flex-col h-full p-8">
-                <div className="w-14 h-14 rounded-xl bg-[rgba(6,214,160,0.12)] text-[var(--accent-cyan)] flex items-center justify-center mb-6">
-                  <Blocks size={28} strokeWidth={2} />
-                </div>
-                <h3 className="text-xl font-semibold text-[var(--on-surface)] mb-4">Trustless Automation</h3>
-                <p className="text-[var(--on-surface-variant)] leading-relaxed">
-                  Smart contracts handle every payment cycle — no intermediaries, 
-                  no manual triggers. Pure on-chain logic executing flawlessly.
-                </p>
-              </div>
-            </BorderGlow>
-          </StaggerItem>
-
-          {/* Feature 3: Universal & Secure */}
-          <StaggerItem>
-            <BorderGlow className="h-full" borderRadius={16} glowColor="270 80 80" colors={['#c084fc', '#f472b6', '#38bdf8']} backgroundColor="var(--surface-container)">
-              <div className="flex flex-col h-full p-8">
-                <div className="w-14 h-14 rounded-xl bg-[rgba(131,56,236,0.12)] text-[var(--accent-violet)] flex items-center justify-center mb-6">
-                  <ShieldCheck size={28} strokeWidth={2} />
-                </div>
-                <h3 className="text-xl font-semibold text-[var(--on-surface)] mb-4">Bank-Grade Security</h3>
-                <p className="text-[var(--on-surface-variant)] leading-relaxed mb-8">
-                  Multi-signature escrow and cryptographic verification. Seamlessly connect any Stellar wallet.
-                </p>
-                <div className="flex flex-wrap gap-2 mt-auto">
-                  {['Freighter', 'Albedo', 'xBull'].map((wallet) => (
-                    <span
-                      key={wallet}
-                      className="px-3 py-1 text-xs font-semibold rounded-full bg-[var(--surface-container-high)] text-[var(--on-surface-variant)] border border-[var(--outline-variant)]"
-                    >
-                      {wallet}
-                    </span>
+      {/* ─── How It Stacks Up Section ─── */}
+      <section className="container landing-section-gap" style={{ marginTop: '80px' }}>
+        <FadeIn>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="text-display" style={{ fontSize: '48px', marginBottom: '16px' }}>How It Stacks Up</h2>
+            <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px', margin: '0 auto' }}>
+              See how Recurra compares to legacy payment processors.
+            </p>
+          </div>
+        </FadeIn>
+        <FadeIn delay={0.2}>
+          <BorderGlow borderRadius={20} glowColor="160 80 80" colors={['#06d6a0', '#118ab2', '#8338ec']} backgroundColor="var(--surface-container)">
+            <div className="comparison-table-wrapper" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                    <th style={{ padding: '20px 24px', fontSize: '14px', fontWeight: 600, color: 'var(--on-surface-variant)', textTransform: 'uppercase', letterSpacing: '1px' }}>Feature</th>
+                    <th style={{ padding: '20px 24px', fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                      <span style={{ background: 'linear-gradient(135deg, #06d6a0, #118ab2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Recurra</span>
+                    </th>
+                    <th style={{ padding: '20px 24px', fontSize: '14px', fontWeight: 600, color: 'var(--on-surface-variant)', textTransform: 'uppercase', letterSpacing: '1px' }}>Stripe</th>
+                    <th style={{ padding: '20px 24px', fontSize: '14px', fontWeight: 600, color: 'var(--on-surface-variant)', textTransform: 'uppercase', letterSpacing: '1px' }}>PayPal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { feature: 'Transaction Fee', recurra: '~$0.01', stripe: '2.9% + $0.30', paypal: '3.49% + $0.49', highlight: true },
+                    { feature: 'Forex / Conversion', recurra: '0% (USDC)', stripe: '2-4% spread', paypal: '3-5% spread', highlight: true },
+                    { feature: 'Indian Fiat On/Off-Ramp', recurra: 'Instant (UPI)', stripe: 'N/A', paypal: 'Bank Transfer (3-5 days)', highlight: true },
+                    { feature: 'Settlement Time', recurra: '<5 seconds', stripe: '2-7 days', paypal: '1-3 days', highlight: true },
+                    { feature: 'Chargebacks', recurra: 'Impossible', stripe: 'Common risk', paypal: 'Common risk', highlight: true },
+                    { feature: 'Self-Custody', recurra: '✓ Always', stripe: '✗ Custodial', paypal: '✗ Custodial', highlight: true },
+                    { feature: 'Global Reach', recurra: 'Borderless', stripe: '46 countries', paypal: '200+ (restricted)', highlight: false },
+                    { feature: 'KYC Required', recurra: 'None', stripe: 'Full KYC', paypal: 'Full KYC', highlight: false },
+                    { feature: 'Open Source', recurra: '✓ Fully', stripe: '✗ Proprietary', paypal: '✗ Proprietary', highlight: true },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                      <td style={{ padding: '16px 24px', fontWeight: 500, color: 'var(--on-surface)', fontSize: '15px' }}>{row.feature}</td>
+                      <td style={{ padding: '16px 24px', fontWeight: 600, fontSize: '15px', color: row.highlight ? 'var(--accent-cyan)' : 'var(--on-surface)' }}>{row.recurra}</td>
+                      <td style={{ padding: '16px 24px', color: 'var(--on-surface-variant)', fontSize: '15px' }}>{row.stripe}</td>
+                      <td style={{ padding: '16px 24px', color: 'var(--on-surface-variant)', fontSize: '15px' }}>{row.paypal}</td>
+                    </tr>
                   ))}
-                </div>
-              </div>
-            </BorderGlow>
-          </StaggerItem>
-
-        </div>
-      </StaggerContainer>
+                </tbody>
+              </table>
+            </div>
+          </BorderGlow>
+        </FadeIn>
+      </section>
 
       {/* ─── How it Works Section ─── */}
-      <section className="container" style={{ marginTop: '140px' }}>
+      <section className="container landing-section-gap-lg" style={{ marginTop: '140px' }}>
         <div style={{ textAlign: 'center', marginBottom: '64px' }}>
           <h2 className="text-display" style={{ fontSize: '48px', marginBottom: '16px' }}>How Rekura Works</h2>
           <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px', margin: '0 auto' }}>
@@ -189,7 +174,7 @@ const Landing: React.FC = () => {
         
         <div style={{ position: 'relative', maxWidth: '800px', margin: '0 auto' }}>
           {/* Vertical connecting line */}
-          <div style={{ position: 'absolute', left: '48px', top: '0', bottom: '0', width: '2px', background: 'var(--outline-variant)', zIndex: 0 }} />
+          <div className="how-it-works-line" style={{ position: 'absolute', left: '48px', top: '0', bottom: '0', width: '2px', background: 'var(--outline-variant)', zIndex: 0 }} />
 
           {/* Step 1 */}
           <motion.div 
@@ -197,9 +182,10 @@ const Landing: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false, margin: "-20%" }}
             transition={{ duration: 0.5 }}
+            className="how-it-works-step"
             style={{ display: 'flex', gap: '32px', position: 'relative', zIndex: 1, marginBottom: '64px' }}
           >
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="how-it-works-icon" style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
               <Zap size={40} color="var(--accent-cyan)" />
             </div>
             <div style={{ paddingTop: '16px' }}>
@@ -217,9 +203,10 @@ const Landing: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false, margin: "-20%" }}
             transition={{ duration: 0.5 }}
+            className="how-it-works-step"
             style={{ display: 'flex', gap: '32px', position: 'relative', zIndex: 1, marginBottom: '64px' }}
           >
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="how-it-works-icon" style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
               <Repeat size={40} color="var(--accent-violet)" />
             </div>
             <div style={{ paddingTop: '16px' }}>
@@ -237,9 +224,10 @@ const Landing: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false, margin: "-20%" }}
             transition={{ duration: 0.5 }}
+            className="how-it-works-step"
             style={{ display: 'flex', gap: '32px', position: 'relative', zIndex: 1 }}
           >
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="how-it-works-icon" style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--surface-bright)', border: '2px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--shadow-lg)' }}>
               <CheckCircle size={40} color="var(--accent-blue)" />
             </div>
             <div style={{ paddingTop: '16px' }}>
@@ -254,34 +242,100 @@ const Landing: React.FC = () => {
       </section>
 
       {/* ─── Ecosystem & Partners Section ─── */}
-      <section className="container" style={{ marginTop: '140px' }}>
+      <section className="container landing-section-gap-lg" style={{ marginTop: '140px' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h2 className="text-display" style={{ fontSize: '40px', marginBottom: '16px' }}>Ecosystem & Partners</h2>
           <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px', margin: '0 auto' }}>
             Powered by the robust infrastructure of the Stellar network and growing through community partnerships.
           </p>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '64px', flexWrap: 'wrap' }}>
-          <HoverCard>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--on-surface-variant)', transition: 'color 0.3s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
-              <Activity size={32} /> Stellar
-            </div>
-          </HoverCard>
-          <HoverCard>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--on-surface-variant)', transition: 'color 0.3s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
-              <Wallet size={32} /> Freighter
-            </div>
-          </HoverCard>
-          <HoverCard>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--on-surface-variant)', transition: 'color 0.3s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
-              <Blocks size={32} /> Soroban
-            </div>
-          </HoverCard>
+        <div style={{ overflow: 'hidden', position: 'relative', width: '100vw', left: '50%', right: '50%', marginLeft: '-50vw', marginRight: '-50vw', padding: '20px 0' }}>
+          {/* Gradient masks for smooth fade in/out at edges */}
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '150px', background: 'linear-gradient(to right, var(--background), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '150px', background: 'linear-gradient(to left, var(--background), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+          
+          <div className="animate-marquee" style={{ gap: '48px', paddingLeft: '48px' }}>
+            {/* We duplicate the array to create a seamless infinite loop */}
+            {[
+              { name: 'Stellar', logo: '/logos/ecosystem/stellar.png', fallback: <Activity size={28} /> },
+              { name: 'Soroban', logo: '/logos/ecosystem/soroban.png', fallback: <Blocks size={28} /> },
+              { name: 'Onramp', logo: '/logos/ecosystem/onramp.png', fallback: <Wallet size={28} /> },
+              { name: 'Mudrex', logo: '/logos/ecosystem/mudrex.png', fallback: <Wallet size={28} /> },
+              { name: 'Freighter', logo: '/logos/ecosystem/freighter.png', fallback: <Wallet size={28} /> },
+              { name: 'xBull', logo: '/logos/ecosystem/xbull.png', fallback: <Wallet size={28} /> },
+              { name: 'Albedo', logo: '/logos/ecosystem/albedo.png', fallback: <Wallet size={28} /> },
+              { name: 'Lobstr', logo: '/logos/ecosystem/lobstr.png', fallback: <Wallet size={28} /> },
+              { name: 'USDC', logo: '/logos/ecosystem/usdc.png', fallback: <CheckCircle size={28} /> },
+              { name: 'MoonPay', logo: '/logos/ecosystem/moonpay.png', fallback: <Zap size={28} /> },
+              { name: 'Transak', logo: '/logos/ecosystem/transak.png', fallback: <Zap size={28} /> },
+              { name: 'SendGrid', logo: '/logos/ecosystem/sendgrid.png', fallback: <Activity size={28} /> },
+              // Duplicated set below for infinite loop
+              { name: 'Stellar ', logo: '/logos/ecosystem/stellar.png', fallback: <Activity size={28} /> },
+              { name: 'Soroban ', logo: '/logos/ecosystem/soroban.png', fallback: <Blocks size={28} /> },
+              { name: 'Onramp ', logo: '/logos/ecosystem/onramp.png', fallback: <Wallet size={28} /> },
+              { name: 'Mudrex ', logo: '/logos/ecosystem/mudrex.png', fallback: <Wallet size={28} /> },
+              { name: 'Freighter ', logo: '/logos/ecosystem/freighter.png', fallback: <Wallet size={28} /> },
+              { name: 'xBull ', logo: '/logos/ecosystem/xbull.png', fallback: <Wallet size={28} /> },
+              { name: 'Albedo ', logo: '/logos/ecosystem/albedo.png', fallback: <Wallet size={28} /> },
+              { name: 'Lobstr ', logo: '/logos/ecosystem/lobstr.png', fallback: <Wallet size={28} /> },
+              { name: 'USDC ', logo: '/logos/ecosystem/usdc.png', fallback: <CheckCircle size={28} /> },
+              { name: 'MoonPay ', logo: '/logos/ecosystem/moonpay.png', fallback: <Zap size={28} /> },
+              { name: 'Transak ', logo: '/logos/ecosystem/transak.png', fallback: <Zap size={28} /> },
+              { name: 'SendGrid ', logo: '/logos/ecosystem/sendgrid.png', fallback: <Activity size={28} /> },
+            ].map((partner) => (
+              <HoverCard key={partner.name}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px', 
+                    padding: '16px 32px',
+                    background: 'var(--surface-container-high)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '16px',
+                    color: 'var(--on-surface-variant)', 
+                    transition: 'all 0.3s',
+                    cursor: 'default',
+                    whiteSpace: 'nowrap'
+                  }} 
+                  onMouseEnter={e => {
+                    e.currentTarget.style.color = 'var(--on-surface)';
+                    e.currentTarget.style.borderColor = 'var(--outline)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }} 
+                  onMouseLeave={e => {
+                    e.currentTarget.style.color = 'var(--on-surface-variant)';
+                    e.currentTarget.style.borderColor = 'var(--glass-border)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img 
+                      src={partner.logo} 
+                      alt={`${partner.name} logo`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      onError={(e) => {
+                        // Hide broken image and show fallback icon
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                          (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                    <div style={{ display: 'none', color: 'inherit' }}>
+                      {partner.fallback}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '0.5px' }}>{partner.name.trim()}</span>
+                </div>
+              </HoverCard>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ─── CTA Section ─── */}
-      <section className="container" style={{ marginTop: '140px', marginBottom: '60px' }}>
+      <section className="container landing-section-gap-lg" style={{ marginTop: '140px', marginBottom: '60px' }}>
         <FadeIn>
           <BorderGlow borderRadius={32} glowColor="160 80 80" colors={['#06d6a0', '#118ab2', '#8338ec']} backgroundColor="var(--surface-container)">
             <div className="cta-banner" style={{ background: 'transparent', border: 'none', backdropFilter: 'none' }}>

@@ -45,7 +45,7 @@ const Navbar: React.FC = () => {
       {/* ─── Desktop / Tablet Top Navbar ─── */}
       <div className="navbar-wrapper">
         <nav className="navbar">
-          <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', marginRight: '60px' }}>
             <img src={isDark ? '/logo-white.png' : '/logo-black.png'} alt="Rekura Logo" style={{ height: '28px', transform: 'scale(2.5)', transformOrigin: 'left center' }} />
           </Link>
 

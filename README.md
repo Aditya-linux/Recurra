@@ -2,6 +2,7 @@
 
 **Live Demo:** [https://recurra-omega.vercel.app/merchant](https://recurra-omega.vercel.app/merchant)
 **Video Demo:** [https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing](https://drive.google.com/file/d/1KZiUOJZcZThXss8LVR6vYbEsdJ5dKjXN/view?usp=sharing)
+**Live Feedback Responses:** [Google Sheet](https://docs.google.com/spreadsheets/d/1tuLzz7RhxH_Kpo3T9oExc2C6xBwJu_F0j6haewdmhC4/edit?usp=sharing)
 
 
 Recurra is a decentralized B2B & B2C platform built on the **Stellar Soroban** smart contract network. It brings "Stripe-like" automated, recurring subscriptions to Web3, empowering merchants to create customizable subscription plans and allowing consumers to subscribe to services using their smart wallets.

@@ -1887,3 +1887,352 @@ input:-webkit-autofill:active {
   background-size: 200% auto;
   animation: sweep-gradient 4s linear infinite;
 }
+
+/* Ecosystem Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ═══════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVENESS
+   ═══════════════════════════════════════ */
+
+/* ─── Tablet (≤1024px) ─── */
+@media (max-width: 1024px) {
+  :root {
+    --container-padding: 32px;
+    --inner-card-padding: 28px;
+    --section-gap-lg: 100px;
+    --section-gap-md: 80px;
+  }
+}
+
+/* ─── Mobile (≤768px) ─── */
+@media (max-width: 768px) {
+  :root {
+    --container-padding: 20px;
+    --inner-card-padding: 20px;
+    --section-gap-lg: 80px;
+    --section-gap-md: 60px;
+  }
+
+  /* ── Landing Hero ── */
+  .landing-hero {
+    padding-top: 100px;
+    padding-bottom: 56px;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .hero-cta-group {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .hero-cta-group .btn {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+  }
+
+  /* ── Fee Calculator Widget ── */
+  .fee-calc-card {
+    padding: 24px 16px !important;
+  }
+
+  .fee-calc-currency-toggle {
+    position: static !important;
+    display: flex !important;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .fee-calc-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .fee-calc-savings-value {
+    font-size: 40px !important;
+  }
+
+  /* ── Comparison Table ── */
+  .comparison-table-wrapper {
+    margin: 0 -20px;
+    border-radius: 0;
+  }
+
+  .comparison-table-wrapper table th,
+  .comparison-table-wrapper table td {
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  .comparison-table-wrapper table th:first-child,
+  .comparison-table-wrapper table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--surface-container);
+  }
+
+  /* ── How It Works Steps ── */
+  .how-it-works-step {
+    flex-direction: column !important;
+    gap: 20px !important;
+    text-align: center;
+    align-items: center;
+  }
+
+  .how-it-works-step h3 {
+    font-size: 24px !important;
+  }
+
+  .how-it-works-step p {
+    font-size: 15px !important;
+  }
+
+  .how-it-works-icon {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .how-it-works-icon svg {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .how-it-works-line {
+    display: none !important;
+  }
+
+  /* ── Section Spacings ── */
+  .landing-section-gap {
+    margin-top: 64px !important;
+  }
+
+  .landing-section-gap-lg {
+    margin-top: 80px !important;
+  }
+
+  /* ── Ecosystem Marquee ── */
+  .animate-marquee {
+    gap: 24px !important;
+  }
+
+  /* ── CTA Banner ── */
+  .cta-banner {
+    padding: 40px 20px !important;
+    border-radius: var(--rounded-xl) !important;
+  }
+
+  .cta-banner h2 {
+    font-size: 32px !important;
+  }
+
+  .cta-banner p {
+    font-size: 15px !important;
+  }
+
+  /* ── Dashboard Grid ── */
+  .grid-12 > [style*="grid-column: span 8"],
+  .grid-12 > [style*="grid-column: span 4"] {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* ── Panel / Card padding ── */
+  .panel {
+    padding: 24px;
+  }
+
+  /* ── General text ── */
+  .text-body-lg {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* ── Footer ── */
+  .landing-footer {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 28px 0;
+    margin-top: 48px;
+  }
+}
+
+/* ─── Small Mobile / iPhone SE (≤480px) ─── */
+@media (max-width: 480px) {
+  :root {
+    --container-padding: 16px;
+    --inner-card-padding: 16px;
+  }
+
+  /* ── Tighter hero ── */
+  .landing-hero {
+    padding-top: 88px;
+    padding-bottom: 40px;
+  }
+
+  /* ── Fee Calculator ── */
+  .fee-calc-card {
+    padding: 20px 14px !important;
+  }
+
+  .fee-calc-volume-value {
+    font-size: 24px !important;
+  }
+
+  .fee-calc-processor-value {
+    font-size: 24px !important;
+  }
+
+  .fee-calc-savings-value {
+    font-size: 32px !important;
+  }
+
+  .fee-calc-preset-group {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* ── Comparison Table ── */
+  .comparison-table-wrapper table th,
+  .comparison-table-wrapper table td {
+    padding: 10px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* ── CTA Banner ── */
+  .cta-banner {
+    padding: 32px 16px !important;
+  }
+
+  .cta-banner h2 {
+    font-size: 28px !important;
+  }
+
+  /* ── General ── */
+  .text-h2 {
+    font-size: 26px;
+  }
+
+  .text-h3 {
+    font-size: 22px;
+  }
+
+  /* ── Share modal ── */
+  .share-modal-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .share-modal-grid a div {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
+/* ─── iPhone Pro Max / large phones (≤430px) ─── */
+@media (max-width: 430px) {
+  .fee-calc-savings-value {
+    font-size: 28px !important;
+  }
+
+  .text-display {
+    font-size: 32px;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-heading {
+    padding: 0 4px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}
+
+/* ─── Touch device optimizations ─── */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger tap targets */
+  .btn {
+    min-height: 44px;
+  }
+
+  .navbar-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-tab {
+    min-height: 44px;
+  }
+
+  /* Disable hover effects on touch */
+  .glass-shimmer:hover::after {
+    opacity: 0;
+  }
+
+  .feature-card:hover {
+    border-color: var(--glass-border);
+  }
+
+  .card:hover {
+    border-color: var(--glass-border);
+  }
+
+  /* Range slider thumb enlargement */
+  input[type="range"] {
+    height: 8px !important;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ─── Landscape phone fix ─── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landing-hero {
+    padding-top: 80px;
+    padding-bottom: 32px;
+  }
+
+  .mobile-tab-bar {
+    display: none !important;
+  }
+
+  body {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ─── Safe area (notch) support ─── */
+@supports (padding: max(0px)) {
+  .mobile-tab-bar-inner {
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  .modal-content {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}

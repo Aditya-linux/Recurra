@@ -4,7 +4,7 @@ import { X, MessageSquare, Send } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import { Button } from "@/components/ui/button";
 import { useWallet } from '../context/WalletContext';
-import { api, getValidToken } from '../utils/api';
+import { api, getValidToken, API_BASE } from '../utils/api';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface FeedbackModalProps {
 }
 
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
-  const { walletAddress, userRole } = useWallet();
+  const { walletAddress, fullWalletAddress, userRole } = useWallet();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [feedbackType, setFeedbackType] = useState('feature');
@@ -49,13 +49,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
     trackEvent('submit_feedback', { type: feedbackType });
 
     try {
-      await fetch('/api/v1/feedback', {
+      await fetch(`${API_BASE}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
           email,
-          walletAddress: walletAddress || 'Not connected',
+          walletAddress: fullWalletAddress || 'Not connected',
           userRole: userRole || 'Unknown',
           spend: userSpend,
           type: feedbackType,

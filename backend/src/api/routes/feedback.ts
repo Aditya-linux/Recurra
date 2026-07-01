@@ -1,54 +1,69 @@
 import { Router } from 'express';
-import fs from 'fs';
-import path from 'path';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { JWT } from 'google-auth-library';
 import { logger } from '../../utils/logger.js';
 
 const router = Router();
 
-// Escape CSV field (handles commas, quotes, newlines)
-function escapeCSV(field: string | number | undefined | null): string {
-  if (field === null || field === undefined) return '';
-  const str = String(field);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
+// ─── POST /api/v1/feedback ───────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
     const { name, email, walletAddress, spend, type, message } = req.body;
-    
-    // Required fields check (basic)
+
+    // Required fields check
     if (!name || !message) {
       return res.status(400).json({ error: 'Name and message are required' });
     }
 
-    const csvFilePath = path.join(process.cwd(), 'feedback.csv');
-    const date = new Date().toISOString();
+    const sheetId = process.env.GOOGLE_SHEET_ID;
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-    const newRow = [
-      escapeCSV(date),
-      escapeCSV(name),
-      escapeCSV(email || 'N/A'),
-      escapeCSV(walletAddress || 'N/A'),
-      escapeCSV(spend || '0'),
-      escapeCSV(type),
-      escapeCSV(message)
-    ].join(',') + '\n';
-
-    // If file doesn't exist, create it with headers
-    if (!fs.existsSync(csvFilePath)) {
-      const headers = 'Date,Name,Email,Address,Transactions,Type,Area for Improvement\n';
-      fs.writeFileSync(csvFilePath, headers + newRow);
-    } else {
-      fs.appendFileSync(csvFilePath, newRow);
+    if (!sheetId || !clientEmail || !privateKey) {
+      logger.error('Google Sheets credentials not configured');
+      return res.status(500).json({ error: 'Feedback system not fully configured (missing env vars)' });
     }
 
-    logger.info('Feedback saved to CSV', { walletAddress, type });
+    // Initialize auth
+    const serviceAccountAuth = new JWT({
+      email: clientEmail,
+      // Replace escaped newlines if they exist
+      key: privateKey.replace(/\\n/g, '\n'),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+    await doc.loadInfo(); // loads document properties and worksheets
+    
+    // Use the first sheet
+    const sheet = doc.sheetsByIndex[0];
+    
+    // Note: If the sheet is completely blank, we set the headers first.
+    // However, it's safer to ensure the user sets the headers in Google Sheets as per the instructions.
+    try {
+      await sheet.loadHeaderRow();
+    } catch (e) {
+      // If headers aren't found, try setting them
+      await sheet.setHeaderRow([
+        'Date', 'Wallet Address', 'Name', 'Email', 'Feedback Type', 'Feedback', 'Total Spend (XLM)'
+      ]);
+    }
+
+    // Append row
+    await sheet.addRow({
+      'Date': new Date().toISOString(),
+      'Wallet Address': walletAddress || 'N/A',
+      'Name': name,
+      'Email': email || 'N/A',
+      'Feedback Type': type || 'general',
+      'Feedback': message,
+      'Total Spend (XLM)': spend || '0',
+    });
+
+    logger.info('Feedback saved to Google Sheets', { walletAddress, type });
     return res.status(201).json({ success: true, message: 'Feedback saved successfully' });
   } catch (error) {
-    logger.error('Failed to save feedback', { error });
+    logger.error('Failed to save feedback to Google Sheets', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

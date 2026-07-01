@@ -69,14 +69,9 @@ const GlobalFeedback: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const hasShown = sessionStorage.getItem('feedback_shown');
-    if (!hasShown) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-        sessionStorage.setItem('feedback_shown', 'true');
-      }, 10000);
-      return () => clearTimeout(timer);
-    }
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-feedback', handleOpen);
+    return () => window.removeEventListener('open-feedback', handleOpen);
   }, []);
 
   return <FeedbackModal isOpen={isOpen} onClose={() => setIsOpen(false)} />;
