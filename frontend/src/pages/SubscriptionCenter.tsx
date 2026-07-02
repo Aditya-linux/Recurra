@@ -14,7 +14,8 @@ import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 const SubscriptionCenter: React.FC = () => {
   const { fullWalletAddress, openModal, signTransaction } = useWallet();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [filter, setFilter] = useState<'active' | 'inactive' | 'available'>('available');
+  const [payments, setPayments] = useState<any[]>([]);
+  const [filter, setFilter] = useState<'active' | 'inactive' | 'available' | 'history'>('available');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<any[]>([]);
@@ -36,7 +37,7 @@ const SubscriptionCenter: React.FC = () => {
         setAvailablePlans(plansResponse.data.data || []);
       }
 
-      // Fetch user's subscriptions (only if authenticated)
+      // Fetch user's subscriptions and payments (only if authenticated)
       const token = getValidToken();
       if (token) {
         const subsResponse = await api('/subscriptions');
@@ -45,8 +46,16 @@ const SubscriptionCenter: React.FC = () => {
         } else {
           setSubscriptions([]);
         }
+        
+        const paymentsResponse = await api('/payments/history');
+        if (paymentsResponse.ok && paymentsResponse.data) {
+          setPayments(paymentsResponse.data.data || []);
+        } else {
+          setPayments([]);
+        }
       } else {
         setSubscriptions([]);
+        setPayments([]);
       }
     } catch (e) {
       console.error(e);
@@ -301,6 +310,12 @@ const SubscriptionCenter: React.FC = () => {
               >
                 Inactive ({inactiveCount})
               </Button>
+              <Button
+                variant={filter === 'history' ? 'outline' : 'ghost'}
+                onClick={() => setFilter('history')}
+              >
+                History ({payments.length})
+              </Button>
             </FadeIn>
 
             <StaggerContainer id="subscriptions-container" className="flex flex-col gap-4">
@@ -414,7 +429,7 @@ const SubscriptionCenter: React.FC = () => {
               )}
 
               {/* Active / Inactive Subscriptions */}
-              {!fetchError && filter !== 'available' && filtered.map(sub => {
+              {!fetchError && (filter === 'active' || filter === 'inactive') && filtered.map(sub => {
                 const isInactive = sub.status === 'inactive';
                 const subBaseName = sub.name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
                 const style = getMerchantStyle(subBaseName || sub.name);
@@ -488,6 +503,67 @@ const SubscriptionCenter: React.FC = () => {
                     </CardContent>
                   </Card></StaggerItem>;
               })}
+
+              {/* Transaction History Timeline */}
+              {!fetchError && filter === 'history' && (
+                <div className="flex flex-col gap-6" style={{ position: 'relative', paddingLeft: '24px' }}>
+                  {/* Timeline vertical line */}
+                  <div style={{ position: 'absolute', left: '11px', top: '0', bottom: '0', width: '2px', background: 'var(--glass-border)' }}></div>
+                  
+                  {payments.map((payment, index) => {
+                    const isSuccess = payment.status === 'success';
+                    return (
+                      <StaggerItem key={payment.id || index}>
+                        <div style={{ position: 'relative', paddingLeft: '24px' }}>
+                          {/* Timeline dot */}
+                          <div style={{ 
+                            position: 'absolute', 
+                            left: '-32px', 
+                            top: '24px', 
+                            width: '16px', 
+                            height: '16px', 
+                            borderRadius: '50%', 
+                            background: isSuccess ? 'var(--emerald-500)' : 'var(--error)',
+                            border: '4px solid var(--surface)',
+                            zIndex: 1 
+                          }}></div>
+                          
+                          <Card style={{ border: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}>
+                            <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                              <div>
+                                <h4 className="font-bold text-white text-lg">{payment.plan_name}</h4>
+                                <p className="text-sm text-[var(--on-surface-variant)]">by {payment.merchant_name}</p>
+                                <p className="text-xs text-[var(--on-surface-variant)] mt-2">
+                                  {new Date(payment.executed_at).toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xl font-bold text-white">
+                                  ${formatStellarAmount(payment.amount)}
+                                </div>
+                                <div className="text-sm mt-1" style={{ color: isSuccess ? 'var(--emerald-500)' : 'var(--error)' }}>
+                                  {payment.status.toUpperCase()}
+                                </div>
+                                {payment.transaction_hash && (
+                                  <a
+                                    href={`https://stellar.expert/explorer/${import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'public' : 'testnet'}/tx/${payment.transaction_hash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-medium flex items-center gap-1 justify-end mt-2 hover:underline"
+                                    style={{ color: 'var(--primary, #3B82F6)' }}
+                                  >
+                                    View on Stellar <ExternalLink size={10} />
+                                  </a>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </StaggerItem>
+                    );
+                  })}
+                </div>
+              )}
             </StaggerContainer>
           </div>
         </div>

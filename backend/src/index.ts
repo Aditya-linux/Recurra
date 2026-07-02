@@ -32,10 +32,21 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { apolloServer } from './api/graphql/index.js';
 import { checkDatabaseConnection } from './database/index.js';
 import { startIndexer, stopIndexer } from './services/indexer.js';
+import * as Sentry from "@sentry/node";
+import { nodeProfilingIntegration } from "@sentry/profiling-node";
 
 // ============================================================
 // APPLICATION SETUP
 // ============================================================
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || "",
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  profilesSampleRate: 1.0,
+});
 
 const app = express();
 
@@ -175,6 +186,7 @@ app.get('*', (req, res, next) => {
 // ERROR HANDLING
 // ============================================================
 
+Sentry.setupExpressErrorHandler(app);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

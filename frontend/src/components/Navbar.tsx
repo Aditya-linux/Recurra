@@ -81,6 +81,14 @@ const Navbar: React.FC = () => {
             >
               <span className="material-symbols-outlined">feedback</span>
             </button>
+            <button
+              onClick={() => window.open('https://www.moonpay.com/buy?currencyCode=XLM', '_blank')}
+              className="btn desktop-only"
+              style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', marginRight: '8px', background: 'var(--emerald-500)', border: 'none', color: '#fff', fontWeight: 600 }}
+              title="Buy Crypto with Fiat"
+            >
+              Buy XLM
+            </button>
             {walletAddress ? (
               <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">
                 <div
