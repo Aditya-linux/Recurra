@@ -502,24 +502,6 @@ const MerchantIntegration: React.FC = () => {
                             <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginRight: '8px' }}>
                               {plan.subscriber_count || 0} subs
                             </span>
-                            <HoverCard>
-                              <button 
-                                onClick={() => togglePlanStatus(plan)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
-                                title={plan.is_active ? 'Deactivate' : 'Activate'}
-                              >
-                                <Power size={16} />
-                              </button>
-                            </HoverCard>
-                            <HoverCard>
-                              <button 
-                                onClick={() => deletePlan(plan.id)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </HoverCard>
                           </div>
                         </div>
                       );

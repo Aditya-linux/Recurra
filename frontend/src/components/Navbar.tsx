@@ -87,7 +87,7 @@ const Navbar: React.FC = () => {
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '13px', borderRadius: '8px', marginRight: '8px', background: 'var(--emerald-500)', border: 'none', color: '#fff', fontWeight: 600 }}
               title="Buy Crypto with Fiat"
             >
-              <img src="https://cdn.simpleicons.org/moonpay/white" alt="MoonPay" style={{ width: '16px', height: '16px' }} />
+              <img src="/logos/moonpay.png" alt="MoonPay" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
               Buy XLM
             </button>
             {walletAddress ? (

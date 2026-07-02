@@ -36,8 +36,8 @@ export const DiscountManager: React.FC = () => {
       method: 'POST',
       body: JSON.stringify({
         code: code.toUpperCase(),
-        discount_percent: discountPercent ? parseFloat(discountPercent) : undefined,
-        max_uses: maxUses ? parseInt(maxUses) : 0
+        discountPercent: discountPercent ? parseFloat(discountPercent) : undefined,
+        maxUses: maxUses ? parseInt(maxUses) : 0
       })
     });
 
