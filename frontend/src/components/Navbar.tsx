@@ -83,12 +83,11 @@ const Navbar: React.FC = () => {
             </button>
             <button
               onClick={() => window.open('https://www.moonpay.com/buy?currencyCode=XLM', '_blank')}
-              className="btn desktop-only"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '13px', borderRadius: '8px', marginRight: '8px', background: 'var(--emerald-500)', border: 'none', color: '#fff', fontWeight: 600 }}
+              className="desktop-only hover-scale"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 12px', borderRadius: '8px', marginRight: '8px', background: '#fff', border: '1px solid var(--outline-variant)', cursor: 'pointer', transition: 'all 0.2s' }}
               title="Buy Crypto with Fiat"
             >
-              <img src="/logos/moonpay.png" alt="MoonPay" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
-              Buy XLM
+              <img src="/logos/moonpay.png" alt="MoonPay" style={{ height: '20px', objectFit: 'contain' }} />
             </button>
             {walletAddress ? (
               <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">
