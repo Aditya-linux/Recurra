@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Trash2, Power, Upload } from "lucide-react";
+import { Search, Plus, Loader2, Copy, CheckCircle2, Upload } from "lucide-react";
 import { PageWrapper, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '../components/ui/animations';
 import { DiscountManager } from '../components/DiscountManager';
 
@@ -181,37 +181,7 @@ const MerchantIntegration: React.FC = () => {
     setIsCreatingPlan(false);
   };
 
-  const deletePlan = async (planId: string) => {
-    if (!confirm('Are you sure you want to deactivate this plan?')) return;
-    try {
-      const { ok, error } = await api(`/merchant/plans/${planId}`, { method: 'DELETE' });
-      if (ok) {
-        toast.success('Plan deactivated successfully');
-        fetchPlans();
-      } else {
-        toast.error(error || 'Failed to deactivate plan');
-      }
-    } catch (e) {
-      toast.error('Network error while deleting plan');
-    }
-  };
 
-  const togglePlanStatus = async (plan: any) => {
-    try {
-      const { ok, error } = await api(`/merchant/plans/${plan.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ is_active: !plan.is_active })
-      });
-      if (ok) {
-        toast.success(`Plan ${plan.is_active ? 'deactivated' : 'activated'} successfully`);
-        fetchPlans();
-      } else {
-        toast.error(error || 'Failed to update plan status');
-      }
-    } catch (e) {
-      toast.error('Network error while updating plan');
-    }
-  };
 
   const createWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
