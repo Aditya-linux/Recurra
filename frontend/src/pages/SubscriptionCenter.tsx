@@ -431,8 +431,8 @@ const SubscriptionCenter: React.FC = () => {
               {/* Active / Inactive Subscriptions */}
               {!fetchError && (filter === 'active' || filter === 'inactive') && filtered.map(sub => {
                 const isInactive = sub.status === 'inactive';
-                const subBaseName = sub.name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
-                const style = getMerchantStyle(subBaseName || sub.name);
+                const subBaseName = sub.name.split(' - ')[0];
+                const style = getMerchantStyle(subBaseName || sub.name, sub.logoUrl);
 
                 return <StaggerItem key={sub.id}><Card style={{ transition: 'transform 0.2s', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', opacity: isInactive ? 0.6 : 1 }}>
                     <CardContent className="p-6">

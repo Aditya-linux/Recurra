@@ -229,7 +229,8 @@ subscriptionRoutes.get('/', async (req: Request, res: Response, next: NextFuncti
           platformName: sub.platform_name || sub.merchant_name || null,
           platformLogoUrl: sub.platform_logo_url || null,
           platformUrl: sub.platform_url || null,
-        }
+        },
+        logoUrl: sub.logo_url || null,
       };
     });
 

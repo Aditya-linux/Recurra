@@ -30,7 +30,7 @@ export class SubscriptionRepository {
         p.name, p.amount, p.token_address, p.interval_seconds, p.tier, p.trial_days,
         p.redirect_url, p.redirect_label,
         m.platform_url, m.platform_name, m.platform_logo_url, m.redirect_url_template,
-        m.business_name as merchant_name
+        m.business_name as merchant_name, m.logo_url
       FROM subscriptions s
       JOIN plans p ON s.plan_id = p.id
       JOIN merchants m ON s.merchant_id = m.id
