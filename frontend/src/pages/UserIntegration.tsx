@@ -31,6 +31,11 @@ const UserIntegration: React.FC = () => {
   };
 
   const handleSavePhone = async () => {
+    if (phoneNumber && !phoneNumber.startsWith('+')) {
+      toast.error('Please include your country code (e.g., +1)');
+      return;
+    }
+    
     setIsSavingPhone(true);
     const { ok } = await api('/user/profile', {
       method: 'PUT',
@@ -162,7 +167,7 @@ const UserIntegration: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span style={{ color: 'var(--on-surface-variant)' }}>Network</span>
-                    <span style={{ fontWeight: 600 }}>Stellar Testnet</span>
+                    <span style={{ fontWeight: 600 }}>{import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'Stellar Mainnet' : 'Stellar Testnet'}</span>
                   </div>
                 </div>
               </div>

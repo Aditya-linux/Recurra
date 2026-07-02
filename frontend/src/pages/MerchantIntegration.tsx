@@ -419,7 +419,7 @@ const MerchantIntegration: React.FC = () => {
                       <SelectTrigger className="w-full border border-[var(--glass-border)] focus:ring-[var(--accent-cyan)] outline-none rounded-[10px] h-[48px]">
                         <SelectValue placeholder="Select billing interval" />
                       </SelectTrigger>
-                      <SelectContent className="border border-[var(--glass-border)] rounded-[10px] shadow-lg">
+                      <SelectContent className="border border-[var(--glass-border)] rounded-[10px] shadow-lg bg-[var(--surface)] z-50">
                         <SelectItem value="2592000" className="cursor-pointer">Monthly (30 days)</SelectItem>
                         <SelectItem value="604800" className="cursor-pointer">Weekly (7 days)</SelectItem>
                         <SelectItem value="31536000" className="cursor-pointer">Yearly (365 days)</SelectItem>

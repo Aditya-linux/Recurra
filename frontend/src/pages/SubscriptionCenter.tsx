@@ -383,7 +383,7 @@ const SubscriptionCenter: React.FC = () => {
                               <ImageWithFallback src={style.logo} fallbackText={baseName} fallbackColor="transparent" style={{ width: '100%', height: '100%', objectFit: style.objectFit || 'cover' }} alt={baseName} />
                             </div>
                             <div>
-                              <h3 className="text-xl font-bold text-white leading-tight tracking-tight">{plan.plan_name}</h3>
+                              <h3 className="text-xl font-bold text-[var(--on-surface)] leading-tight tracking-tight">{plan.plan_name}</h3>
                               <p className="text-sm text-[var(--on-surface-variant)] mt-1">
                                 by {plan.merchant_name}
                               </p>
@@ -393,7 +393,7 @@ const SubscriptionCenter: React.FC = () => {
                           {/* Right: Price & Actions */}
                           <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto ml-auto">
                             <div className="flex items-baseline gap-1">
-                              <span className="text-[36px] font-bold text-white tracking-tighter leading-none">${formatStellarAmount(plan.amount)}</span>
+                              <span className="text-[36px] font-bold text-[var(--on-surface)] tracking-tighter leading-none">${formatStellarAmount(plan.amount)}</span>
                               <span className="text-sm font-medium text-[var(--on-surface-variant)] ml-1">/ {plan.interval_seconds === 2592000 ? 'mo' : plan.interval_seconds === 31536000 ? 'yr' : 'cycle'}</span>
                             </div>
                             
@@ -404,7 +404,7 @@ const SubscriptionCenter: React.FC = () => {
                             )}
 
                             <div className="flex items-center gap-4 w-full sm:w-auto">
-                              <Button variant="outline" onClick={() => toast('Discount codes coming soon')} className="w-full sm:w-auto text-sm h-10 px-4 text-[var(--on-surface-variant)] hover:text-white border-[var(--glass-border)]">
+                              <Button variant="outline" onClick={() => toast('Discount codes coming soon')} className="w-full sm:w-auto text-sm h-10 px-4 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] border-[var(--glass-border)]">
                                 Discount Code
                               </Button>
                               
@@ -531,14 +531,14 @@ const SubscriptionCenter: React.FC = () => {
                           <Card style={{ border: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}>
                             <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                               <div>
-                                <h4 className="font-bold text-white text-lg">{payment.plan_name}</h4>
+                                <h4 className="font-bold text-[var(--on-surface)] text-lg">{payment.plan_name}</h4>
                                 <p className="text-sm text-[var(--on-surface-variant)]">by {payment.merchant_name}</p>
                                 <p className="text-xs text-[var(--on-surface-variant)] mt-2">
                                   {new Date(payment.executed_at).toLocaleString()}
                                 </p>
                               </div>
                               <div className="text-right">
-                                <div className="text-xl font-bold text-white">
+                                <div className="text-xl font-bold text-[var(--on-surface)]">
                                   ${formatStellarAmount(payment.amount)}
                                 </div>
                                 <div className="text-sm mt-1" style={{ color: isSuccess ? 'var(--emerald-500)' : 'var(--error)' }}>
