@@ -61,8 +61,9 @@ async function processPayment(sub: any): Promise<void> {
   let amountToCharge = 10_000_000; // 1 USDC Default
   let tokenAddress = process.env.USDC_TOKEN_ADDRESS || 'USDC';
 
+  let plan: any = null;
   try {
-    const plan = await PlanRepository.findById(sub.plan_id);
+    plan = await PlanRepository.findById(sub.plan_id);
     if (plan) {
        amountToCharge = Number(plan.amount);
        tokenAddress = plan.token_address;
