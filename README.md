@@ -4,6 +4,12 @@
 - **Video Demo:** [https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing](https://drive.google.com/file/d/1KZiUOJZcZThXss8LVR6vYbEsdJ5dKjXN/view?usp=sharing)
 - **Live User Registration & Feedback:** [View Registered Users Excel Sheet](https://docs.google.com/spreadsheets/d/1J_q5Q6ARVI6mvFum0rTyUICmmnC4Yepd6H0FxEIwgT8/edit?usp=sharing)
 
+## 🏆 Mainnet Status & Milestones
+- ✅ **Live Production Deployments:** Fully functional on Vercel (Frontend) and Render (Backend).
+- ✅ **Active Git History:** 60+ meaningful commits pushing constant product improvements.
+- ✅ **Real-Time User Feedback:** Fully integrated Web3 feedback aggregation system.
+- 🚀 **Mainnet Ready:** Deployed and interfacing natively with the Stellar Mainnet.
+
 Recurra is a decentralized B2B and B2C platform built on the Stellar Soroban smart contract network. It brings automated, recurring subscriptions to Web3, empowering merchants to create customizable subscription plans and allowing consumers to subscribe to services using their smart wallets seamlessly.
 
 ---
