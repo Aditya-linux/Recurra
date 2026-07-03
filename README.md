@@ -2,7 +2,7 @@
 
 - **Live Demo:** [https://recurra-omega.vercel.app/](https://recurra-omega.vercel.app/)
 - **Video Demo:** [https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing](https://drive.google.com/file/d/1KZiUOJZcZThXss8LVR6vYbEsdJ5dKjXN/view?usp=sharing)
-- **Live User Registration & Feedback:** [View Registered Users Excel Sheet](https://docs.google.com/spreadsheets/d/1J_q5Q6ARVI6mvFum0rTyUICmmnC4Yepd6H0FxEIwgT8/edit?usp=sharing)
+- **Live User Registration & Feedback:** [View Registered Users Excel Sheet](https://docs.google.com/spreadsheets/d/1wz0QF5SknOHDpPI3d4NrILENi_0Ev-dNxH25IEin4ok/edit?usp=sharing)
 
 ## Mainnet Status & Milestones
 - **Live Production Deployments:** Fully functional on Vercel (Frontend) and Render (Backend).
