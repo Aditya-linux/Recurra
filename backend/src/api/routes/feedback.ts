@@ -27,8 +27,8 @@ router.post('/', async (req, res) => {
     // Initialize auth
     const serviceAccountAuth = new JWT({
       email: clientEmail,
-      // Replace escaped newlines if they exist
-      key: privateKey.replace(/\\n/g, '\n'),
+      // Replace escaped newlines if they exist and strip any stray quotes
+      key: privateKey.replace(/\\n/g, '\n').replace(/"/g, '').trim(),
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
