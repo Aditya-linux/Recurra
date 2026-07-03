@@ -7,9 +7,11 @@ import { trackEvent } from '../utils/analytics';
 import { PageWrapper, FadeIn, HoverCard } from '../components/ui/animations';
 import { FeeCalculator } from '../components/FeeCalculator';
 import BorderGlow from '../components/ui/BorderGlow';
+import { useTheme } from '../hooks/useTheme';
 
 const Landing: React.FC = () => {
   const { walletAddress, openModal } = useWallet();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [intent, setIntent] = useState<'merchant' | 'user' | null>(null);
 
@@ -239,6 +241,40 @@ const Landing: React.FC = () => {
             </div>
           </motion.div>
         </div>
+      </section>
+
+      {/* ─── How to Use MoonPay Section ─── */}
+      <section className="container landing-section-gap-lg" style={{ marginTop: '140px' }}>
+        <FadeIn>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <h2 className="text-display" style={{ fontSize: '40px', marginBottom: '16px' }}>Easy Funding with MoonPay</h2>
+            <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px', margin: '0 auto' }}>
+              Don't have crypto? No problem. You can use our integrated MoonPay button in the navigation bar to buy XLM or USDC instantly with your credit card, Apple Pay, or Google Pay. It's the fastest way to get started!
+            </p>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <HoverCard>
+              <button
+                onClick={() => window.open('https://www.moonpay.com/buy?currencyCode=XLM', '_blank')}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  width: '140px', 
+                  height: '48px', 
+                  padding: 0, 
+                  borderRadius: '9999px',
+                  background: 'var(--surface-container-high)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  cursor: 'pointer',
+                  overflow: 'hidden'
+                }}
+              >
+                <img src={isDark ? "/logos/moonwhite.png" : "/logos/moonpay-custom.png"} alt="MoonPay" style={{ width: '200px', height: '200px', objectFit: 'contain', transform: isDark ? 'translateY(8px)' : 'translateY(4px)' }} />
+              </button>
+            </HoverCard>
+          </div>
+        </FadeIn>
       </section>
 
       {/* ─── Ecosystem & Partners Section ─── */}

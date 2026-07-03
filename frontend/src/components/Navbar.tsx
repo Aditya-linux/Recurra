@@ -87,7 +87,7 @@ const Navbar: React.FC = () => {
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '40px', padding: 0, borderRadius: '20px', marginRight: '8px', background: 'transparent', border: '1px solid var(--outline-variant)', cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden' }}
               title="Buy Crypto with Fiat"
             >
-              <img src={isDark ? "/logos/moonwhite.png" : "/logos/moonpay.png"} alt="MoonPay" style={{ width: '130px', height: '130px', objectFit: 'contain', transform: isDark ? 'translateY(5px)' : 'translateY(3px)' }} />
+              <img src={isDark ? "/logos/moonwhite.png" : "/logos/moonpay-custom.png"} alt="MoonPay" style={{ width: '130px', height: '130px', objectFit: 'contain', transform: isDark ? 'translateY(5px)' : 'translateY(2px)' }} />
             </button>
             {walletAddress ? (
               <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">

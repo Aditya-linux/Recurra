@@ -637,7 +637,7 @@ input, textarea {
   border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
   width: max-content;
-  min-width: 600px;
+  min-width: 750px;
   max-width: 90%;
   gap: 32px;
 }

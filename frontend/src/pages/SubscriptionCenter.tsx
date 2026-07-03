@@ -266,16 +266,33 @@ const SubscriptionCenter: React.FC = () => {
   };
 
   const getMerchantStyle = (nameToMatch: string, fallbackUrl?: string) => {
-    if (!nameToMatch) return { color: '#3B82F6', logo: fallbackUrl || '' };
+    const defaultColor = '#3B82F6';
+    if (!nameToMatch) return { color: defaultColor, logo: fallbackUrl || '' };
     const normalized = nameToMatch.toLowerCase();
     const match = Object.entries(merchantStyles).find(([key]) => normalized.includes(key.toLowerCase()));
-    if (match) return match[1];
-    return { color: '#3B82F6', logo: fallbackUrl || '' };
+    const hardcoded = match ? match[1] : null;
+    return {
+      color: hardcoded?.color || defaultColor,
+      logo: fallbackUrl || hardcoded?.logo || '',
+      objectFit: hardcoded?.objectFit
+    };
   };
 
-  const filtered = filter === 'available' ? availablePlans : subscriptions.filter(s => s.status === filter);
-  const activeCount = subscriptions.filter(s => s.status === 'active').length;
-  const inactiveCount = subscriptions.filter(s => s.status === 'inactive').length;
+  const getDaysRemaining = (dateString: string) => {
+    if (!dateString) return null;
+    const nextDate = new Date(dateString);
+    const now = new Date();
+    const diffTime = nextDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const isActiveSub = (s: any) => ['active', 'trialing', 'past_due'].includes(s.status);
+  const isInactiveSub = (s: any) => ['inactive', 'cancelled', 'expired'].includes(s.status);
+
+  const filtered = filter === 'available' ? availablePlans : subscriptions.filter(s => filter === 'active' ? isActiveSub(s) : (filter === 'inactive' ? isInactiveSub(s) : s.status === filter));
+  const activeCount = subscriptions.filter(isActiveSub).length;
+  const inactiveCount = subscriptions.filter(isInactiveSub).length;
 
   return (
     <PageWrapper>
@@ -369,7 +386,8 @@ const SubscriptionCenter: React.FC = () => {
                   {availablePlans.filter(p => p.merchant_address === selectedMerchantAddress).map(plan => {
                     const baseName = plan.plan_name?.replace(' Premium', '').replace(' Standard', '').replace(' Pro', '') || '';
                     const style = getMerchantStyle(plan.merchant_name, plan.logo_url);
-                    const alreadySubscribed = subscriptions.some(s => s.name === plan.plan_name && s.status === 'active');
+                    const activeSub = subscriptions.find(s => s.name === plan.plan_name && s.status === 'active');
+                    const alreadySubscribed = !!activeSub;
                     return (
                       <StaggerItem key={plan.id}>
                         <div className="flex flex-col md:flex-row items-center justify-between bg-[var(--surface-container)] border border-[var(--glass-border)] rounded-2xl p-4 md:p-6 w-full gap-6">
@@ -408,8 +426,15 @@ const SubscriptionCenter: React.FC = () => {
                                 Discount Code
                               </Button>
                               
-                              {alreadySubscribed ? (
-                                <span className="text-sm font-medium text-[var(--on-surface-variant)] px-4">Subscribed</span>
+                              {alreadySubscribed && activeSub ? (
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={() => handleAction(activeSub)} 
+                                  disabled={loadingAction === activeSub.id}
+                                  className="w-full sm:w-auto h-10 px-6 font-medium transition-opacity"
+                                >
+                                  {loadingAction === activeSub.id ? <><Loader2 className="animate-spin mr-2" size={16} /> Cancelling...</> : 'Unsubscribe'}
+                                </Button>
                               ) : (
                                 <Button 
                                   onClick={() => handleSubscribe(plan)}
@@ -430,7 +455,7 @@ const SubscriptionCenter: React.FC = () => {
 
               {/* Active / Inactive Subscriptions */}
               {!fetchError && (filter === 'active' || filter === 'inactive') && filtered.map(sub => {
-                const isInactive = sub.status === 'inactive';
+                const isInactive = isInactiveSub(sub);
                 const subBaseName = sub.name.split(' - ')[0];
                 const style = getMerchantStyle(subBaseName || sub.name, sub.logoUrl);
 
@@ -450,6 +475,11 @@ const SubscriptionCenter: React.FC = () => {
                             <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '2px' }}>
                               {isInactive ? 'Cancelled' : `Next Payment: ${sub.nextPayment}`}
                             </p>
+                            {!isInactive && sub.nextPaymentDate && (
+                              <p className="text-label-caps" style={{ color: 'var(--primary)', marginTop: '4px', fontWeight: 600 }}>
+                                {getDaysRemaining(sub.nextPaymentDate)} Days Remaining
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2 sm-items-start sm-mt-4 sm-w-full">
@@ -483,6 +513,21 @@ const SubscriptionCenter: React.FC = () => {
                                   {loadingAction === sub.id ? (
                                     <><Loader2 className="animate-spin mr-2" size={16} /> Cancelling...</>
                                   ) : 'Cancel Plan'}
+                                </Button>
+                              </HoverCard>
+                            )}
+                            {isInactive && (
+                              <HoverCard>
+                                <Button
+                                  variant="outline"
+                                  className="sm-w-full"
+                                  onClick={() => handleAction(sub)}
+                                  disabled={loadingAction === sub.id}
+                                  style={{ minWidth: '120px' }}
+                                >
+                                  {loadingAction === sub.id ? (
+                                    <><Loader2 className="animate-spin mr-2" size={16} /> Resubscribing...</>
+                                  ) : 'Resubscribe'}
                                 </Button>
                               </HoverCard>
                             )}

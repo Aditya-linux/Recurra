@@ -269,6 +269,7 @@ merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), 
     const fieldMap: Record<string, string> = {
       businessName: 'business_name',
       businessUrl: 'business_url',
+      logoUrl: 'logo_url',
       platformUrl: 'platform_url',
       platformName: 'platform_name',
       platformLogoUrl: 'platform_logo_url',
@@ -303,6 +304,28 @@ merchantRoutes.put('/settings', authenticate, requireRole('merchant', 'admin'), 
     res.json({
       message: 'Settings updated successfully',
       merchant: result.rows[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/v1/merchant/settings — Get merchant platform settings
+ */
+merchantRoutes.get('/settings', authenticate, requireRole('merchant', 'admin'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { dbPool } = await import('../../database/index.js');
+
+    // Get merchant
+    const merchantResult = await dbPool.query('SELECT * FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) {
+      res.status(403).json({ error: 'Merchant not found' });
+      return;
+    }
+
+    res.json({
+      merchant: merchantResult.rows[0],
     });
   } catch (err) {
     next(err);

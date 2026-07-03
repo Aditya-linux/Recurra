@@ -57,7 +57,7 @@ userRoutes.get('/subscriptions', async (req: Request, res: Response, next: NextF
          s.cancellation_reason, s.created_at,
          pl.name AS name, pl.amount, pl.token_address,
          pl.interval_seconds, pl.max_payments,
-         m.business_name AS merchant_name, m.wallet_address AS merchant_wallet
+         m.business_name AS merchant_name, m.wallet_address AS merchant_wallet, m.logo_url
        FROM subscriptions s
        JOIN plans pl ON s.plan_id = pl.id
        JOIN merchants m ON s.merchant_id = m.id

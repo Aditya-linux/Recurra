@@ -219,6 +219,7 @@ subscriptionRoutes.get('/', async (req: Request, res: Response, next: NextFuncti
         name: sub.name,
         amount: `$${(Number(sub.amount) / 10000000).toFixed(2)} / mo`,
         nextPayment: sub.status === 'active' ? formattedDate : 'Cancelled',
+        nextPaymentDate: sub.next_payment_time,
         status: sub.status,
         color: '#3B82F6', // default color
         icon: 'payment', // default material icon

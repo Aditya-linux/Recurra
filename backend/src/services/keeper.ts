@@ -117,6 +117,10 @@ async function processPayment(sub: any): Promise<void> {
      RETURNING payments_made`,
     [sub.id]
   );
+  
+  if (plan && plan.max_payments > 0 && updateRes.rows[0].payments_made >= plan.max_payments) {
+    await dbPool.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [sub.id]);
+  }
 
   await dbPool.query(
     `INSERT INTO payments

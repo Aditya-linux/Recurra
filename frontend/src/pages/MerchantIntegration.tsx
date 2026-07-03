@@ -13,7 +13,7 @@ import { DiscountManager } from '../components/DiscountManager';
 
 const MerchantIntegration: React.FC = () => {
   const { walletAddress, fullWalletAddress, userRole, openModal, setUserRole } = useWallet();
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'discounts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'discounts' | 'settings'>('overview');
 
   // Registration state
   const [businessName, setBusinessName] = useState('');
@@ -71,6 +71,11 @@ const MerchantIntegration: React.FC = () => {
   const [isCreatingWebhook, setIsCreatingWebhook] = useState(false);
   const [webhooks, setWebhooks] = useState<any[]>([]);
 
+  // Settings state
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [settingsBusinessName, setSettingsBusinessName] = useState('');
+  const [settingsLogoUrl, setSettingsLogoUrl] = useState('');
+
   // Plans state
   const [plans, setPlans] = useState<any[]>([]);
 
@@ -78,8 +83,17 @@ const MerchantIntegration: React.FC = () => {
     if (userRole === 'merchant') {
       fetchWebhooks();
       fetchPlans();
+      fetchSettings();
     }
   }, [userRole]);
+
+  const fetchSettings = async () => {
+    const { ok, data } = await api('/merchant/settings');
+    if (ok && data?.merchant) {
+      setSettingsBusinessName(data.merchant.business_name || '');
+      setSettingsLogoUrl(data.merchant.logo_url || '');
+    }
+  };
 
   const fetchWebhooks = async () => {
     const { ok, data } = await api('/webhooks');
@@ -207,6 +221,66 @@ const MerchantIntegration: React.FC = () => {
       toast.error('Network error configuring webhook');
     }
     setIsCreatingWebhook(false);
+  };
+
+  const updateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingSettings(true);
+    try {
+      const { ok, error } = await api('/merchant/settings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          businessName: settingsBusinessName,
+          logoUrl: settingsLogoUrl,
+        })
+      });
+
+      if (ok) {
+        toast.success('Settings updated successfully!');
+      } else {
+        toast.error(error || 'Failed to update settings');
+      }
+    } catch (e) {
+      toast.error('Network error updating settings');
+    }
+    setIsUpdatingSettings(false);
+  };
+
+  const handleSettingsLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('recurra_token') || ''}`
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        const baseUrl = API_BASE.replace('/api/v1', '');
+        setSettingsLogoUrl(`${baseUrl}${data.url}`);
+        toast.success('Logo uploaded successfully');
+      } else {
+        toast.error(data.error || 'Failed to upload logo');
+      }
+    } catch (err) {
+      toast.error('Network error during upload');
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   if (!walletAddress) {
@@ -388,12 +462,109 @@ const MerchantIntegration: React.FC = () => {
           >
             Discounts
           </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '15px',
+              borderBottom: activeTab === 'settings' ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === 'settings' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
+              backgroundColor: 'transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            Settings
+          </button>
         </div>
 
         {activeTab === 'analytics' ? (
           <FadeIn delay={0.2}><AnalyticsPage isEmbedded={true} /></FadeIn>
         ) : activeTab === 'discounts' ? (
           <FadeIn delay={0.2}><DiscountManager /></FadeIn>
+        ) : activeTab === 'settings' ? (
+          <FadeIn delay={0.2}>
+            <Card className="max-w-[600px] mx-auto">
+              <CardHeader>
+                <CardTitle className="text-h3" style={{ fontSize: '24px' }}>Merchant Settings</CardTitle>
+                <CardDescription className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                  Update your business name and display logo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={updateSettings} className="flex flex-col gap-6">
+                  <div>
+                    <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Name</label>
+                    <Input 
+                      type="text" 
+                      placeholder="e.g. Acme Streaming" 
+                      value={settingsBusinessName}
+                      onChange={(e) => setSettingsBusinessName(e.target.value)}
+                      required
+                      className="text-[var(--on-surface)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-label-caps" style={{ display: 'block', marginBottom: '8px' }}>Business Logo</label>
+                    {!settingsLogoUrl ? (
+                      <div className="relative border-2 border-dashed rounded-lg p-8 transition-colors flex flex-col items-center justify-center cursor-pointer" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSettingsLogoUpload}
+                          disabled={isUploadingLogo}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        {isUploadingLogo ? (
+                          <div className="flex flex-col items-center text-primary">
+                            <Loader2 className="animate-spin mb-2" size={28} />
+                            <span className="text-sm font-medium">Uploading...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center" style={{ color: 'var(--on-surface-variant)' }}>
+                            <div className="p-3 rounded-full mb-3" style={{ background: 'var(--surface-container)', color: 'var(--on-surface-variant)' }}>
+                              <Upload size={24} />
+                            </div>
+                            <span className="text-sm font-semibold" style={{ color: 'var(--on-surface)' }}>Click to upload from device</span>
+                            <span className="text-xs mt-1" style={{ color: 'var(--on-surface-variant)' }}>SVG, PNG, JPG (max 5MB)</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative border rounded-lg p-4 flex items-center justify-between shadow-sm" style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 border rounded-lg flex items-center justify-center" style={{ width: '60px', height: '60px', background: 'var(--surface-container)', borderColor: 'var(--glass-border)' }}>
+                            <img src={settingsLogoUrl} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold" style={{ color: 'var(--on-surface)' }}>Logo uploaded</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--accent-cyan)' }}>Ready for display</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <Button type="button" variant="outline" size="sm" disabled={isUploadingLogo} className="text-[var(--on-surface)]">
+                            {isUploadingLogo ? <><Loader2 className="animate-spin mr-2" size={14} /> Replacing...</> : 'Replace'}
+                          </Button>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSettingsLogoUpload}
+                            disabled={isUploadingLogo}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <HoverCard>
+                    <Button type="submit" disabled={isUpdatingSettings} className="w-full">
+                      {isUpdatingSettings ? <><Loader2 className="animate-spin mr-2" size={16} /> Saving...</> : 'Save Settings'}
+                    </Button>
+                  </HoverCard>
+                </form>
+              </CardContent>
+            </Card>
+          </FadeIn>
         ) : (
         <StaggerContainer className="grid-12">
           {/* Plan Creation */}

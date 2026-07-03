@@ -87,6 +87,15 @@ const Dashboard: React.FC = () => {
     'Amazon Prime': { color: '#FF9900', icon: '' },
   };
 
+  const getDaysRemaining = (dateString: string) => {
+    if (!dateString) return null;
+    const nextDate = new Date(dateString);
+    const now = new Date();
+    const diffTime = nextDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
   return (
     <PageWrapper className="pt-nav" style={{ paddingBottom: '64px' }}>
       <section className="container" style={{ marginTop: '40px' }}>
@@ -233,15 +242,21 @@ const Dashboard: React.FC = () => {
                   <div style={{
                     width: '48px', height: '48px', borderRadius: '12px',
                     background: style.color, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: '22px', color: 'white'
+                    justifyContent: 'center', fontSize: '22px', color: 'white',
+                    overflow: 'hidden'
                   }}>
-                    {style.icon}
+                    {sub.logo_url ? <img src={sub.logo_url} alt={sub.name} style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : style.icon}
                   </div>
                   <div>
                     <div className="text-body-lg" style={{ fontWeight: 500 }}>{sub.name}</div>
                     <div className="text-label-caps" style={{ color: 'var(--on-surface-variant)', marginTop: '4px' }}>
-                      Recurring • Next: {sub.nextPayment || 'Upcoming'}
+                      Recurring • Next: {sub.next_payment_time ? new Date(sub.next_payment_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (sub.nextPayment || 'Upcoming')}
                     </div>
+                    {(sub.next_payment_time || sub.nextPaymentDate) && (
+                      <div className="text-label-caps" style={{ color: 'var(--primary)', marginTop: '4px', fontWeight: 600 }}>
+                        {getDaysRemaining(sub.next_payment_time || sub.nextPaymentDate)} Days Remaining
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
