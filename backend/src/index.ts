@@ -154,6 +154,7 @@ import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
 import { analyticsRoutes } from './api/routes/analytics.js';
 import { uploadRoutes } from './api/routes/upload.js';
 import { feedbackRoutes } from './api/routes/feedback.js';
+import { newFeedbackRoutes } from './api/routes/new-feedback.js';
 import paymentsRoutes from './api/routes/payments.js';
 
 // Serve static files from the public directory and frontend build
@@ -170,6 +171,7 @@ app.use('/api/v1/demo-merchant', demoMerchantRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/feedback', feedbackRoutes);
+app.use('/api/v1/new-feedback', newFeedbackRoutes);
 app.use('/api/v1/payments', paymentsRoutes);
 
 // ============================================================

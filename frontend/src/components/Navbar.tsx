@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
 import { useTheme } from '../hooks/useTheme';
-import FeedbackModal from './FeedbackModal';
+import NewFeedbackModal from './NewFeedbackModal';
 
 const Navbar: React.FC = () => {
   const { walletAddress, userRole, openModal, disconnect } = useWallet();
@@ -211,7 +211,7 @@ const Navbar: React.FC = () => {
         </div>
       </div>
 
-      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <NewFeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
 };
