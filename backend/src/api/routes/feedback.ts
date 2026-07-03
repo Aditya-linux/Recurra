@@ -42,27 +42,16 @@ router.post('/', async (req, res) => {
       throw new Error('No sheet found in the document');
     }
     
-    // Note: If the sheet is completely blank, we set the headers first.
-    // However, it's safer to ensure the user sets the headers in Google Sheets as per the instructions.
-    try {
-      await sheet.loadHeaderRow();
-    } catch (e) {
-      // If headers aren't found, try setting them
-      await sheet.setHeaderRow([
-        'Date', 'Wallet Address', 'Name', 'Email', 'Feedback Type', 'Feedback', 'Total Spend (XLM)'
-      ]);
-    }
-
-    // Append row
-    await sheet.addRow({
-      'Date': new Date().toISOString(),
-      'Wallet Address': walletAddress || 'N/A',
-      'Name': name,
-      'Email': email || 'N/A',
-      'Feedback Type': type || 'general',
-      'Feedback': message,
-      'Total Spend (XLM)': spend || '0',
-    });
+    // Append row using array format to avoid needing headers loaded and prevent clearing the sheet
+    await sheet.addRow([
+      new Date().toISOString(),
+      walletAddress || 'N/A',
+      name,
+      email || 'N/A',
+      type || 'general',
+      message,
+      spend || '0'
+    ]);
 
     logger.info('Feedback saved to Google Sheets', { walletAddress, type });
     return res.status(201).json({ success: true, message: 'Feedback saved successfully' });
