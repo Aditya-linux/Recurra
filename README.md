@@ -9,6 +9,7 @@
 - **Active Git History:** 60+ meaningful commits pushing constant product improvements.
 - **Real-Time User Feedback:** Fully integrated Web3 feedback aggregation system.
 - **Mainnet Ready:** Deployed and interfacing natively with the Stellar Mainnet.
+  - **Verified Subscription Transaction:** [85dde33ce4b6a7e78be8595bf23a5bd5deb2fe76df2a2b66484194f501588b0e](https://stellar.expert/explorer/public/tx/85dde33ce4b6a7e78be8595bf23a5bd5deb2fe76df2a2b66484194f501588b0e)
 
 Recurra is a decentralized B2B and B2C platform built on the Stellar Soroban smart contract network. It brings automated, recurring subscriptions to Web3, empowering merchants to create customizable subscription plans and allowing consumers to subscribe to services using their smart wallets seamlessly.
 
