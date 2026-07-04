@@ -25,7 +25,7 @@ export const config = {
   app: {
     name: 'recurra',
     port: parseInt(process.env['PORT'] ?? process.env['APP_PORT'] ?? '3001', 10),
-    host: process.env['APP_HOST'] ?? (process.env['NODE_ENV'] === 'production' ? '0.0.0.0' : 'localhost'),
+    host: process.env['RENDER'] === 'true' || process.env['NODE_ENV'] === 'production' ? '0.0.0.0' : (process.env['APP_HOST'] ?? 'localhost'),
     env: process.env['NODE_ENV'] ?? 'development',
     isProduction: process.env['NODE_ENV'] === 'production',
   },
