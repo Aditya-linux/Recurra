@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
-import { useTheme } from '../hooks/useTheme';
 import NewFeedbackModal from './NewFeedbackModal';
 
 const Navbar: React.FC = () => {
   const { walletAddress, userRole, openModal, disconnect } = useWallet();
-  const { isDark, toggleTheme } = useTheme();
+  const isDark = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -14,7 +13,7 @@ const Navbar: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const getNavClass = ({ isActive }: { isActive: boolean }) => {
-    return `text-nav-link ${isActive ? 'active' : ''}`;
+    return `text-nav-link transition-all ${isActive ? 'active text-black' : 'text-black/50 hover:text-black'}`;
   };
 
   const closeMenu = () => setMobileOpen(false);
@@ -46,7 +45,7 @@ const Navbar: React.FC = () => {
       <div className="navbar-wrapper">
         <nav className="navbar">
           <Link to="/" className="logo-text" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', marginRight: '60px' }}>
-            <img src={isDark ? '/logo-white.png' : '/logo-black.png'} alt="Rekura Logo" style={{ height: '28px', transform: 'scale(2.5)', transformOrigin: 'left center' }} />
+            <img src={isDark ? '/logo-white.png' : '/logo-black.png'} alt="Rekura Logo" className="h-7 md:h-7" style={{ transform: 'scale(2)', transformOrigin: 'left center' }} />
           </Link>
 
           {/* Nav links – desktop only */}
@@ -68,13 +67,6 @@ const Navbar: React.FC = () => {
           {/* Actions – Right side */}
           <div className="flex items-center gap-2">
             <button
-              onClick={toggleTheme}
-              className="navbar-icon-btn"
-              aria-label="Toggle theme"
-            >
-              <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
-            </button>
-            <button
               onClick={() => setFeedbackOpen(true)}
               className="navbar-icon-btn desktop-only"
               title="Send Feedback"
@@ -92,12 +84,12 @@ const Navbar: React.FC = () => {
             {walletAddress ? (
               <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">
                 <div
-                  className="chip flex items-center gap-2"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-black/5 transition-colors"
                   onClick={() => setWalletMenuOpen(!walletMenuOpen)}
-                  style={{ cursor: 'pointer', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }}
+                  style={{ cursor: 'pointer', color: '#000000', border: '1px solid rgba(0, 0, 0, 0.1)', background: 'white' }}
                 >
-                  <div className="pulse-dot"></div>
-                  <span>{walletAddress}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.8 }}>account_balance_wallet</span>
+                  <span className="font-bold text-sm">{walletAddress}</span>
                 </div>
                 {walletMenuOpen && (
                   <div className="dropdown-menu" style={{
@@ -181,7 +173,7 @@ const Navbar: React.FC = () => {
         <div className="mobile-sheet-content">
           {walletAddress && (
             <div className="mobile-sheet-wallet">
-              <div className="pulse-dot"></div>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.8, marginRight: '8px' }}>account_balance_wallet</span>
               <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>{walletAddress}</span>
             </div>
           )}

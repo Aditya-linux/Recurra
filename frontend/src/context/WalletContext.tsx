@@ -91,11 +91,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(interval);
   }, [checkTokenValidity]);
 
-  const handleSuccessfulConnection = (publicKey: string) => {
+  const handleSuccessfulConnection = (publicKey: string, roleToUse?: string | null) => {
     const formattedAddress = publicKey.substring(0, 5) + '...' + publicKey.substring(publicKey.length - 4).toUpperCase();
     setWalletAddress(formattedAddress);
     setFullWalletAddress(publicKey);
     setIsModalOpen(false);
+
+    if (window.location.pathname === '/') {
+      setTimeout(() => {
+        const intent = localStorage.getItem('recurra_intent');
+        if (roleToUse === 'merchant' || intent === 'merchant') {
+          window.location.href = '/merchant';
+        } else {
+          window.location.href = '/user';
+        }
+      }, 500);
+    }
   };
 
   const connectWallet = async (walletId: string) => {
@@ -194,19 +205,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const data = await res.json();
         localStorage.setItem('recurra_token', data.accessToken);
         setUserRole(data.user.role);
-        handleSuccessfulConnection(publicKey);
+        handleSuccessfulConnection(publicKey, data.user.role);
         toast.success('Wallet connected successfully!');
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error('[Wallet] Backend auth failed:', res.status, errData);
         // Still connect the wallet in view-only mode so user isn't blocked
-        handleSuccessfulConnection(publicKey);
+        handleSuccessfulConnection(publicKey, null);
         toast('Wallet connected (limited mode). Backend auth failed — some features may be unavailable.', { icon: '️', duration: 2000 });
       }
     } catch (fetchErr: any) {
       console.error('[Wallet] Backend auth network error:', fetchErr);
       // Still connect the wallet in view-only mode
-      handleSuccessfulConnection(publicKey);
+      handleSuccessfulConnection(publicKey, null);
       toast('Wallet connected (limited mode). Backend is unreachable — please ensure it is running.', { icon: '️', duration: 2000 });
     }
   };

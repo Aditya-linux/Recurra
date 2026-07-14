@@ -122,12 +122,40 @@ jobs:
           JWT_SECRET: test-jwt-secret-64-chars-minimum-for-testing-purposes-only!!!!!
 
   # ============================================================
+  # FRONTEND BUILD & LINT (Vite/React/TypeScript)
+  # ============================================================
+  frontend:
+    name: Frontend Build & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compile & Vite build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+  # ============================================================
   # SECURITY SCAN
   # ============================================================
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [contracts, backend]
+    needs: [contracts, backend, frontend]
     steps:
       - uses: actions/checkout@v4
 
@@ -149,7 +177,7 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [contracts, backend, security]
+    needs: [contracts, backend, frontend, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4

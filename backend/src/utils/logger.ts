@@ -74,7 +74,7 @@ export const logger = winston.createLogger({
           winston.format.colorize(),
           winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
             const metaStr = Object.keys(meta).length > 0
-              ? ` ${JSON.stringify(meta)}`
+              ? ` ${require('util').inspect(meta, { depth: 3, colors: true })}`
               : '';
             return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
           }),

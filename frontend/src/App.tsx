@@ -65,6 +65,12 @@ const AnimatedRoutes: React.FC = () => {
   );
 };
 
+const ConditionalNavbar: React.FC = () => {
+  const location = useLocation();
+  if (location.pathname === '/') return null;
+  return <Navbar />;
+};
+
 const GlobalFeedback: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -110,7 +116,7 @@ const App: React.FC = () => {
       />
       <GlobalFeedback />
       <Router>
-        <Navbar />
+        <ConditionalNavbar />
         <WalletModal />
         <ErrorBoundary>
           <AnalyticsWrapper>

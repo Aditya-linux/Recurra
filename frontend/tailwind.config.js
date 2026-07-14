@@ -5,8 +5,16 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'tt-norms': ['"TT Norms Pro"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'hero-display': ['"Bodoni Moda"', 'serif'],
+        'hero-serif': ['"Bodoni Moda"', 'serif'],
+        'sans': ['"Onest"', 'sans-serif'],
+      }
+    },
   },
   plugins: [],
 }
+
 

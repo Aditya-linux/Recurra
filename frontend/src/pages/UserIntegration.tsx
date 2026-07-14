@@ -11,6 +11,13 @@ const UserIntegration: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSavingPhone, setIsSavingPhone] = useState(false);
 
+  const fetchProfile = async () => {
+    const { ok, data } = await api('/user/profile');
+    if (ok && data?.phoneNumber) {
+      setPhoneNumber(data.phoneNumber);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
     if (fullWalletAddress) {
@@ -22,13 +29,6 @@ const UserIntegration: React.FC = () => {
       setBtnState('idle');
     }
   }, [fullWalletAddress]);
-
-  const fetchProfile = async () => {
-    const { ok, data } = await api('/user/profile');
-    if (ok && data?.phoneNumber) {
-      setPhoneNumber(data.phoneNumber);
-    }
-  };
 
   const handleSavePhone = async () => {
     if (phoneNumber && !phoneNumber.startsWith('+')) {
@@ -74,138 +74,142 @@ const UserIntegration: React.FC = () => {
 
   return (
     <PageWrapper>
-    <main className="pt-nav" style={{ paddingBottom: '64px' }}>
-      <section className="container" style={{ marginTop: '40px' }}>
-        <FadeIn>
-          <h2 className="text-h2">User Portal</h2>
-          <p className="text-body-lg" style={{ color: 'var(--on-surface-variant)', marginTop: '8px', marginBottom: '40px', maxWidth: '600px' }}>
-            Connect your smart wallet, manage cryptographic allowances, and approve recurring spending limits.
-          </p>
-        </FadeIn>
+      <main className="pt-nav min-h-screen bg-[#F5F5F5] text-black pb-16 font-sans">
+        <section className="container mx-auto px-6 mt-10 max-w-6xl">
+          <FadeIn>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-black" style={{ letterSpacing: '-0.03em' }}>User Portal</h2>
+            <p className="text-lg text-black/60 mt-2 mb-10 max-w-2xl">
+              Connect your smart wallet, manage cryptographic allowances, and approve recurring spending limits.
+            </p>
+          </FadeIn>
 
-        <StaggerContainer className="grid-12">
-          {/* Smart Wallet Settings */}
-          <StaggerItem className="card flex flex-col gap-6" style={{ gridColumn: 'span 6' }}>
-            <h3 className="text-h3" style={{ fontSize: '24px' }}>Smart Wallet Settings</h3>
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Smart Wallet Settings */}
+            <StaggerItem className="flex flex-col gap-6">
+              <h3 className="text-2xl font-bold text-black tracking-tight">Smart Wallet Settings</h3>
 
-            <div className="flex flex-col gap-4">
-              <div className="panel" style={{ padding: '24px', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)' }}>
-                <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>security</span>
-                    <span className="text-body-lg" style={{ fontWeight: 600 }}>Payment Engine Allowance</span>
+              <div className="flex flex-col gap-4">
+                <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 md:p-8 transition-shadow hover:shadow-md">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-black/5 rounded-xl">
+                        <span className="material-symbols-outlined text-black">security</span>
+                      </div>
+                      <span className="text-lg font-bold text-black tracking-tight">Payment Engine Allowance</span>
+                    </div>
+                    {btnState === 'success' && (
+                      <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-green-600 bg-green-50 rounded-lg">
+                        ACTIVE
+                      </span>
+                    )}
                   </div>
-                  {btnState === 'success' && (
-                    <span className="chip" style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
-                      ACTIVE
-                    </span>
-                  )}
-                </div>
-                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '16px' }}>
-                  Approve the Rekura smart contract to pull funds for your active subscriptions.
-                </p>
-                <HoverCard>
-                  <button
-                    id="btn-approve-allowance"
-                    className="btn btn-primary"
-                    style={{
-                      width: '100%',
-                      ...(btnState === 'success' ? { opacity: 0.8, cursor: 'default' } : {})
-                    }}
-                    onClick={approveAllowance}
-                    disabled={btnState === 'loading' || btnState === 'success'}
-                  >
-                    {btnState === 'idle' && 'Approve Allowance'}
-                    {btnState === 'loading' && <><span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span> Approving...</>}
-                    {btnState === 'success' && <><span className="material-symbols-outlined">check_circle</span> Approved</>}
-                  </button>
-                </HoverCard>
-                {btnState === 'success' && (
+                  <p className="text-sm font-medium text-black/60 mb-6">
+                    Approve the Rekura smart contract to pull funds for your active subscriptions.
+                  </p>
                   <HoverCard>
                     <button
-                      className="btn btn-ghost"
-                      style={{ width: '100%', marginTop: '8px', fontSize: '14px' }}
-                      onClick={revokeAllowance}
+                      id="btn-approve-allowance"
+                      className={`w-full py-4 px-6 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
+                        btnState === 'success' 
+                          ? 'bg-black/5 text-black/60 cursor-default shadow-none border border-black/5' 
+                          : 'bg-black text-white hover:bg-gray-800 shadow-sm hover:shadow-md'
+                      }`}
+                      onClick={approveAllowance}
+                      disabled={btnState === 'loading' || btnState === 'success'}
                     >
-                      Revoke Allowance
+                      {btnState === 'idle' && 'Approve Allowance'}
+                      {btnState === 'loading' && <><span className="material-symbols-outlined animate-spin">progress_activity</span> Approving...</>}
+                      {btnState === 'success' && <><span className="material-symbols-outlined text-green-500">check_circle</span> Approved</>}
                     </button>
                   </HoverCard>
+                  {btnState === 'success' && (
+                    <HoverCard>
+                      <button
+                        className="w-full mt-3 py-3 px-6 rounded-2xl font-bold text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        onClick={revokeAllowance}
+                      >
+                        Revoke Allowance
+                      </button>
+                    </HoverCard>
+                  )}
+                </div>
+              </div>
+            </StaggerItem>
+
+            {/* Wallet Info Card */}
+            <StaggerItem className="flex flex-col gap-6">
+              <h3 className="text-2xl font-bold text-black tracking-tight">Wallet Info</h3>
+              <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 md:p-8 transition-shadow hover:shadow-md">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-black/5 rounded-xl">
+                    <span className="material-symbols-outlined text-black">account_balance_wallet</span>
+                  </div>
+                  <span className="text-lg font-bold text-black tracking-tight">Connected Wallet</span>
+                </div>
+                {fullWalletAddress ? (
+                  <div className="break-all font-mono text-sm bg-black/5 p-4 rounded-2xl text-black/80 font-medium border border-black/5">
+                    {fullWalletAddress}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-black/60">
+                    No wallet connected. Click "Connect Wallet" in the navbar to get started.
+                  </p>
                 )}
-              </div>
-            </div>
-          </StaggerItem>
 
-          {/* Wallet Info Card */}
-          <StaggerItem className="card flex flex-col gap-6" style={{ gridColumn: 'span 6' }}>
-            <h3 className="text-h3" style={{ fontSize: '24px' }}>Wallet Info</h3>
-            <div className="panel" style={{ padding: '24px', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)' }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: '16px' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>account_balance_wallet</span>
-                <span className="text-body-lg" style={{ fontWeight: 600 }}>Connected Wallet</span>
-              </div>
-              {fullWalletAddress ? (
-                <div style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '13px', background: 'var(--surface-container-high)', padding: '12px', borderRadius: '8px', color: 'var(--on-surface)' }}>
-                  {fullWalletAddress}
+                <div className="mt-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="material-symbols-outlined text-black text-xl">shield</span>
+                    <span className="text-base font-bold text-black">Security Status</span>
+                  </div>
+                  <div className="flex flex-col gap-3 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b border-black/5">
+                      <span className="text-black/60 font-medium">Payment Allowance</span>
+                      <span className={`font-bold ${btnState === 'success' ? 'text-green-600' : 'text-black/40'}`}>
+                        {btnState === 'success' ? 'Approved' : 'Not Approved'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-black/60 font-medium">Network</span>
+                      <span className="font-bold text-black">{import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'Stellar Mainnet' : 'Stellar Testnet'}</span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
-                  No wallet connected. Click "Connect Wallet" in the navbar to get started.
+              </div>
+
+              {/* Profile Settings */}
+              <h3 className="text-2xl font-bold text-black tracking-tight mt-4">Profile Settings</h3>
+              <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 md:p-8 transition-shadow hover:shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-black/5 rounded-xl">
+                    <span className="material-symbols-outlined text-black">chat</span>
+                  </div>
+                  <span className="text-lg font-bold text-black tracking-tight">WhatsApp Notifications</span>
+                </div>
+                <p className="text-sm font-medium text-black/60 mb-5">
+                  Enter your WhatsApp number to receive instant receipts and renewal reminders. Include your country code (e.g., +14155552671).
                 </p>
-              )}
-
-              <div style={{ marginTop: '20px' }}>
-                <div className="flex items-center gap-2" style={{ marginBottom: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>shield</span>
-                  <span className="text-body-md" style={{ fontWeight: 600 }}>Security Status</span>
-                </div>
-                <div className="flex flex-col gap-2" style={{ fontSize: '13px' }}>
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--on-surface-variant)' }}>Payment Allowance</span>
-                    <span style={{ color: btnState === 'success' ? 'var(--on-surface)' : 'var(--on-surface-variant)', fontWeight: 600 }}>
-                      {btnState === 'success' ? ' Approved' : ' Not Approved'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--on-surface-variant)' }}>Network</span>
-                    <span style={{ fontWeight: 600 }}>{import.meta.env.VITE_STELLAR_NETWORK === 'MAINNET' ? 'Stellar Mainnet' : 'Stellar Testnet'}</span>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="text" 
+                    className="flex-1 bg-black/5 border border-black/10 p-4 rounded-2xl text-black font-medium outline-none focus:border-black/30 focus:bg-white transition-colors placeholder:text-black/30" 
+                    placeholder="+1 (555) 000-0000" 
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <button 
+                    className="py-4 px-8 bg-black text-white rounded-2xl font-bold transition-all hover:bg-gray-800 hover:shadow-md disabled:opacity-50 disabled:hover:shadow-none whitespace-nowrap" 
+                    onClick={handleSavePhone}
+                    disabled={isSavingPhone}
+                  >
+                    {isSavingPhone ? 'Saving...' : 'Save'}
+                  </button>
                 </div>
               </div>
-            </div>
 
-            {/* Profile Settings */}
-            <h3 className="text-h3" style={{ fontSize: '24px', marginTop: '16px' }}>Profile Settings</h3>
-            <div className="panel" style={{ padding: '24px', background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)' }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: '16px' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>chat</span>
-                <span className="text-body-lg" style={{ fontWeight: 600 }}>WhatsApp Notifications</span>
-              </div>
-              <p className="text-body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '16px' }}>
-                Enter your WhatsApp number to receive instant receipts and renewal reminders. Include your country code (e.g., +14155552671).
-              </p>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  className="input-field flex-1" 
-                  placeholder="+1 (555) 000-0000" 
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  style={{ background: 'var(--surface-container-high)', border: '1px solid var(--outline-variant)', padding: '12px', borderRadius: '8px', color: 'var(--on-surface)', outline: 'none' }}
-                />
-                <button 
-                  className="btn btn-primary" 
-                  onClick={handleSavePhone}
-                  disabled={isSavingPhone}
-                >
-                  {isSavingPhone ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </div>
-
-          </StaggerItem>
-        </StaggerContainer>
-      </section>
-    </main>
+            </StaggerItem>
+          </StaggerContainer>
+        </section>
+      </main>
     </PageWrapper>
   );
 };

@@ -67,7 +67,7 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-[var(--surface-container)] border-[var(--glass-border)] rounded-2xl shadow-xl">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-white border-black/5 rounded-2xl shadow-xl">
         <div className="relative p-8">
           
           {/* Animated Background Glow */}
@@ -93,12 +93,12 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
           </div>
 
           <DialogHeader className="text-center space-y-3 mb-8">
-            <DialogTitle className="text-2xl font-bold tracking-tight text-[var(--on-surface)]">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-black">
               Subscription Active!
             </DialogTitle>
-            <DialogDescription className="text-[15px] text-[var(--on-surface-variant)] leading-relaxed">
-              You have successfully subscribed to <strong className="text-[var(--on-surface)] font-semibold">{planName}</strong> for{' '}
-              <strong className="text-[var(--on-surface)] font-semibold">{amount}</strong>.
+            <DialogDescription className="text-[15px] text-black/60 leading-relaxed">
+              You have successfully subscribed to <strong className="text-black font-semibold">{planName}</strong> for{' '}
+              <strong className="text-black font-semibold">{amount}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -107,26 +107,26 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-[var(--surface-container-high)] border border-[var(--glass-border)] rounded-xl p-4 mb-8 flex items-center justify-between"
+            className="bg-black/5 border border-black/10 rounded-xl p-4 mb-8 flex items-center justify-between"
           >
             <div className="flex items-center gap-4">
               {redirect?.platformLogoUrl ? (
                 <img
                   src={redirect.platformLogoUrl}
                   alt={redirect.platformName || ''}
-                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-white/10"
+                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-black/10"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg ring-1 ring-white/10">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg ring-1 ring-black/10">
                   {(planName || '?').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="text-left">
-                <div className="font-semibold text-[15px] text-[var(--on-surface)] tracking-tight">
+                <div className="font-semibold text-[15px] text-black tracking-tight">
                   {planName}
                 </div>
                 {redirect?.platformName && (
-                  <div className="text-[13px] text-[var(--on-surface-variant)] mt-0.5 font-medium">
+                  <div className="text-[13px] text-black/50 mt-0.5 font-medium">
                     via {redirect.platformName}
                   </div>
                 )}
@@ -143,21 +143,21 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
               <>
                 <Button
                   onClick={handleRedirect}
-                  className="w-full py-5 text-[15px] rounded-xl bg-[var(--on-surface)] text-[var(--surface)] font-semibold shadow-sm hover:opacity-90 transition-all duration-150"
+                  className="w-full py-5 text-[15px] rounded-xl bg-black text-white font-semibold shadow-sm hover:bg-gray-800 transition-all duration-150"
                 >
                   <ExternalLink className="w-4 h-4 mr-2 opacity-80" strokeWidth={2.5} />
                   {redirect.label || `Go to ${redirect.platformName || 'Platform'}`}
                   <ArrowRight className="w-4 h-4 ml-2 opacity-80" strokeWidth={2.5} />
                 </Button>
                 {countdown > 0 && (
-                  <p className="text-center text-[13px] text-[var(--on-surface-variant)] font-medium">
+                  <p className="text-center text-[13px] text-black/50 font-medium">
                     Redirecting in {countdown}s...
                   </p>
                 )}
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="w-full py-5 text-[15px] rounded-xl border-[var(--glass-border)] bg-transparent hover:bg-[rgba(255,255,255,0.04)] text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] font-medium transition-all"
+                  className="w-full py-5 text-[15px] rounded-xl border-black/10 bg-transparent hover:bg-black/5 text-black/50 hover:text-black font-medium transition-all"
                 >
                   Stay on Rekura
                 </Button>
@@ -165,7 +165,7 @@ const SubscriptionSuccessModal: React.FC<SubscriptionSuccessModalProps> = ({
             ) : (
               <Button
                 onClick={onClose}
-                className="w-full py-5 text-[15px] rounded-xl bg-[var(--on-surface)] text-[var(--surface)] font-semibold shadow-sm hover:opacity-90 transition-all duration-150"
+                className="w-full py-5 text-[15px] rounded-xl bg-black text-white font-semibold shadow-sm hover:bg-gray-800 transition-all duration-150"
               >
                 View in Dashboard
                 <ArrowRight className="w-4 h-4 ml-2 opacity-80" strokeWidth={2.5} />

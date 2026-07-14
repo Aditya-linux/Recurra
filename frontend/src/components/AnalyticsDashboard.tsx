@@ -19,10 +19,6 @@ export const AnalyticsDashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [period]);
-
   const fetchAnalytics = async () => {
     setLoading(true);
     const { ok, data } = await api(`/merchant/analytics?period=${period}`);
@@ -31,6 +27,10 @@ export const AnalyticsDashboard: React.FC = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [period]);
 
   if (loading && !data) {
     return (

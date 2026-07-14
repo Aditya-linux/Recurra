@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, MessageSquare, Send, Star } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
-import { Button } from "@/components/ui/button";
 import { useWallet } from '../context/WalletContext';
 import { api, getValidToken, API_BASE } from '../utils/api';
 
@@ -88,73 +87,69 @@ const NewFeedbackModal: React.FC<NewFeedbackModalProps> = ({ isOpen, onClose }) 
   };
 
   const modalContent = (
-    <div className="modal-overlay active" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose} style={{ fontFamily: '"TT Norms Pro", sans-serif' }}>
+      <div 
+        className="bg-white border border-black/5 rounded-3xl w-full max-w-[400px] p-4 md:p-6 shadow-2xl relative text-black" 
+        onClick={e => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-variant)', padding: '4px', borderRadius: '8px', display: 'flex', transition: 'all 0.15s ease' }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+          className="absolute top-4 right-4 text-black/40 hover:text-black hover:bg-black/5 p-1.5 rounded-xl transition-colors"
         >
           <X size={18} />
         </button>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <div style={{ padding: '8px', background: 'rgba(96, 165, 250, 0.1)', color: 'var(--accent-blue)', borderRadius: '10px', display: 'flex' }}>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-black/5 rounded-xl flex text-black">
             <MessageSquare size={22} />
           </div>
-          <h2 className="text-h4" style={{ fontWeight: 600 }}>Send Feedback</h2>
+          <h2 className="text-xl font-bold tracking-tight text-black">Send Feedback</h2>
         </div>
 
         {submitted ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ 
-              width: '56px', height: '56px', borderRadius: '50%', 
-              background: 'var(--emerald-500-15)', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              margin: '0 auto 20px', color: 'var(--emerald-500)' 
-            }}>
+          <div className="text-center py-10 px-5">
+            <div className="w-14 h-14 rounded-full bg-[#10b981]/15 text-[#10b981] flex items-center justify-center mx-auto mb-5">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
-            <h3 className="text-h4" style={{ marginBottom: '10px' }}>Feedback Sent</h3>
-            <p className="text-body-md" style={{ color: 'var(--on-surface-variant)' }}>
+            <h3 className="text-xl font-bold text-black mb-2 tracking-tight">Feedback Sent</h3>
+            <p className="text-sm font-medium text-black/60">
               Thanks for your response, we look forward to your feedback!
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <label className="form-label">Name</label>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-black/80">Name</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your Name"
-                className="form-input"
+                className="bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm text-black font-medium placeholder-black/30 focus:outline-none focus:border-black/30 focus:bg-white transition-colors"
               />
             </div>
 
-            <div>
-              <label className="form-label">Email</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-black/80">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="form-input"
+                className="bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm text-black font-medium placeholder-black/30 focus:outline-none focus:border-black/30 focus:bg-white transition-colors"
               />
             </div>
 
-            <div>
-              <label className="form-label">Feedback Type</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-black/80">Feedback Type</label>
               <select
                 value={feedbackType}
                 onChange={(e) => setFeedbackType(e.target.value)}
-                className="form-select"
+                className="bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm text-black font-medium focus:outline-none focus:border-black/30 focus:bg-white transition-colors appearance-none cursor-pointer"
               >
                 <option value="feature">Feature Request</option>
                 <option value="bug">Bug Report</option>
@@ -162,9 +157,9 @@ const NewFeedbackModal: React.FC<NewFeedbackModalProps> = ({ isOpen, onClose }) 
               </select>
             </div>
             
-            <div>
-              <label className="form-label">Rating</label>
-              <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-black/80">Rating</label>
+              <div className="flex gap-1 mt-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -172,14 +167,8 @@ const NewFeedbackModal: React.FC<NewFeedbackModalProps> = ({ isOpen, onClose }) 
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: '4px',
-                      cursor: 'pointer',
-                      color: star <= (hoveredRating || rating) ? 'var(--amber-400)' : 'var(--on-surface-variant)',
-                      transition: 'color 0.2s ease'
-                    }}
+                    className="bg-transparent border-none p-1 cursor-pointer transition-colors duration-200"
+                    style={{ color: star <= (hoveredRating || rating) ? '#fbbf24' : 'rgba(0,0,0,0.1)' }}
                   >
                     <Star size={24} fill={star <= (hoveredRating || rating) ? 'currentColor' : 'none'} />
                   </button>
@@ -187,22 +176,30 @@ const NewFeedbackModal: React.FC<NewFeedbackModalProps> = ({ isOpen, onClose }) 
               </div>
             </div>
             
-            <div>
-              <label className="form-label">Message</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-black/80">Message</label>
               <textarea
                 required
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what you think..."
-                className="form-textarea"
+                className="bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm text-black font-medium placeholder-black/30 focus:outline-none focus:border-black/30 focus:bg-white transition-colors resize-none"
               />
             </div>
 
-            <Button type="submit" disabled={isSubmitting || !message.trim() || rating === 0} style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
+            <button 
+              type="submit" 
+              disabled={isSubmitting || !message.trim() || rating === 0} 
+              className={`w-full flex items-center justify-center gap-2 mt-2 px-6 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
+                isSubmitting || !message.trim() || rating === 0
+                  ? 'bg-black/5 text-black/40 cursor-not-allowed shadow-none border border-black/5'
+                  : 'bg-black text-white hover:bg-gray-800 cursor-pointer shadow-sm hover:shadow-md'
+              }`}
+            >
               {isSubmitting ? 'Sending...' : 'Send Feedback'}
               {!isSubmitting && <Send size={15} />}
-            </Button>
+            </button>
           </form>
         )}
       </div>
