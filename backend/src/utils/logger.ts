@@ -11,6 +11,7 @@
  */
 
 import winston from 'winston';
+import { inspect } from 'util';
 import { config } from '../config/index.js';
 
 // Fields that should be redacted in logs
@@ -74,7 +75,7 @@ export const logger = winston.createLogger({
           winston.format.colorize(),
           winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
             const metaStr = Object.keys(meta).length > 0
-              ? ` ${require('util').inspect(meta, { depth: 3, colors: true })}`
+              ? ` ${inspect(meta, { depth: 3, colors: true })}`
               : '';
             return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
           }),
