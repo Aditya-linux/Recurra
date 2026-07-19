@@ -397,7 +397,7 @@ impl RecurringPaymentEngine {
         // --- STEP 6: UPDATE STATE BEFORE TRANSFER (EFFECTS) ---
         // Safety: state changes BEFORE external calls prevents re-entrancy.
         sub.payments_made = next_payment_num;
-        sub.next_payment_time = sub.next_payment_time + sub.interval;
+        sub.next_payment_time += sub.interval;
         sub.last_payment_at = now;
         sub.grace_period_end = 0; // Reset grace period on success
 
