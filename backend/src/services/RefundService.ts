@@ -25,38 +25,29 @@ export class RefundService {
       throw new Error('Plan not found');
     }
 
-    // Calculation logic
-    // We assume the billing cycle starts at `next_payment_time - interval_seconds`
-    // and ends at `next_payment_time`.
+    // Billing cycle: starts at (next_payment_time - interval) and ends at next_payment_time
     const intervalSeconds = plan.interval_seconds;
-    const intervalDays = intervalSeconds / (24 * 3600);
-    const amountStr = String(plan.amount);
-    const amountTotal = parseInt(amountStr, 10);
+    const daysTotal = Math.round(intervalSeconds / 86400); // 86400 = seconds per day
+    const amountTotal = Number(plan.amount);
 
     const now = new Date();
     const nextPaymentTime = new Date(subscription.next_payment_time);
-    const cycleStartTime = new Date(nextPaymentTime.getTime() - intervalSeconds * 1000);
+    const dailyRate = amountTotal / daysTotal;
 
     if (now >= nextPaymentTime) {
-       return { refundAmount: 0, daysUsed: intervalDays, daysTotal: intervalDays, dailyRate: amountTotal / intervalDays };
+       return { refundAmount: 0, daysUsed: daysTotal, daysTotal, dailyRate };
     }
 
-    // Ensure we don't calculate negative days used if they cancel instantly
+    const cycleStartTime = new Date(nextPaymentTime.getTime() - intervalSeconds * 1000);
     const msUsed = Math.max(0, now.getTime() - cycleStartTime.getTime());
-    const daysUsed = Math.ceil(msUsed / (1000 * 3600 * 24));
-    
-    // Calculate refund
-    const daysTotal = Math.round(intervalDays);
-    const dailyRate = amountTotal / daysTotal;
+    const daysUsed = Math.ceil(msUsed / 86_400_000); // ms per day
     const daysRemaining = Math.max(0, daysTotal - daysUsed);
-    
-    const refundAmount = Math.floor(daysRemaining * dailyRate);
 
     return {
-      refundAmount,
+      refundAmount: Math.floor(daysRemaining * dailyRate),
       daysUsed,
       daysTotal,
-      dailyRate
+      dailyRate,
     };
   }
 

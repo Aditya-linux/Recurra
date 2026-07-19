@@ -6,6 +6,7 @@ import AnalyticsPage from './AnalyticsPage';
 import { Upload, Loader2 } from "lucide-react";
 import { PageWrapper, FadeIn, StaggerContainer, StaggerItem } from '../components/ui/animations';
 import { DiscountManager } from '../components/DiscountManager';
+import TreasuryWallet from '../components/TreasuryWallet';
 
 const MerchantIntegration: React.FC = () => {
   const { walletAddress, fullWalletAddress, userRole, openModal, setUserRole } = useWallet();
@@ -559,7 +560,13 @@ const MerchantIntegration: React.FC = () => {
             </div>
           </FadeIn>
         ) : (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <StaggerContainer className="space-y-8">
+          {/* Treasury Wallet Card */}
+          <StaggerItem>
+            <TreasuryWallet />
+          </StaggerItem>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {/* Plan Creation */}
           <StaggerItem className="md:col-span-7">
             <div className="bg-white border border-black/5 rounded-3xl shadow-sm hover:shadow-md transition-shadow p-8">
@@ -666,6 +673,7 @@ const MerchantIntegration: React.FC = () => {
               )}
             </div>
           </StaggerItem>
+          </div>
         </StaggerContainer>
         )}
       </section>

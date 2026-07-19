@@ -365,6 +365,20 @@ impl RecurringPaymentEngine {
             _ => return Err(PaymentError::SubscriptionInactive),
         }
 
+        // --- STEP 3.5: AUTO-EXPIRE IF GRACE PERIOD LAPSED ---
+        if sub.status == SubscriptionStatus::PastDue
+            && sub.grace_period_end > 0
+            && now > sub.grace_period_end
+        {
+            sub.status = SubscriptionStatus::Cancelled;
+            env.storage().persistent().set(&sub_key, &sub);
+            env.events().publish(
+                (symbol_short!("sub"), symbol_short!("expired")),
+                subscription_id.clone(),
+            );
+            return Err(PaymentError::SubscriptionInactive);
+        }
+
         // --- STEP 4: IDEMPOTENCY CHECK ---
         let next_payment_num = sub
             .payments_made
@@ -383,7 +397,7 @@ impl RecurringPaymentEngine {
         // --- STEP 6: UPDATE STATE BEFORE TRANSFER (EFFECTS) ---
         // Safety: state changes BEFORE external calls prevents re-entrancy.
         sub.payments_made = next_payment_num;
-        sub.next_payment_time = now + sub.interval;
+        sub.next_payment_time = sub.next_payment_time + sub.interval;
         sub.last_payment_at = now;
         sub.grace_period_end = 0; // Reset grace period on success
 
@@ -590,6 +604,33 @@ impl RecurringPaymentEngine {
 
         log!(&env, "Subscription marked past due: id={}", subscription_id);
         Ok(())
+    }
+
+    /// Merchant-initiated payment collection (pull-based fallback).
+    /// Same logic as execute_payment but requires merchant authorization.
+    /// This ensures merchants can collect their revenue even if all keepers are offline.
+    pub fn merchant_claim_payment(
+        env: Env,
+        merchant: Address,
+        subscription_id: String,
+    ) -> Result<PaymentExecutedEvent, PaymentError> {
+        merchant.require_auth();
+
+        // Verify the caller is actually the merchant for this subscription
+        let sub_key = DataKey::Subscription(subscription_id.clone());
+        let sub: UserSubscription = env
+            .storage()
+            .persistent()
+            .get(&sub_key)
+            .ok_or(PaymentError::SubscriptionNotFound)?;
+
+        if sub.merchant != merchant {
+            return Err(PaymentError::Unauthorized);
+        }
+
+        // Delegate to the standard execute_payment logic
+        // (inherits all safety: timing check, idempotency, CEI pattern)
+        Self::execute_payment(env, subscription_id)
     }
 
     // --------------------------------------------------------

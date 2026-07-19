@@ -12,6 +12,7 @@
  * - Structured logging with PII redaction
  */
 
+// ── All imports consolidated at top ──
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -19,45 +20,63 @@ import compression from 'compression';
 import xss from 'xss-clean';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { expressMiddleware } from '@apollo/server/express4';
+
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { ipRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { checkDatabaseConnection, dbPool } from './database/index.js';
+import { initRedis } from './utils/redis.js';
+import { initSocket } from './utils/socket.js';
+import { getRPCEndpoints } from './utils/rpcFailover.js';
+
+// Routes
 import { authRoutes } from './api/routes/auth.js';
 import { userRoutes } from './api/routes/user.js';
 import { merchantRoutes } from './api/routes/merchant.js';
 import { subscriptionRoutes } from './api/routes/subscription.js';
 import { webhookRoutes } from './api/routes/webhook.js';
-import { expressMiddleware } from '@apollo/server/express4';
+import { plansRoutes } from './api/routes/plans.js';
+import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
+import { analyticsRoutes } from './api/routes/analytics.js';
+import { uploadRoutes } from './api/routes/upload.js';
+import { feedbackRoutes } from './api/routes/feedback.js';
+import { newFeedbackRoutes } from './api/routes/new-feedback.js';
+import paymentsRoutes from './api/routes/payments.js';
 import { apolloServer } from './api/graphql/index.js';
-import { checkDatabaseConnection } from './database/index.js';
+
+// Services
+import { WebhookDeliveryService } from './webhooks/WebhookDeliveryService.js';
+import { startKeepAlive, stopKeepAlive } from './services/KeepAliveService.js';
+import { initKeeperWorker } from './services/keeper.js';
 import { startIndexer, stopIndexer } from './services/indexer.js';
-import * as Sentry from "@sentry/node";
-import { nodeProfilingIntegration } from "@sentry/profiling-node";
+import { NotificationScheduler } from './services/NotificationScheduler.js';
+import { paymentWatchdog } from './services/watchdog.js';
+import { paymentReconciler } from './services/PaymentReconciler.js';
 
 // ============================================================
 // APPLICATION SETUP
 // ============================================================
 
 Sentry.init({
-  dsn: process.env.SENTRY_DSN || "",
-  integrations: [
-    nodeProfilingIntegration(),
-  ],
+  dsn: process.env.SENTRY_DSN || '',
+  integrations: [nodeProfilingIntegration()],
   tracesSampleRate: 1.0,
   profilesSampleRate: 1.0,
 });
 
 const app = express();
 
-// Trust the first proxy (e.g. Render/Heroku load balancer) to fix rate limiter IP detection
+// Trust the first proxy (e.g. Render/Heroku load balancer)
 app.set('trust proxy', 1);
 
 // ============================================================
-// SECURITY MIDDLEWARE (Applied globally)
+// SECURITY MIDDLEWARE
 // ============================================================
 
-// Security headers (Helmet)
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -71,29 +90,23 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// CORS — restrict to allowed origins
 app.use(cors({
   origin: config.cors.allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
 }));
 
-// Compression
 app.use(compression());
-
-// Body parsing with size limits (prevent payload attacks)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
-
-// Sanitize data against XSS
 app.use(xss());
 
-// Request ID injection for tracing
+// Request ID injection
 app.use((req, _res, next) => {
   req.headers['x-request-id'] = req.headers['x-request-id'] ?? uuidv4();
   next();
@@ -116,23 +129,18 @@ app.use((req, res, next) => {
       userAgent: req.headers['user-agent'],
     };
 
-    if (res.statusCode >= 500) {
-      logger.error('Request failed', logData);
-    } else if (res.statusCode >= 400) {
-      logger.warn('Client error', logData);
-    } else {
-      logger.info('Request completed', logData);
-    }
+    if (res.statusCode >= 500) logger.error('Request failed', logData);
+    else if (res.statusCode >= 400) logger.warn('Client error', logData);
+    else logger.info('Request completed', logData);
   });
 
   next();
 });
 
-// Global rate limiting
 app.use(ipRateLimiter);
 
 // ============================================================
-// HEALTH CHECK (No auth required)
+// HEALTH CHECKS
 // ============================================================
 
 app.get('/health', (_req, res) => {
@@ -145,19 +153,30 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.get('/health/keeper', async (_req, res) => {
+  try {
+    const result = await dbPool.query(
+      `SELECT COUNT(*) AS overdue FROM subscriptions
+       WHERE next_payment_time < NOW() - INTERVAL '2 hours'
+       AND status IN ('active', 'past_due')`
+    );
+    const overdueCount = parseInt(result.rows[0].overdue, 10);
+
+    res.json({
+      status: overdueCount === 0 ? 'healthy' : 'degraded',
+      overdueSubscriptions: overdueCount,
+      timestamp: new Date().toISOString(),
+      rpcEndpoints: getRPCEndpoints().length,
+    });
+  } catch {
+    res.status(500).json({ status: 'error' });
+  }
+});
+
 // ============================================================
 // API ROUTES (v1)
 // ============================================================
 
-import { plansRoutes } from './api/routes/plans.js';
-import { demoMerchantRoutes } from './api/routes/demoMerchant.js';
-import { analyticsRoutes } from './api/routes/analytics.js';
-import { uploadRoutes } from './api/routes/upload.js';
-import { feedbackRoutes } from './api/routes/feedback.js';
-import { newFeedbackRoutes } from './api/routes/new-feedback.js';
-import paymentsRoutes from './api/routes/payments.js';
-
-// Serve static files from the public directory and frontend build
 app.use(express.static('public'));
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
@@ -177,7 +196,7 @@ app.use('/api/v1/payments', paymentsRoutes);
 // ============================================================
 // CATCH-ALL ROUTE FOR REACT ROUTER
 // ============================================================
-// Any route not matching the APIs above should serve the frontend application
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/graphql')) {
     return next();
@@ -197,55 +216,68 @@ app.use(errorHandler);
 // SERVER STARTUP
 // ============================================================
 
-import { WebhookDeliveryService } from './webhooks/WebhookDeliveryService.js';
-import { initSocket } from './utils/socket.js';
-import { startKeepAlive, stopKeepAlive } from './services/KeepAliveService.js';
-import { initRedis } from './utils/redis.js';
-import { initKeeperWorker } from './services/keeper.js';
-import { NotificationScheduler } from './services/NotificationScheduler.js';
-
 let webhookService: WebhookDeliveryService | null = null;
+
+/** Shared graceful shutdown logic (eliminates SIGTERM/SIGINT duplication) */
+function gracefulShutdown(signal: string, server: ReturnType<typeof app.listen>): void {
+  logger.info(`${signal} received — shutting down gracefully`);
+  stopIndexer();
+  stopKeepAlive();
+  NotificationScheduler.stop();
+  paymentWatchdog.stop();
+  paymentReconciler.stop();
+  webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+}
 
 async function startServer() {
   try {
-    // 1. Test Database Connection (Bypassed for local dev without Docker)
+    // 1. Database
     const dbConnected = await checkDatabaseConnection();
     if (!dbConnected) {
-      logger.warn("⚠️ Bypassing Database Connection Error for local development mode.");
+      logger.warn('⚠️ Bypassing Database Connection Error for local development mode.');
     }
 
-    // 2. Initialize Redis (optional in development)
+    // 2. Redis
     const redisConnected = await initRedis();
     if (!redisConnected) {
       logger.warn('⚠️ Redis unavailable — webhooks, queues, and caching will be disabled');
     }
 
-    // 3. Initialize Webhook Service (only if Redis is up)
+    // 3. Webhook Service
     webhookService = new WebhookDeliveryService();
 
-    // 4. Initialize Keeper Worker (only if Redis is up)
+    // 4. Keeper Worker (requires Redis)
     if (redisConnected) {
       initKeeperWorker();
     }
-    
-    // 5. Start Blockchain Event Indexer
+
+    // 5. Blockchain Event Indexer
     startIndexer();
 
-    // Start Daily Notification Scheduler
+    // 6. Notification Scheduler
     NotificationScheduler.start();
 
-    // 6. Start Apollo GraphQL server
+    // 7. Payment Watchdog (independent of keeper)
+    paymentWatchdog.start();
+
+    // 8. Payment Reconciler (catches pending payments from internet failures)
+    paymentReconciler.start();
+
+    // 9. Apollo GraphQL
     await apolloServer.start();
     app.use('/graphql', expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        // Very basic context, should integrate with real JWT validation
         const authHeader = req.headers.authorization || '';
         return { token: authHeader };
       },
     }));
 
     const server = app.listen(config.app.port, config.app.host, () => {
-      logger.info(` Recurra API server running`, {
+      logger.info('Recurra API server running', {
         host: config.app.host,
         port: config.app.port,
         environment: config.app.env,
@@ -254,36 +286,15 @@ async function startServer() {
       logger.info(`API Documentation available at http://${config.app.host}:${config.app.port}/api/docs`);
     });
 
-    // Initialize WebSockets
+    // WebSockets
     initSocket(server);
 
-    // Start keepalive pinger (prevents Render free-tier cold starts)
+    // Keepalive pinger (prevents Render free-tier cold starts)
     startKeepAlive();
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM received — shutting down gracefully');
-      stopIndexer();
-      stopKeepAlive();
-      NotificationScheduler.stop();
-      webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
-      server.close(() => {
-        logger.info('Server closed');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      logger.info('SIGINT received — shutting down gracefully');
-      stopIndexer();
-      stopKeepAlive();
-      NotificationScheduler.stop();
-      webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
-      server.close(() => {
-        logger.info('Server closed');
-        process.exit(0);
-      });
-    });
+    // Graceful shutdown (shared handler eliminates duplication)
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
   } catch (error: any) {
     logger.error('Failed to start server', { error: error.message });
     process.exit(1);
@@ -295,12 +306,11 @@ startServer().catch(err => {
   process.exit(1);
 });
 
-// Unhandled rejections — log but don't crash in development
 process.on('unhandledRejection', (reason: any) => {
-  logger.error('Unhandled Promise rejection', { 
+  logger.error('Unhandled Promise rejection', {
     message: reason?.message || String(reason),
     stack: reason?.stack,
-    reason 
+    reason,
   });
 });
 

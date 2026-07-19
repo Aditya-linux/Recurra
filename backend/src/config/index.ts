@@ -74,6 +74,10 @@ export const config = {
     platformFeeWallet: requireEnv('PLATFORM_FEE_WALLET', 'GATZRECURRADEVWALLETFEECOLLECTORAAAAAAAAAAAAAAAAAAAAAA'),
     /** Whether we are targeting mainnet */
     isMainnet: (process.env['STELLAR_NETWORK'] ?? 'testnet') === 'mainnet',
+    /** Comma-separated fallback RPC URLs */
+    rpcFailoverUrls: process.env['STELLAR_RPC_FAILOVER_URLS'] ?? '',
+    /** Dead-man's switch ping URL (Healthchecks.io / Cronitor) */
+    healthcheckPingUrl: process.env['HEALTHCHECK_PING_URL'] ?? '',
   },
 
   // Contract Addresses

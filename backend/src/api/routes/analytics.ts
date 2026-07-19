@@ -8,6 +8,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, requireRole } from '../../middleware/auth.js';
 import { analyticsSchema } from '../../utils/validation.js';
+import { dbPool } from '../../database/index.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -20,7 +21,6 @@ analyticsRoutes.use(authenticate, requireRole('merchant', 'admin'));
  * Helper to get the merchant ID from the authenticated user
  */
 async function getMerchantId(req: Request, res: Response): Promise<string | null> {
-  const { dbPool } = await import('../../database/index.js');
   const result = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
   if (result.rowCount === 0) {
     res.status(403).json({ error: 'Merchant not found' });
@@ -38,7 +38,7 @@ analyticsRoutes.get('/revenue-chart', async (req: Request, res: Response, next: 
     const merchantId = await getMerchantId(req, res);
     if (!merchantId) return;
 
-    const { dbPool } = await import('../../database/index.js');
+
 
     const periodMap: Record<string, { interval: string; trunc: string; points: number }> = {
       day: { interval: '24 hours', trunc: 'hour', points: 24 },
@@ -93,7 +93,7 @@ analyticsRoutes.get('/subscriber-growth', async (req: Request, res: Response, ne
     const merchantId = await getMerchantId(req, res);
     if (!merchantId) return;
 
-    const { dbPool } = await import('../../database/index.js');
+
 
     const periodMap: Record<string, { interval: string; trunc: string }> = {
       day: { interval: '24 hours', trunc: 'hour' },
@@ -167,7 +167,7 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
     const merchantId = await getMerchantId(req, res);
     if (!merchantId) return;
 
-    const { dbPool } = await import('../../database/index.js');
+
 
     const periodMap: Record<string, string> = {
       day: '1 day', week: '7 days', month: '30 days',
@@ -255,7 +255,7 @@ analyticsRoutes.get('/payment-breakdown', async (req: Request, res: Response, ne
  */
 analyticsRoutes.get('/platform', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const { dbPool } = await import('../../database/index.js');
+
     
     const subsResult = await dbPool.query(`SELECT COUNT(*)::int as total FROM subscriptions`);
     const activeSubsResult = await dbPool.query(`SELECT COUNT(*)::int as total FROM subscriptions WHERE status = 'active'`);
@@ -283,7 +283,7 @@ analyticsRoutes.get('/platform', async (_req: Request, res: Response, next: Next
  */
 analyticsRoutes.get('/export-users', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const { dbPool } = await import('../../database/index.js');
+
     
     // 1. Fetch Users & Subscriptions
     const usersResult = await dbPool.query(`
