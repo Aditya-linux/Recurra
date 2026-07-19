@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src/ --ext .ts",
-    "test": "jest --coverage --passWithNoTests",
+    "test": "jest --forceExit",
     "migrate": "tsx src/database/migrate.ts",
     "seed": "tsx src/database/seed.ts"
   },
@@ -50,6 +50,7 @@
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/multer": "^2.1.0",
     "@types/node": "^20.11.0",
