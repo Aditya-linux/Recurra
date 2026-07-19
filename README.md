@@ -1,4 +1,4 @@
-# Recurra (SurePay) - Web3 Recurring Payments
+# Recurra - Web3 Recurring Payments Platform
 
 - **Live Demo:** [https://recurra-omega.vercel.app/](https://recurra-omega.vercel.app/)
 - **Video Demo:** [https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing](https://drive.google.com/file/d/1KZiUOJZcZThXss8LVR6vYbEsdJ5dKjXN/view?usp=sharing)
