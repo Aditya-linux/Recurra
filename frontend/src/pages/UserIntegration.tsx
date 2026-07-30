@@ -147,8 +147,8 @@ const UserIntegration: React.FC = () => {
                   <span className="text-lg font-bold text-black tracking-tight">Connected Wallet</span>
                 </div>
                 {fullWalletAddress ? (
-                  <div className="break-all font-mono text-sm bg-black/5 p-4 rounded-2xl text-black/80 font-medium border border-black/5">
-                    {fullWalletAddress}
+                  <div className="font-mono text-sm bg-black/5 p-4 rounded-2xl text-black/80 font-medium border border-black/5 flex items-center justify-between">
+                    <span>{fullWalletAddress.substring(0, 6)}...{fullWalletAddress.substring(fullWalletAddress.length - 4)}</span>
                   </div>
                 ) : (
                   <p className="text-sm font-medium text-black/60">
