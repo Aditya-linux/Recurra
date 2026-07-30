@@ -211,10 +211,28 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const errData = await res.json().catch(() => ({}));
         console.error('[Wallet] Backend auth failed:', res.status, errData);
         toast.error('Authentication failed. You must be authenticated to access protected routes.');
+        
+        // Clear stale hydrated state
+        setWalletAddress(null);
+        setFullWalletAddress(null);
+        setUserRole(null);
+        localStorage.removeItem('recurra_token');
+        localStorage.removeItem('walletAddress');
+        localStorage.removeItem('fullWalletAddress');
+        localStorage.removeItem('userRole');
       }
     } catch (fetchErr: any) {
       console.error('[Wallet] Backend auth network error:', fetchErr);
       toast.error('Backend is unreachable. Authentication failed.');
+      
+      // Clear stale hydrated state
+      setWalletAddress(null);
+      setFullWalletAddress(null);
+      setUserRole(null);
+      localStorage.removeItem('recurra_token');
+      localStorage.removeItem('walletAddress');
+      localStorage.removeItem('fullWalletAddress');
+      localStorage.removeItem('userRole');
     }
   };
 

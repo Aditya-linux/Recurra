@@ -29,19 +29,34 @@ authRoutes.post('/connect', async (req: Request, res: Response, next: NextFuncti
 
     // Verify wallet signature against the challenge transaction
     try {
-      const tx = new Transaction(input.signedTxXdr, config.stellar.networkPassphrase);
-      const keypair = Keypair.fromPublicKey(input.publicKey);
+      const passphrases = [
+        config.stellar.networkPassphrase,
+        'Public Global Stellar Network ; September 2015',
+        'Test SDF Network ; September 2015'
+      ];
       
-      const hash = tx.hash();
       let isValid = false;
-      for (const sig of tx.signatures) {
-        if (keypair.verify(hash, sig.signature())) {
-          isValid = true;
-          break;
+      let tx;
+      
+      for (const passphrase of passphrases) {
+        try {
+          tx = new Transaction(input.signedTxXdr, passphrase);
+          const hash = tx.hash();
+          const keypair = Keypair.fromPublicKey(input.publicKey);
+          
+          for (const sig of tx.signatures) {
+            if (keypair.verify(hash, sig.signature())) {
+              isValid = true;
+              break;
+            }
+          }
+          if (isValid) break;
+        } catch (e) {
+          // Ignore parse errors, try next passphrase
         }
       }
       
-      if (!isValid) throw errors.unauthorized('Invalid signature');
+      if (!isValid || !tx) throw errors.unauthorized('Invalid signature');
       
       // Verify operation and timestamp
       if (tx.operations.length !== 1) throw errors.unauthorized('Invalid auth transaction');
