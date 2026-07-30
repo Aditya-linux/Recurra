@@ -1,0 +1,9 @@
+{
+  "name": "stellarg-workspace",
+  "version": "1.0.0",
+  "description": "Workspace root for StellarG",
+  "scripts": {
+    "dev": "npm --prefix surepay/frontend run dev",
+    "dev:backend": "npm --prefix surepay/backend run dev"
+  }
+}

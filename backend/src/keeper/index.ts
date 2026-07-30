@@ -21,6 +21,7 @@ import { logger } from '../utils/logger.js';
 import { RedisLock } from '../utils/redisLock.js';
 import { isRedisAvailable, getRedisClient } from '../utils/redis.js';
 import { transactionBatcher } from './TransactionBatcher.js';
+import { feeSponsor } from './FeeSponsor.js';
 
 // ============================================================
 // TYPES
@@ -242,21 +243,51 @@ export class KeeperService {
           //   throw new Error('Insufficient balance');
           // }
 
-          // STEP 3: Build and submit Soroban transaction via Batcher
-          await transactionBatcher.addAndProcess({
-            subscriptionId,
-            paymentNumber,
-            amount
-          });
+          // STEP 3: Execute payment with Fee Sponsorship (gasless for user)
+          // The FeeSponsor wraps the transaction in a Fee Bump envelope
+          // so the Keeper pays all network fees on behalf of the subscriber.
+          let sponsored = false;
+          const contractAddress = process.env['CONTRACT_PAYMENT_ENGINE'] ?? '';
+
+          if (contractAddress) {
+            try {
+              const result = await feeSponsor.sponsorPayment({
+                subscriptionId,
+                contractAddress,
+              });
+              sponsored = result.success;
+              if (sponsored) {
+                logger.info('Payment executed via Fee Sponsorship (gasless)', {
+                  subscriptionId,
+                  txHash: result.txHash,
+                });
+              }
+            } catch (sponsorErr) {
+              logger.warn('Fee sponsorship failed, falling back to batcher', {
+                subscriptionId,
+                error: sponsorErr instanceof Error ? sponsorErr.message : String(sponsorErr),
+              });
+            }
+          }
+
+          // Fallback: Use TransactionBatcher if sponsorship is unavailable
+          if (!sponsored) {
+            await transactionBatcher.addAndProcess({
+              subscriptionId,
+              paymentNumber,
+              amount
+            });
+          }
 
           // STEP 4: Log success
           this.stats.jobsProcessed++;
           this.stats.totalVolumeProcessed += amount;
 
-          logger.info('Payment added to batch successfully', {
+          logger.info('Payment processed successfully', {
             subscriptionId,
             paymentNumber,
             amount,
+            gasless: sponsored,
           });
 
           return { success: true, subscriptionId, paymentNumber };

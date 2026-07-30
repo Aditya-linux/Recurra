@@ -8,6 +8,10 @@ jest.mock('../../config/index.js', () => ({
       maxConcurrentWorkers: 2,
       maxRetryAttempts: 3,
     },
+    stellar: {
+      rpcUrl: 'https://soroban-testnet.stellar.org',
+      isMainnet: false,
+    },
   },
 }));
 
