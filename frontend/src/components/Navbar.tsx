@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../context/WalletContext';
-import NewFeedbackModal from './NewFeedbackModal';
 
 const Navbar: React.FC = () => {
   const { walletAddress, userRole, openModal, disconnect } = useWallet();
   const isDark = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +33,14 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  const handleFeedbackClick = () => {
+    if (walletAddress) {
+      window.open(`https://docs.google.com/forms/d/e/1FAIpQLSeKboVY1mS0tC243RN6CuOxAsIUX5a3Ii0qHnSAtCOxKikuaA/viewform?usp=pp_url&entry.783302326=${walletAddress}`, '_blank');
+    } else {
+      window.open('https://docs.google.com/forms/d/e/1FAIpQLSeKboVY1mS0tC243RN6CuOxAsIUX5a3Ii0qHnSAtCOxKikuaA/viewform', '_blank');
+    }
+  };
 
   const showNavLinks = walletAddress && location.pathname !== '/';
   const isMerchant = userRole === 'merchant';
@@ -67,7 +73,7 @@ const Navbar: React.FC = () => {
           {/* Actions – Right side */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFeedbackOpen(true)}
+              onClick={handleFeedbackClick}
               className="navbar-icon-btn desktop-only"
               title="Send Feedback"
             >
@@ -177,7 +183,7 @@ const Navbar: React.FC = () => {
               <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>{walletAddress}</span>
             </div>
           )}
-          <button className="mobile-sheet-item" onClick={() => { setFeedbackOpen(true); closeMenu(); }}>
+          <button className="mobile-sheet-item" onClick={() => { handleFeedbackClick(); closeMenu(); }}>
             <span className="material-symbols-outlined">feedback</span>
             Send Feedback
           </button>
@@ -203,7 +209,6 @@ const Navbar: React.FC = () => {
         </div>
       </div>
 
-      <NewFeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
 };
