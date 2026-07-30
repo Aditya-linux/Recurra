@@ -217,26 +217,6 @@ cargo test --workspace
 
 ---
 
-## ✅ Level 6 Submission Checklist
 
-| Requirement | Status | Evidence |
-|---|---|---|
-| Public GitHub repository | ✅ | [github.com/Aditya-linux/Recurra](https://github.com/Aditya-linux/Recurra) |
-| 30+ meaningful commits | ✅ | 85 total commits |
-| Live mainnet application | ✅ | [recurra-omega.vercel.app](https://recurra-omega.vercel.app/) |
-| Mainnet contract addresses | ✅ | See table above |
-| 20+ mainnet users | ⬜ | [Excel Sheet](https://docs.google.com/spreadsheets/d/1YggpjnWPojeq19Zl7bqp59ZDlluxgY0z7vbQ9noc4J8/edit?usp=sharing) |
-| Transaction activity proof | ✅ | [Stellar Expert](https://stellar.expert/explorer/public/tx/85dde33ce4b6a7e78be8595bf23a5bd5deb2fe76df2a2b66484194f501588b0e) |
-| Security review proof | ✅ | [SECURITY_REVIEW.md](SECURITY_REVIEW.md) |
-| Twitter/X launch post | ✅ | [View Post](https://x.com/recurra116/status/2073685904448004198?s=20) |
-| Demo video | ✅ | [Google Drive](https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing) |
-| Technical documentation | ✅ | This README + inline docs |
-| User guide | ✅ | [USER_GUIDE.md](USER_GUIDE.md) |
-| Community contribution | ✅ | [BLOG_POST.md](BLOG_POST.md) |
-| Google Form (user onboarding) | ✅ | [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeKboVY1mS0tC243RN6CuOxAsIUX5a3Ii0qHnSAtCOxKikuaA/viewform?usp=publish-editor) |
-| Improvement plan with commit links | ✅ | [future_improvements.md](future_improvements.md) |
-| Advanced feature | ✅ | Fee Sponsorship ([FeeSponsor.ts](backend/src/keeper/FeeSponsor.ts)) |
-
----
 
 *License: MIT*
