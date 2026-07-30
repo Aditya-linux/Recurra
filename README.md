@@ -6,7 +6,7 @@
 - **Video Demo:** [Watch on Google Drive](https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing)
 - **User Registration & Feedback Form:** [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeKboVY1mS0tC243RN6CuOxAsIUX5a3Ii0qHnSAtCOxKikuaA/viewform?usp=publish-editor)
 - **User Feedback Responses (Excel):** [View Registered Users Sheet](https://docs.google.com/spreadsheets/d/1YggpjnWPojeq19Zl7bqp59ZDlluxgY0z7vbQ9noc4J8/edit?usp=sharing)
-- **Twitter/X Launch Post:** [View Post](<!-- TODO: INSERT YOUR TWITTER/X POST LINK HERE -->)
+- **Twitter/X Launch Post:** [View Post](https://x.com/recurra116/status/2073685904448004198?s=20)
 - **Ecosystem Contribution:** [Technical Blog Post](BLOG_POST.md)
 
 ---
@@ -228,7 +228,7 @@ cargo test --workspace
 | 20+ mainnet users | ⬜ | [Excel Sheet](https://docs.google.com/spreadsheets/d/1YggpjnWPojeq19Zl7bqp59ZDlluxgY0z7vbQ9noc4J8/edit?usp=sharing) |
 | Transaction activity proof | ✅ | [Stellar Expert](https://stellar.expert/explorer/public/tx/85dde33ce4b6a7e78be8595bf23a5bd5deb2fe76df2a2b66484194f501588b0e) |
 | Security review proof | ✅ | [SECURITY_REVIEW.md](SECURITY_REVIEW.md) |
-| Twitter/X launch post | ⬜ | <!-- TODO: INSERT LINK --> |
+| Twitter/X launch post | ✅ | [View Post](https://x.com/recurra116/status/2073685904448004198?s=20) |
 | Demo video | ✅ | [Google Drive](https://drive.google.com/file/d/1XNMMoBTVS-vk5VoeOrIOehHYsTeokmZj/view?usp=sharing) |
 | Technical documentation | ✅ | This README + inline docs |
 | User guide | ✅ | [USER_GUIDE.md](USER_GUIDE.md) |
