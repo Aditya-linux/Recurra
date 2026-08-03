@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { logger } from '../utils/logger.js';
 
 export class WhatsAppService {

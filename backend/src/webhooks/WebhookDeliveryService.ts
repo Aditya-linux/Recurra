@@ -1,6 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
 import crypto from 'crypto';
-import fetch from 'node-fetch'; // native fetch in Node 18+ or polyfill
 import { redisClient, isRedisAvailable, getRedisClient } from '../utils/redis.js';
 import { dbPool } from '../database/index.js';
 import { config } from '../config/index.js';
@@ -164,7 +163,7 @@ export class WebhookDeliveryService {
       });
 
       responseStatus = response.status;
-      responseBody = await response.text().then(t => t.substring(0, 1000)).catch(() => '');
+      responseBody = await response.text().then((t: string) => t.substring(0, 1000)).catch(() => '');
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

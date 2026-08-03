@@ -186,7 +186,6 @@ webhookRoutes.post('/:id/test', async (req: Request, res: Response, next: NextFu
     let responseBody = '';
 
     try {
-      const { default: fetch } = await import('node-fetch');
       const response = await fetch(webhook.url, {
         method: 'POST',
         headers: {

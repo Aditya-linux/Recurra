@@ -58,6 +58,56 @@ jest.mock('bullmq', () => {
   };
 });
 
+jest.mock('@stellar/stellar-sdk', () => {
+  const mockTx = {
+    sign: jest.fn(),
+    toXDR: jest.fn<any>().mockReturnValue('mock-xdr'),
+  };
+
+  return {
+    Keypair: {
+      fromSecret: jest.fn<any>().mockReturnValue({
+        publicKey: jest.fn<any>().mockReturnValue('GABCDEFG'),
+        sign: jest.fn(),
+      }),
+    },
+    TransactionBuilder: Object.assign(
+      jest.fn<any>().mockImplementation(() => ({
+        addOperation: jest.fn<any>().mockReturnThis(),
+        setTimeout: jest.fn<any>().mockReturnThis(),
+        build: jest.fn<any>().mockReturnValue(mockTx),
+      })),
+      {
+        buildFeeBumpTransaction: jest.fn<any>().mockReturnValue(mockTx),
+      }
+    ),
+    Networks: {
+      PUBLIC: 'Public Global Stellar Network ; September 2015',
+      TESTNET: 'Test SDF Network ; September 2015',
+    },
+    Operation: {
+      invokeHostFunction: jest.fn<any>().mockReturnValue({}),
+    },
+    BASE_FEE: '100',
+    rpc: {
+      Server: jest.fn<any>().mockImplementation(() => ({
+        getAccount: jest.fn<any>().mockResolvedValue({
+          accountId: () => 'GABCDEFG',
+          sequenceNumber: () => '12345',
+          incrementSequenceNumber: jest.fn(),
+        }),
+        sendTransaction: jest.fn<any>().mockResolvedValue({
+          status: 'PENDING',
+          hash: 'abc123def456',
+        }),
+        getTransaction: jest.fn<any>().mockResolvedValue({
+          status: 'SUCCESS',
+        }),
+      })),
+    },
+  };
+});
+
 import { KeeperService } from '../index.js';
 import * as redisModule from '../../utils/redis.js';
 import { Queue } from 'bullmq';

@@ -270,7 +270,7 @@ async function startServer() {
     // 9. Apollo GraphQL
     await apolloServer.start();
     app.use('/graphql', expressMiddleware(apolloServer, {
-      context: async ({ req }) => {
+      context: async ({ req }: { req: any }) => {
         const authHeader = req.headers.authorization || '';
         return { token: authHeader };
       },
