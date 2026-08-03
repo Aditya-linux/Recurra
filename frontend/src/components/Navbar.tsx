@@ -48,9 +48,9 @@ const Navbar: React.FC = () => {
   };
 
   const xlmExchanges = [
-    { name: 'Lobstr', url: 'https://lobstr.co', description: 'Best for Stellar wallets', icon: '🌟' },
-    { name: 'Coinbase', url: 'https://www.coinbase.com/price/stellar', description: 'Popular & beginner-friendly', icon: '🔵' },
-    { name: 'Binance', url: 'https://www.binance.com/en/trade/XLM_USDT', description: 'Largest global exchange', icon: '🟡' },
+    { name: 'Lobstr', url: 'https://lobstr.co', description: 'Best for Stellar wallets', logo: '/logos/lobstr.webp' },
+    { name: 'Coinbase', url: 'https://www.coinbase.com/price/stellar', description: 'Popular & beginner-friendly', logo: '/logos/coinbase.webp' },
+    { name: 'Binance', url: 'https://www.binance.com/en/trade/XLM_USDT', description: 'Largest global exchange', logo: '/logos/binance.jpg' },
   ];
 
   const showNavLinks = walletAddress && location.pathname !== '/';
@@ -91,7 +91,7 @@ const Navbar: React.FC = () => {
               <span className="material-symbols-outlined">feedback</span>
             </button>
 
-            {/* Buy XLM Dropdown — replaces MoonPay */}
+            {/* Buy XLM Dropdown */}
             <div style={{ position: 'relative' }} ref={buyXlmRef} className="desktop-only">
               <button
                 onClick={() => setBuyXlmOpen(!buyXlmOpen)}
@@ -115,30 +115,74 @@ const Navbar: React.FC = () => {
                   right: 0,
                   marginTop: '8px',
                   zIndex: 100,
-                  minWidth: '280px',
+                  minWidth: '290px',
+                  padding: '8px',
+                  borderRadius: '16px',
+                  boxShadow: '0 12px 32px -4px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  background: '#ffffff'
                 }}>
-                  <div style={{ padding: '12px 16px 8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,0,0,0.4)' }}>
+                  <div style={{ padding: '8px 12px 6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(0, 0, 0, 0.4)' }}>
                     Buy XLM from an Exchange
                   </div>
-                  {xlmExchanges.map((exchange) => (
-                    <button
-                      key={exchange.name}
-                      className="dropdown-item"
-                      onClick={() => {
-                        window.open(exchange.url, '_blank', 'noopener,noreferrer');
-                        setBuyXlmOpen(false);
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px' }}
-                    >
-                      <span style={{ fontSize: '20px', lineHeight: 1 }}>{exchange.icon}</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <span style={{ fontWeight: 700, fontSize: '14px' }}>{exchange.name}</span>
-                        <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 500 }}>{exchange.description}</span>
-                      </div>
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.3, marginLeft: 'auto' }}>open_in_new</span>
-                    </button>
-                  ))}
-                  <div style={{ padding: '8px 16px 12px', fontSize: '11px', color: 'rgba(0,0,0,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {xlmExchanges.map((exchange) => (
+                      <button
+                        key={exchange.name}
+                        className="dropdown-item"
+                        onClick={() => {
+                          window.open(exchange.url, '_blank', 'noopener,noreferrer');
+                          setBuyXlmOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: 'transparent',
+                          width: '100%',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                      >
+                        <div style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#f4f4f5',
+                          flexShrink: 0,
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)'
+                        }}>
+                          <img
+                            src={exchange.logo}
+                            alt={exchange.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', lineHeight: 1.25 }}>{exchange.name}</span>
+                          <span style={{ fontSize: '11.5px', color: 'rgba(0, 0, 0, 0.48)', fontWeight: 500, lineHeight: 1.25, marginTop: '2px' }}>{exchange.description}</span>
+                        </div>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'rgba(0, 0, 0, 0.3)', flexShrink: 0 }}>open_in_new</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{
+                    padding: '10px 12px 6px',
+                    marginTop: '4px',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+                    fontSize: '11px',
+                    color: 'rgba(0, 0, 0, 0.4)',
+                    fontWeight: 500,
+                    lineHeight: 1.4
+                  }}>
                     Purchase XLM and send it to your connected wallet address.
                   </div>
                 </div>
