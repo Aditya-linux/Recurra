@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { WalletProvider, useWallet } from './context/WalletContext';
+import { isTokenValid } from './utils/api';
 import Navbar from './components/Navbar';
 import WalletModal from './components/WalletModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -42,7 +43,9 @@ const StrictMerchantGuard: React.FC<{ children: React.ReactNode }> = ({ children
 
 const RequireWallet: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { walletAddress } = useWallet();
-  if (!walletAddress) {
+  const validToken = isTokenValid();
+  
+  if (!walletAddress || !validToken) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
