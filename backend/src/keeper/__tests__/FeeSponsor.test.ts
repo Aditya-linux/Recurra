@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 // Mock dependencies before importing FeeSponsor
 jest.mock('../../config/index.js', () => ({
