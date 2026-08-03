@@ -21,6 +21,7 @@ const SubscriptionCenter: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubscribedPlan, setLastSubscribedPlan] = useState<{ name: string; amount: string; redirect: any; txHash?: string | null } | null>(null);
   const [selectedMerchantAddress, setSelectedMerchantAddress] = useState<string | null>(null);
+  const [, setTickCounter] = useState(0); // Force re-render for live days remaining
 
   const socket = useSocket();
 
@@ -66,14 +67,24 @@ const SubscriptionCenter: React.FC = () => {
     fetchSubscriptions();
   }, [fetchSubscriptions]);
 
+  // Real-time days remaining: re-render every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickCounter(c => c + 1);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (socket) {
       const handleUpdate = () => {
         fetchSubscriptions();
       };
       socket.on('subscription_updated', handleUpdate);
+      socket.on('payment_executed', handleUpdate);
       return () => {
         socket.off('subscription_updated', handleUpdate);
+        socket.off('payment_executed', handleUpdate);
       };
     }
   }, [socket, fetchSubscriptions]);
@@ -225,27 +236,78 @@ const SubscriptionCenter: React.FC = () => {
     }
   };
 
-  // Cancel or reactivate via backend API
+  // Cancel or reactivate via backend API — with optimistic UI
   const handleAction = async (sub: any) => {
     const isCanceling = sub.status === 'active';
     setLoadingAction(sub.id);
 
+    // Optimistic UI: immediately update local state
+    setSubscriptions(prev => prev.map(s => 
+      s.id === sub.id 
+        ? { ...s, status: isCanceling ? 'cancelled' : 'active', nextPayment: isCanceling ? 'Cancelled' : s.nextPayment }
+        : s
+    ));
+
     try {
       const endpoint = isCanceling ? 'cancel' : 'resume';
-      const { ok } = await api(`/subscriptions/${sub.id}/${endpoint}`, {
+      const { ok, data } = await api(`/subscriptions/${sub.id}/${endpoint}`, {
         method: 'POST',
         body: JSON.stringify({ reason: 'User initiated' })
       });
 
       if (ok) {
-        toast.success(isCanceling ? `${sub.name} cancelled.` : `${sub.name} reactivated!`);
+        const refundInfo = data?.refund;
+        if (isCanceling && refundInfo && refundInfo.amount > 0) {
+          toast.success(`${sub.name} cancelled. Prorated refund of $${(refundInfo.amount / 10000000).toFixed(2)} is being processed.`);
+        } else {
+          toast.success(isCanceling ? `${sub.name} cancelled.` : `${sub.name} reactivated!`);
+        }
         await fetchSubscriptions();
+      } else {
+        // Revert optimistic update on failure
+        await fetchSubscriptions();
+        toast.error('Action failed. Please try again.');
       }
     } catch (err: any) {
       console.error(err);
+      // Revert optimistic update on error
+      await fetchSubscriptions();
       toast.error('Action failed.');
     } finally {
       setLoadingAction(null);
+    }
+  };
+
+  // Toggle auto-renew for a subscription
+  const handleToggleAutoRenew = async (sub: any) => {
+    const newValue = !sub.auto_renew;
+    
+    // Optimistic UI update
+    setSubscriptions(prev => prev.map(s => 
+      s.id === sub.id ? { ...s, auto_renew: newValue } : s
+    ));
+
+    try {
+      const { ok } = await api(`/subscriptions/${sub.id}/auto-renew`, {
+        method: 'POST',
+        body: JSON.stringify({ auto_renew: newValue })
+      });
+
+      if (ok) {
+        toast.success(newValue ? 'Auto-renew enabled' : 'Auto-renew disabled');
+      } else {
+        // Revert
+        setSubscriptions(prev => prev.map(s => 
+          s.id === sub.id ? { ...s, auto_renew: !newValue } : s
+        ));
+        toast.error('Failed to update auto-renew setting');
+      }
+    } catch {
+      // Revert
+      setSubscriptions(prev => prev.map(s => 
+        s.id === sub.id ? { ...s, auto_renew: !newValue } : s
+      ));
+      toast.error('Failed to update auto-renew setting');
     }
   };
 
@@ -441,7 +503,7 @@ const SubscriptionCenter: React.FC = () => {
                                 <button 
                                   onClick={() => handleAction(activeSub)} 
                                   disabled={loadingAction === activeSub.id}
-                                  className="w-full sm:w-auto h-12 px-8 font-semibold rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors flex items-center justify-center disabled:opacity-50"
+                                  className="w-full sm:w-auto h-12 px-8 font-semibold rounded-xl bg-black/5 text-black hover:bg-black/10 transition-colors flex items-center justify-center disabled:opacity-50"
                                 >
                                   {loadingAction === activeSub.id ? <><Loader2 className="animate-spin mr-2" size={18} /> Cancelling...</> : 'Unsubscribe'}
                                 </button>
@@ -468,6 +530,8 @@ const SubscriptionCenter: React.FC = () => {
                 const isInactive = isInactiveSub(sub);
                 const subBaseName = sub.name.split(' - ')[0];
                 const style = getMerchantStyle(subBaseName || sub.name, sub.logoUrl);
+                const daysLeft = !isInactive && sub.nextPaymentDate ? getDaysRemaining(sub.nextPaymentDate) : null;
+                const isExpiringSoon = daysLeft !== null && daysLeft <= 3;
 
                 return (
                   <StaggerItem key={sub.id}>
@@ -486,8 +550,14 @@ const SubscriptionCenter: React.FC = () => {
                             {isInactive ? 'Cancelled' : `Next Payment: ${sub.nextPayment}`}
                           </p>
                           {!isInactive && sub.nextPaymentDate && (
-                            <p className="text-xs font-bold uppercase tracking-wider text-green-600 mt-2 bg-green-50 w-fit px-2 py-1 rounded-md">
-                              {getDaysRemaining(sub.nextPaymentDate)} Days Remaining
+                            <p className={`text-xs font-bold uppercase tracking-wider mt-2 w-fit px-2 py-1 rounded-md ${isExpiringSoon ? 'text-black bg-yellow-100' : 'text-black bg-black/5'}`}>
+                              {daysLeft} Days Remaining
+                              {isExpiringSoon && ' ⚠️'}
+                            </p>
+                          )}
+                          {isInactive && (
+                            <p className="text-xs font-bold uppercase tracking-wider text-black/40 mt-2 bg-black/5 w-fit px-2 py-1 rounded-md">
+                              0 Days Remaining
                             </p>
                           )}
                         </div>
@@ -497,6 +567,20 @@ const SubscriptionCenter: React.FC = () => {
                         <div className="text-3xl font-bold text-black tracking-tight">
                           {sub.amount}
                         </div>
+                        
+                        {/* Auto-renew toggle for active subscriptions */}
+                        {!isInactive && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-black/50">Auto-Renew</span>
+                            <button
+                              onClick={() => handleToggleAutoRenew(sub)}
+                              className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${sub.auto_renew !== false ? 'bg-black' : 'bg-black/20'}`}
+                            >
+                              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm ${sub.auto_renew !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap gap-3 w-full md:w-auto justify-start md:justify-end">
                           {/* Platform redirect button */}
                           {!isInactive && sub.redirect?.url && (
@@ -510,7 +594,7 @@ const SubscriptionCenter: React.FC = () => {
                           )}
                           {!isInactive && (
                             <button
-                              className="h-10 px-5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-sm transition-colors flex items-center disabled:opacity-50"
+                              className="h-10 px-5 rounded-xl bg-black/5 text-black hover:bg-black/10 font-semibold text-sm transition-colors flex items-center disabled:opacity-50"
                               onClick={() => handleAction(sub)}
                               disabled={loadingAction === sub.id}
                             >
@@ -559,7 +643,7 @@ const SubscriptionCenter: React.FC = () => {
                       <StaggerItem key={payment.id || index}>
                         <div className="relative pl-8">
                           {/* Timeline dot */}
-                          <div className={`absolute left-[-21px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#F5F5F5] z-10 ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <div className={`absolute left-[-21px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#F5F5F5] z-10 ${isSuccess ? 'bg-black' : 'bg-black/30'}`}></div>
                           
                           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-md transition-shadow">
                             <div>
@@ -573,7 +657,7 @@ const SubscriptionCenter: React.FC = () => {
                               <div className="text-2xl font-bold text-black">
                                 ${formatStellarAmount(payment.amount)}
                               </div>
-                              <div className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-md ${isSuccess ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                              <div className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-md ${isSuccess ? 'bg-black/5 text-black' : 'bg-black/5 text-black/60'}`}>
                                 {payment.status}
                               </div>
                               {payment.transaction_hash && (
@@ -618,3 +702,4 @@ const SubscriptionCenter: React.FC = () => {
 };
 
 export default SubscriptionCenter;
+

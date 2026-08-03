@@ -7,8 +7,10 @@ const Navbar: React.FC = () => {
   const isDark = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [buyXlmOpen, setBuyXlmOpen] = useState(false);
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buyXlmRef = useRef<HTMLDivElement>(null);
 
   const getNavClass = ({ isActive }: { isActive: boolean }) => {
     return `text-nav-link transition-all ${isActive ? 'active text-black' : 'text-black/50 hover:text-black'}`;
@@ -16,18 +18,21 @@ const Navbar: React.FC = () => {
 
   const closeMenu = () => setMobileOpen(false);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setWalletMenuOpen(false);
       }
+      if (buyXlmRef.current && !buyXlmRef.current.contains(event.target as Node)) {
+        setBuyXlmOpen(false);
+      }
     };
-    if (walletMenuOpen) {
+    if (walletMenuOpen || buyXlmOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [walletMenuOpen]);
+  }, [walletMenuOpen, buyXlmOpen]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -41,6 +46,12 @@ const Navbar: React.FC = () => {
       window.open('https://docs.google.com/forms/d/e/1FAIpQLSeKboVY1mS0tC243RN6CuOxAsIUX5a3Ii0qHnSAtCOxKikuaA/viewform', '_blank');
     }
   };
+
+  const xlmExchanges = [
+    { name: 'Lobstr', url: 'https://lobstr.co', description: 'Best for Stellar wallets', icon: '🌟' },
+    { name: 'Coinbase', url: 'https://www.coinbase.com/price/stellar', description: 'Popular & beginner-friendly', icon: '🔵' },
+    { name: 'Binance', url: 'https://www.binance.com/en/trade/XLM_USDT', description: 'Largest global exchange', icon: '🟡' },
+  ];
 
   const showNavLinks = walletAddress && location.pathname !== '/';
   const isMerchant = userRole === 'merchant';
@@ -79,14 +90,61 @@ const Navbar: React.FC = () => {
             >
               <span className="material-symbols-outlined">feedback</span>
             </button>
-            <button
-              onClick={() => window.open('https://www.moonpay.com/buy?currencyCode=XLM', '_blank')}
-              className="desktop-only hover-scale"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '40px', padding: 0, borderRadius: '20px', marginRight: '8px', background: 'transparent', border: '1px solid var(--outline-variant)', cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden' }}
-              title="Buy Crypto with Fiat"
-            >
-              <img src={isDark ? "/logos/moonwhite.png" : "/logos/moonpay-custom.png"} alt="MoonPay" style={{ width: '130px', height: '130px', objectFit: 'contain', transform: isDark ? 'translateY(5px)' : 'translateY(2px)' }} />
-            </button>
+
+            {/* Buy XLM Dropdown — replaces MoonPay */}
+            <div style={{ position: 'relative' }} ref={buyXlmRef} className="desktop-only">
+              <button
+                onClick={() => setBuyXlmOpen(!buyXlmOpen)}
+                className="hover-scale"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  height: '40px', padding: '0 16px', borderRadius: '20px', marginRight: '8px',
+                  background: 'transparent', border: '1px solid var(--outline-variant)',
+                  cursor: 'pointer', transition: 'all 0.2s', fontSize: '13px', fontWeight: 700,
+                  color: '#000', whiteSpace: 'nowrap'
+                }}
+                title="Buy XLM"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>currency_exchange</span>
+                Buy XLM
+              </button>
+              {buyXlmOpen && (
+                <div className="dropdown-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  zIndex: 100,
+                  minWidth: '280px',
+                }}>
+                  <div style={{ padding: '12px 16px 8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,0,0,0.4)' }}>
+                    Buy XLM from an Exchange
+                  </div>
+                  {xlmExchanges.map((exchange) => (
+                    <button
+                      key={exchange.name}
+                      className="dropdown-item"
+                      onClick={() => {
+                        window.open(exchange.url, '_blank', 'noopener,noreferrer');
+                        setBuyXlmOpen(false);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px' }}
+                    >
+                      <span style={{ fontSize: '20px', lineHeight: 1 }}>{exchange.icon}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <span style={{ fontWeight: 700, fontSize: '14px' }}>{exchange.name}</span>
+                        <span style={{ fontSize: '11px', opacity: 0.5, fontWeight: 500 }}>{exchange.description}</span>
+                      </div>
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.3, marginLeft: 'auto' }}>open_in_new</span>
+                    </button>
+                  ))}
+                  <div style={{ padding: '8px 16px 12px', fontSize: '11px', color: 'rgba(0,0,0,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
+                    Purchase XLM and send it to your connected wallet address.
+                  </div>
+                </div>
+              )}
+            </div>
+
             {walletAddress ? (
               <div style={{ position: 'relative' }} ref={dropdownRef} className="desktop-only">
                 <div
@@ -186,6 +244,11 @@ const Navbar: React.FC = () => {
           <button className="mobile-sheet-item" onClick={() => { handleFeedbackClick(); closeMenu(); }}>
             <span className="material-symbols-outlined">feedback</span>
             Send Feedback
+          </button>
+          {/* Buy XLM — mobile */}
+          <button className="mobile-sheet-item" onClick={() => { window.open('https://lobstr.co', '_blank', 'noopener,noreferrer'); closeMenu(); }}>
+            <span className="material-symbols-outlined">currency_exchange</span>
+            Buy XLM (Lobstr)
           </button>
           {walletAddress && (
             <>

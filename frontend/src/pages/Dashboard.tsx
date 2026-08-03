@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
                             Recurring • Next: {sub.next_payment_time ? new Date(sub.next_payment_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (sub.nextPayment || 'Upcoming')}
                           </div>
                           {(sub.next_payment_time || sub.nextPaymentDate) && (
-                            <div className="text-xs font-bold uppercase tracking-wider text-green-600 mt-2 bg-green-50 w-fit px-2 py-0.5 rounded-md">
+                            <div className="text-xs font-bold uppercase tracking-wider text-black mt-2 bg-black/5 w-fit px-2 py-0.5 rounded-md">
                               {getDaysRemaining(sub.next_payment_time || sub.nextPaymentDate)} Days Remaining
                             </div>
                           )}
@@ -277,7 +277,7 @@ const Dashboard: React.FC = () => {
                           <div className="text-xl font-bold text-black tracking-tight">
                             -{(parseFloat(sub.amount) / 10000000).toFixed(2)} USDC
                           </div>
-                          <div className="mt-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 rounded-md">
+                          <div className="mt-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-black bg-black/5 rounded-md">
                             Active
                           </div>
                         </div>
@@ -302,7 +302,7 @@ const Dashboard: React.FC = () => {
               )}
               {payments.map((payment, idx) => {
                 const isSuccess = payment.status === 'completed';
-                const statusColorClass = isSuccess ? 'text-green-600 bg-green-50' : payment.status === 'failed' ? 'text-red-600 bg-red-50' : 'text-orange-600 bg-orange-50';
+                const statusColorClass = isSuccess ? 'text-black bg-black/5' : payment.status === 'failed' ? 'text-black/60 bg-black/5' : 'text-black/60 bg-black/5';
                 
                 return (
                   <HoverCard key={idx}>

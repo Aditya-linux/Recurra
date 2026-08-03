@@ -7,6 +7,7 @@ export interface Subscription {
   user_id: string;
   plan_id: string;
   status: 'active' | 'inactive' | 'paused' | 'cancelled' | 'trialing' | 'expired' | 'past_due';
+  auto_renew: boolean;
   trial_end_time: Date | null;
   discount_code_id: string | null;
   next_payment_time: Date;
@@ -26,7 +27,7 @@ export class SubscriptionRepository {
     const db = client || dbPool;
     const query = `
       SELECT 
-        s.id, s.status, s.subscription_id_on_chain, s.next_payment_time, s.trial_end_time, s.discount_code_id,
+        s.id, s.status, s.subscription_id_on_chain, s.next_payment_time, s.trial_end_time, s.discount_code_id, s.auto_renew,
         p.name, p.amount, p.token_address, p.interval_seconds, p.tier, p.trial_days,
         p.redirect_url, p.redirect_label,
         m.platform_url, m.platform_name, m.platform_logo_url, m.redirect_url_template,
@@ -119,5 +120,34 @@ export class SubscriptionRepository {
     `;
     const result = await db.query<Subscription>(query, [nextPaymentTime, id]);
     return result.rows[0] || null;
+  }
+
+  static async toggleAutoRenew(id: string, enabled: boolean, client?: PoolClient): Promise<Subscription | null> {
+    const db = client || dbPool;
+    const query = `
+      UPDATE subscriptions
+      SET auto_renew = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `;
+    const result = await db.query<Subscription>(query, [enabled, id]);
+    return result.rows[0] || null;
+  }
+
+  static async findExpiringSoon(daysAhead: number, client?: PoolClient): Promise<any[]> {
+    const db = client || dbPool;
+    const query = `
+      SELECT s.*, p.name as plan_name, p.amount, p.max_payments, u.email as user_email
+      FROM subscriptions s
+      JOIN plans p ON s.plan_id = p.id
+      JOIN users u ON s.user_id = u.id
+      WHERE s.status = 'active'
+      AND s.auto_renew = false
+      AND s.next_payment_time IS NOT NULL
+      AND s.next_payment_time <= NOW() + interval '1 day' * $1
+      AND s.next_payment_time > NOW()
+    `;
+    const result = await db.query(query, [daysAhead]);
+    return result.rows;
   }
 }

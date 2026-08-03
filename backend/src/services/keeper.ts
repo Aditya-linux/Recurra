@@ -166,9 +166,25 @@ async function processPayment(sub: any): Promise<void> {
       [sub.id]
     );
 
-    // Check max payments → expire if reached
+    // Check max payments → auto-renew or expire
     if (plan?.max_payments > 0 && paymentNumber >= plan.max_payments) {
-      await dbPool.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [sub.id]);
+      if (sub.auto_renew === false) {
+        // User disabled auto-renew → expire the subscription
+        await dbPool.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [sub.id]);
+        logger.info(`Subscription ${sub.id} expired (auto_renew=false, max_payments reached)`);
+        try {
+          getIO().emit('subscription_updated', { type: 'expired', subscriptionId: sub.id });
+        } catch (e) {
+          logger.warn('Failed to emit expiry socket event', { error: (e as Error).message });
+        }
+      } else {
+        // Auto-renew enabled → reset payments_made counter to continue the subscription
+        await dbPool.query(
+          `UPDATE subscriptions SET payments_made = 0 WHERE id = $1`,
+          [sub.id]
+        );
+        logger.info(`Subscription ${sub.id} auto-renewed (payments_made reset, max_payments=${plan.max_payments})`);
+      }
     }
 
     // ── Step 5a: Record treasury fee ──
@@ -303,7 +319,7 @@ export function initKeeperWorker(): Worker | null {
       // Query due subscriptions (active + past_due)
       const result = await dbPool.query(
         `SELECT id, subscription_id_on_chain, plan_id, user_id, merchant_id,
-                next_payment_time, payments_made, discount_code_id
+                next_payment_time, payments_made, discount_code_id, auto_renew
          FROM subscriptions
          WHERE next_payment_time <= NOW() AND status IN ('active', 'past_due')
          LIMIT $1`,

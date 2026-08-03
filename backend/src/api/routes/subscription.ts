@@ -221,6 +221,7 @@ subscriptionRoutes.get('/', async (req: Request, res: Response, next: NextFuncti
         nextPayment: sub.status === 'active' ? formattedDate : 'Cancelled',
         nextPaymentDate: sub.next_payment_time,
         status: sub.status,
+        auto_renew: sub.auto_renew !== false, // default to true
         color: '#3B82F6', // default color
         icon: 'payment', // default material icon
         isMaterial: true,
@@ -385,3 +386,45 @@ subscriptionRoutes.post('/:id/resume', async (req: Request, res: Response, next:
     next(err);
   }
 });
+
+/**
+ * POST /api/v1/subscriptions/:id/auto-renew — Toggle auto-renew
+ */
+subscriptionRoutes.post('/:id/auto-renew', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { auto_renew } = req.body;
+
+    if (typeof auto_renew !== 'boolean') {
+      res.status(400).json({ error: 'auto_renew must be a boolean' });
+      return;
+    }
+
+    const sub = await SubscriptionRepository.findById(id);
+    if (!sub || sub.user_id !== (req.user!.userId as string)) {
+      res.status(404).json({ error: 'Subscription not found or unauthorized' });
+      return;
+    }
+
+    const updatedSub = await SubscriptionRepository.toggleAutoRenew(id, auto_renew);
+
+    logger.info('Auto-renew toggled', {
+      subscriptionId: id,
+      auto_renew,
+    });
+
+    res.json({
+      message: `Auto-renew ${auto_renew ? 'enabled' : 'disabled'}`,
+      subscription: updatedSub,
+    });
+
+    try {
+      getIO().emit('subscription_updated', { type: 'auto_renew_changed', subscription: updatedSub });
+    } catch (e) {
+      logger.error('Failed to emit socket event', { error: (e as Error).message });
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+

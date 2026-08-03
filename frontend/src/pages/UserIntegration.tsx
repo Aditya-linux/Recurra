@@ -98,7 +98,7 @@ const UserIntegration: React.FC = () => {
                       <span className="text-lg font-bold text-black tracking-tight">Payment Engine Allowance</span>
                     </div>
                     {btnState === 'success' && (
-                      <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-green-600 bg-green-50 rounded-lg">
+                      <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-black bg-black/5 rounded-lg">
                         ACTIVE
                       </span>
                     )}
@@ -119,7 +119,7 @@ const UserIntegration: React.FC = () => {
                     >
                       {btnState === 'idle' && 'Approve Allowance'}
                       {btnState === 'loading' && <><span className="material-symbols-outlined animate-spin">progress_activity</span> Approving...</>}
-                      {btnState === 'success' && <><span className="material-symbols-outlined text-green-500">check_circle</span> Approved</>}
+                      {btnState === 'success' && <><span className="material-symbols-outlined text-black">check_circle</span> Approved</>}
                     </button>
                   </HoverCard>
                   {btnState === 'success' && (
@@ -164,7 +164,7 @@ const UserIntegration: React.FC = () => {
                   <div className="flex flex-col gap-3 text-sm">
                     <div className="flex justify-between items-center py-2 border-b border-black/5">
                       <span className="text-black/60 font-medium">Payment Allowance</span>
-                      <span className={`font-bold ${btnState === 'success' ? 'text-green-600' : 'text-black/40'}`}>
+                      <span className={`font-bold ${btnState === 'success' ? 'text-black' : 'text-black/40'}`}>
                         {btnState === 'success' ? 'Approved' : 'Not Approved'}
                       </span>
                     </div>
