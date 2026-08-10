@@ -128,6 +128,30 @@ A comprehensive internal security review has been conducted covering:
 
 ---
 
+## 🌟 Level 6 Advanced Features (Latest Release)
+
+Recurra has evolved into a real ecosystem product ready for public usage and long-term growth. The latest release introduces enterprise-grade features:
+
+### 1. Subscription Tiers & Plan Upgrades/Downgrades
+Merchants can now create tiered subscription plans (e.g., Basic, Pro, Enterprise) with native on-chain support for upgrades and downgrades, prorated billing, free trials, and discount codes.
+
+### 2. Account Abstraction (Smart Wallets)
+End-users can now deploy Account Abstraction (AA) Smart Wallets, enabling session keys for seamless recurring payments without annoying popups, daily/monthly spending limits, and automated approvals for micro-transactions.
+
+### 3. Webhook Integration System
+Merchants receive real-time updates via a robust Webhook system (powered by BullMQ & Redis), ensuring that off-chain logic stays perfectly synced with on-chain payments. Webhooks are secured via HMAC SHA-256 signatures and automatically retried upon failure.
+
+### 4. Advanced Analytics Engine
+A powerful AI-driven analytics dashboard that tracks Monthly Recurring Revenue (MRR), subscriber growth, payment health, retention cohorts, churn-risk analysis, and future MRR forecasts.
+
+### 5. Fiat Gateway (Cross-Border SEP-24/31)
+Seamless integration with Stellar's SEP-24 (Interactive Anchor) and SEP-31 protocols, enabling fiat on-ramps (local currency to USDC) and off-ramps (USDC to bank accounts) in multiple supported currencies.
+
+### 6. Transaction Timeline & Receipts
+Cryptographically verifiable PDF receipts and a dedicated payment history timeline for end-users.
+
+---
+
 ## 📈 Improvement Plan (Based on User Feedback)
 
 The following improvements were identified from real user feedback collected via our Google Form. Each improvement includes the git commit link where it was implemented:
@@ -140,6 +164,7 @@ The following improvements were identified from real user feedback collected via
 | Feedback form issues | Rebuilt star-rating form with Sheets integration | [a2e9afd](https://github.com/Aditya-linux/Recurra/commit/a2e9afd) |
 | Security concerns | Trivy scanning, CVE fixes | [09eecc0](https://github.com/Aditya-linux/Recurra/commit/09eecc0) |
 | Users shouldn't pay gas | Fee Sponsorship (gasless via Fee Bump) | Latest |
+| Needs major product depth | Webhooks, Analytics Engine, SEP-24, Smart Wallets | Latest |
 
 📄 **Full Roadmap:** [future_improvements.md](future_improvements.md)
 

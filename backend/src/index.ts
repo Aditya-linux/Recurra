@@ -46,6 +46,7 @@ import { uploadRoutes } from './api/routes/upload.js';
 import { feedbackRoutes } from './api/routes/feedback.js';
 import { newFeedbackRoutes } from './api/routes/new-feedback.js';
 import paymentsRoutes from './api/routes/payments.js';
+import { anchorRoutes } from './api/routes/anchor.js';
 import { apolloServer } from './api/graphql/index.js';
 
 // Services
@@ -56,6 +57,8 @@ import { startIndexer, stopIndexer } from './services/indexer.js';
 import { NotificationScheduler } from './services/NotificationScheduler.js';
 import { paymentWatchdog } from './services/watchdog.js';
 import { paymentReconciler } from './services/PaymentReconciler.js';
+import { AnalyticsSnapshotJob } from './services/AnalyticsSnapshotJob.js';
+import { EmailDigestService } from './services/EmailDigestService.js';
 
 // ============================================================
 // APPLICATION SETUP
@@ -192,6 +195,7 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/feedback', feedbackRoutes);
 app.use('/api/v1/new-feedback', newFeedbackRoutes);
 app.use('/api/v1/payments', paymentsRoutes);
+app.use('/api/v1/anchor', anchorRoutes);
 
 // ============================================================
 // CATCH-ALL ROUTE FOR REACT ROUTER
@@ -226,6 +230,8 @@ function gracefulShutdown(signal: string, server: ReturnType<typeof app.listen>)
   NotificationScheduler.stop();
   paymentWatchdog.stop();
   paymentReconciler.stop();
+  AnalyticsSnapshotJob.stop();
+  EmailDigestService.stop();
   webhookService?.close().catch(e => logger.error('Error closing webhook worker', { error: e.message }));
   server.close(() => {
     logger.info('Server closed');
@@ -266,6 +272,12 @@ async function startServer() {
 
     // 8. Payment Reconciler (catches pending payments from internet failures)
     paymentReconciler.start();
+
+    // 8.5. Analytics Snapshot Cron Job
+    AnalyticsSnapshotJob.start();
+
+    // 8.6. Email Digest Cron Job
+    EmailDigestService.start();
 
     // 9. Apollo GraphQL
     await apolloServer.start();

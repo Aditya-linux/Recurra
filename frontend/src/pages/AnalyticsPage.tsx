@@ -311,6 +311,66 @@ const AnalyticsPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded }) => {
                 </div>
               </StaggerItem>
             )}
+            {/* Advanced Analytics: Cohorts & Forecast (Mockup) */}
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Cohort Analysis */}
+              <StaggerItem>
+                <div className="bg-white border border-black/5 rounded-3xl shadow-sm p-6 md:p-8 h-full">
+                  <h3 className="text-xl font-bold tracking-tight text-black mb-6">Retention Cohorts</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead>
+                        <tr>
+                          <th className="pb-3 text-black/60 font-bold">Cohort</th>
+                          <th className="pb-3 text-black/60 font-bold">Users</th>
+                          <th className="pb-3 text-black/60 font-bold">M1</th>
+                          <th className="pb-3 text-black/60 font-bold">M2</th>
+                          <th className="pb-3 text-black/60 font-bold">M3</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { date: 'Jan 2026', users: 120, m1: '95%', m2: '82%', m3: '78%' },
+                          { date: 'Feb 2026', users: 145, m1: '92%', m2: '79%', m3: '-' },
+                          { date: 'Mar 2026', users: 180, m1: '96%', m2: '-', m3: '-' },
+                        ].map((row, i) => (
+                          <tr key={i} className="border-t border-black/5">
+                            <td className="py-3 font-bold">{row.date}</td>
+                            <td className="py-3">{row.users}</td>
+                            <td className="py-3 text-emerald-600 font-medium">{row.m1}</td>
+                            <td className="py-3 text-emerald-600 font-medium">{row.m2}</td>
+                            <td className="py-3 text-emerald-600 font-medium">{row.m3}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </StaggerItem>
+
+              {/* AI Forecast */}
+              <StaggerItem>
+                <div className="bg-white border border-black/5 rounded-3xl shadow-sm p-6 md:p-8 h-full bg-gradient-to-br from-white to-blue-50/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold tracking-tight text-black">AI Revenue Forecast</h3>
+                    <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-lg">BETA</span>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <div className="p-4 rounded-2xl bg-white border border-black/5 shadow-sm">
+                      <div className="text-sm font-bold text-black/50 uppercase tracking-wider mb-1">Projected MRR (Next Month)</div>
+                      <div className="text-2xl font-bold text-blue-600">$12,450.00</div>
+                      <div className="text-xs font-medium text-emerald-500 mt-1">+14.2% expected growth</div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-black/5 shadow-sm">
+                      <div className="text-sm font-bold text-black/50 uppercase tracking-wider mb-1">Churn Risk Analysis</div>
+                      <div className="text-lg font-bold text-black">12 users at high risk</div>
+                      <div className="text-xs font-medium text-black/60 mt-1">Consider sending a discount campaign.</div>
+                      <button className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-800 transition">Take Action &rarr;</button>
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            </StaggerContainer>
           </>
         )}
     </StaggerContainer>

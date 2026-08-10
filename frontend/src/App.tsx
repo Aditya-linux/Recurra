@@ -16,6 +16,14 @@ import UserIntegration from './pages/UserIntegration';
 import SubscriptionCenter from './pages/SubscriptionCenter';
 import DemoMerchant from './pages/DemoMerchant';
 import CheckoutWidget from './pages/CheckoutWidget';
+
+import PlanComparison from './pages/PlanComparison';
+import SmartWallet from './pages/SmartWallet';
+import WebhookManager from './pages/WebhookManager';
+import PaymentTimeline from './pages/PaymentTimeline';
+import FiatGateway from './pages/FiatGateway';
+import ApiDocs from './pages/ApiDocs';
+
 import { Toaster } from 'react-hot-toast';
 
 const StrictUserGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -63,6 +71,13 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/subscriptions" element={<RequireWallet><StrictUserGuard><ErrorBoundary><SubscriptionCenter /></ErrorBoundary></StrictUserGuard></RequireWallet>} />
         <Route path="/demo-merchant" element={<ErrorBoundary><DemoMerchant /></ErrorBoundary>} />
         <Route path="/checkout" element={<ErrorBoundary><CheckoutWidget /></ErrorBoundary>} />
+        
+        <Route path="/plans" element={<ErrorBoundary><PlanComparison /></ErrorBoundary>} />
+        <Route path="/smart-wallet" element={<RequireWallet><ErrorBoundary><SmartWallet /></ErrorBoundary></RequireWallet>} />
+        <Route path="/webhooks" element={<RequireWallet><StrictMerchantGuard><ErrorBoundary><WebhookManager /></ErrorBoundary></StrictMerchantGuard></RequireWallet>} />
+        <Route path="/timeline" element={<RequireWallet><StrictUserGuard><ErrorBoundary><PaymentTimeline /></ErrorBoundary></StrictUserGuard></RequireWallet>} />
+        <Route path="/fiat-gateway" element={<RequireWallet><ErrorBoundary><FiatGateway /></ErrorBoundary></RequireWallet>} />
+        <Route path="/docs" element={<ErrorBoundary><ApiDocs /></ErrorBoundary>} />
       </Routes>
     </AnimatePresence>
   );

@@ -286,6 +286,14 @@
                     },
                     {
                       "key": {
+                        "symbol": "discount_applied"
+                      },
+                      "val": {
+                        "bool": false
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "grace_period_end"
                       },
                       "val": {
@@ -334,6 +342,17 @@
                     },
                     {
                       "key": {
+                        "symbol": "original_amount"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 500
+                        }
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "payments_made"
                       },
                       "val": {
@@ -378,6 +397,14 @@
                       },
                       "val": {
                         "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "trial_end_time"
+                      },
+                      "val": {
+                        "u64": 0
                       }
                     },
                     {

@@ -1,13 +1,20 @@
-//! # Recurra Subscription Factory
+//! # Recurra Subscription Factory (v2 — Tiers, Trials, Discounts)
 //!
 //! Plan template store — merchants create and manage subscription products.
-//! Each plan defines pricing, billing interval, and payment limits.
+//! Each plan defines pricing, billing interval, payment limits, tier, trial period,
+//! and optional discount codes.
+//!
+//! ## v2 Additions
+//! - **Tiered Plans**: Basic / Standard / Pro / Enterprise
+//! - **Trial Periods**: Plans can offer N-day free trials
+//! - **On-Chain Discount Codes**: Merchant-created codes with percentage/fixed discounts
 //!
 //! ## Security Model
 //! - Only the plan creator (merchant) can update or deactivate their plans
 //! - Plan IDs are deterministically generated to prevent collisions
 //! - All state-modifying functions require `require_auth()`
 //! - Contract supports emergency pause by admin
+//! - Discount codes are merchant-scoped and have usage limits
 
 #![no_std]
 #![allow(clippy::too_many_arguments)]
@@ -43,11 +50,32 @@ pub enum FactoryError {
     MaxPlansReached = 8,
     /// Overflow error
     Overflow = 9,
+    /// Discount code not found
+    DiscountNotFound = 10,
+    /// Discount code expired
+    DiscountExpired = 11,
+    /// Discount code usage limit reached
+    DiscountExhausted = 12,
+    /// Discount code already exists
+    DiscountAlreadyExists = 13,
+    /// Invalid tier value
+    InvalidTier = 14,
 }
 
 // ============================================================
 // DATA STRUCTURES
 // ============================================================
+
+/// Plan tier levels — determines feature access and pricing visibility
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum PlanTier {
+    Basic = 0,
+    Standard = 1,
+    Pro = 2,
+    Enterprise = 3,
+}
 
 #[contracttype]
 #[derive(Clone)]
@@ -64,6 +92,12 @@ pub enum DataKey {
     MerchantPlans(Address),
     /// Total number of plans
     TotalPlans,
+    /// Discount code data keyed by (merchant, code_string)
+    DiscountCode(Address, String),
+    /// List of discount codes for a merchant
+    MerchantDiscounts(Address),
+    /// Discount counter
+    DiscountCounter,
 }
 
 /// A subscription plan created by a merchant
@@ -94,6 +128,53 @@ pub struct SubscriptionPlan {
     pub metadata_uri: String,
     /// Number of active subscribers
     pub subscriber_count: u32,
+    /// Plan tier (Basic/Standard/Pro/Enterprise)
+    pub tier: PlanTier,
+    /// Trial period in days (0 = no trial)
+    pub trial_days: u32,
+    /// Feature list encoded as a comma-separated string
+    /// (e.g., "Unlimited API calls,Priority support,Custom branding")
+    pub features: String,
+}
+
+/// On-chain discount code created by a merchant
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DiscountCode {
+    /// The discount code string (e.g., "LAUNCH50")
+    pub code: String,
+    /// Merchant who created this discount
+    pub merchant: Address,
+    /// Discount percentage (0-100). If > 0, this is a percentage discount.
+    pub discount_percent: u32,
+    /// Fixed discount amount (in token units). If > 0 and percent == 0, this is a fixed discount.
+    pub discount_amount: i128,
+    /// Maximum number of times this code can be used (0 = unlimited)
+    pub max_uses: u32,
+    /// Number of times this code has been used
+    pub used_count: u32,
+    /// Expiry timestamp (0 = never expires)
+    pub expires_at: u64,
+    /// Whether this code is active
+    pub is_active: bool,
+    /// Only applies to first payment of a subscription
+    pub first_payment_only: bool,
+    /// Timestamp when the code was created
+    pub created_at: u64,
+}
+
+/// Result of applying a discount code
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DiscountResult {
+    /// Original amount before discount
+    pub original_amount: i128,
+    /// Discounted amount to charge
+    pub discounted_amount: i128,
+    /// Savings from the discount
+    pub savings: i128,
+    /// The discount code used
+    pub code: String,
 }
 
 /// Event emitted when a plan is created
@@ -105,6 +186,35 @@ pub struct PlanCreatedEvent {
     pub name: String,
     pub amount: i128,
     pub interval: u64,
+    pub tier: PlanTier,
+    pub trial_days: u32,
+}
+
+/// Event emitted when a discount code is created
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DiscountCreatedEvent {
+    pub code: String,
+    pub merchant: Address,
+    pub discount_percent: u32,
+    pub discount_amount: i128,
+    pub max_uses: u32,
+}
+
+/// Configuration for creating or updating a plan
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PlanConfig {
+    pub name: String,
+    pub description: String,
+    pub amount: i128,
+    pub token: Address,
+    pub interval: u64,
+    pub max_payments: u32,
+    pub metadata_uri: String,
+    pub tier: u32,
+    pub trial_days: u32,
+    pub features: String,
 }
 
 // ============================================================
@@ -130,42 +240,28 @@ impl SubscriptionFactory {
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage().instance().set(&DataKey::PlanCounter, &0_u64);
         env.storage().instance().set(&DataKey::TotalPlans, &0_u32);
+        env.storage()
+            .instance()
+            .set(&DataKey::DiscountCounter, &0_u64);
         env.storage().instance().extend_ttl(100, 500_000);
 
-        log!(&env, "Subscription Factory initialized");
+        log!(&env, "Subscription Factory v2 initialized (tiers, trials, discounts)");
         Ok(())
     }
 
     // --------------------------------------------------------
-    // MERCHANT FUNCTIONS
+    // MERCHANT FUNCTIONS — PLANS
     // --------------------------------------------------------
 
-    /// Create a new subscription plan.
+    /// Create a new subscription plan with tier, trial, and feature support.
     ///
     /// # Arguments
     /// * `merchant` — The merchant creating the plan
-    /// * `name` — Human-readable plan name
-    /// * `description` — Plan description
-    /// * `amount` — Price per billing period
-    /// * `token` — Token contract address
-    /// * `interval` — Billing interval in seconds
-    /// * `max_payments` — Maximum number of payments (0 = infinite)
-    /// * `metadata_uri` — IPFS URI for additional metadata
-    ///
-    /// # Security
-    /// - Requires merchant authentication
-    /// - Validates all inputs
-    /// - Generates unique plan ID
+    /// * `config` — The plan configuration parameters
     pub fn create_plan(
         env: Env,
         merchant: Address,
-        name: String,
-        description: String,
-        amount: i128,
-        token: Address,
-        interval: u64,
-        max_payments: u32,
-        metadata_uri: String,
+        config: PlanConfig,
     ) -> Result<SubscriptionPlan, FactoryError> {
         // Security: require merchant auth
         merchant.require_auth();
@@ -173,13 +269,16 @@ impl SubscriptionFactory {
         Self::check_not_paused(&env)?;
 
         // Input validation
-        if amount <= 0 {
+        if config.amount <= 0 {
             return Err(FactoryError::InvalidInput);
         }
-        if interval < 3600 {
+        if config.interval < 3600 {
             // Minimum 1 hour interval
             return Err(FactoryError::InvalidInput);
         }
+
+        // Validate tier
+        let plan_tier = Self::u32_to_tier(config.tier)?;
 
         // Check merchant plan limit (max 100 plans per merchant)
         let merchant_plans = Self::get_merchant_plan_list(&env, &merchant);
@@ -206,16 +305,19 @@ impl SubscriptionFactory {
         let plan = SubscriptionPlan {
             plan_id: plan_id.clone(),
             merchant: merchant.clone(),
-            name: name.clone(),
-            description,
-            amount,
-            token,
-            interval,
-            max_payments,
+            name: config.name.clone(),
+            description: config.description,
+            amount: config.amount,
+            token: config.token,
+            interval: config.interval,
+            max_payments: config.max_payments,
             is_active: true,
             created_at: now,
-            metadata_uri,
+            metadata_uri: config.metadata_uri,
             subscriber_count: 0,
+            tier: plan_tier,
+            trial_days: config.trial_days,
+            features: config.features,
         };
 
         // Store plan
@@ -244,39 +346,39 @@ impl SubscriptionFactory {
             PlanCreatedEvent {
                 plan_id: plan_id.clone(),
                 merchant: merchant.clone(),
-                name,
-                amount,
-                interval,
+                name: config.name,
+                amount: config.amount,
+                interval: config.interval,
+                tier: plan_tier,
+                trial_days: config.trial_days,
             },
         );
 
-        log!(&env, "Plan created: id={}, merchant={}", plan_id, merchant);
+        log!(
+            &env,
+            "Plan created: id={}, tier={}, trial={}d",
+            plan_id,
+            config.tier,
+            config.trial_days
+        );
         Ok(plan)
     }
 
     /// Update an existing plan. Only the plan owner (merchant) can update.
-    ///
-    /// # Security
-    /// - Requires merchant auth
-    /// - Only the original creator can update
-    /// - Cannot change merchant or plan_id
     pub fn update_plan(
         env: Env,
         merchant: Address,
         plan_id: String,
-        name: String,
-        description: String,
-        amount: i128,
-        interval: u64,
-        max_payments: u32,
-        metadata_uri: String,
+        config: PlanConfig,
     ) -> Result<SubscriptionPlan, FactoryError> {
         merchant.require_auth();
         Self::check_not_paused(&env)?;
 
-        if amount <= 0 || interval < 3600 {
+        if config.amount <= 0 || config.interval < 3600 {
             return Err(FactoryError::InvalidInput);
         }
+
+        let plan_tier = Self::u32_to_tier(config.tier)?;
 
         let plan_key = DataKey::Plan(plan_id.clone());
         let mut plan: SubscriptionPlan = env
@@ -291,12 +393,15 @@ impl SubscriptionFactory {
         }
 
         // Update mutable fields
-        plan.name = name;
-        plan.description = description;
-        plan.amount = amount;
-        plan.interval = interval;
-        plan.max_payments = max_payments;
-        plan.metadata_uri = metadata_uri;
+        plan.name = config.name;
+        plan.description = config.description;
+        plan.amount = config.amount;
+        plan.interval = config.interval;
+        plan.max_payments = config.max_payments;
+        plan.metadata_uri = config.metadata_uri;
+        plan.tier = plan_tier;
+        plan.trial_days = config.trial_days;
+        plan.features = config.features;
 
         env.storage().persistent().set(&plan_key, &plan);
         env.storage()
@@ -308,9 +413,6 @@ impl SubscriptionFactory {
     }
 
     /// Deactivate a plan — prevents new subscriptions but existing ones continue.
-    ///
-    /// # Security
-    /// - Only the plan owner can deactivate
     pub fn deactivate_plan(
         env: Env,
         merchant: Address,
@@ -400,6 +502,221 @@ impl SubscriptionFactory {
     }
 
     // --------------------------------------------------------
+    // DISCOUNT CODE MANAGEMENT
+    // --------------------------------------------------------
+
+    /// Create a new discount code for a merchant.
+    ///
+    /// # Arguments
+    /// * `merchant` — The merchant creating the code
+    /// * `code` — The discount code string (e.g., "LAUNCH50")
+    /// * `discount_percent` — Percentage discount (0-100). Set to 0 for fixed amount.
+    /// * `discount_amount` — Fixed discount in token units. Set to 0 for percentage.
+    /// * `max_uses` — Maximum redemptions (0 = unlimited)
+    /// * `expires_at` — Expiry timestamp (0 = never expires)
+    /// * `first_payment_only` — If true, discount applies only to the first payment
+    pub fn create_discount_code(
+        env: Env,
+        merchant: Address,
+        code: String,
+        discount_percent: u32,
+        discount_amount: i128,
+        max_uses: u32,
+        expires_at: u64,
+        first_payment_only: bool,
+    ) -> Result<DiscountCode, FactoryError> {
+        merchant.require_auth();
+        Self::check_not_paused(&env)?;
+
+        // Validate: either percent or amount must be set, not both
+        if discount_percent == 0 && discount_amount <= 0 {
+            return Err(FactoryError::InvalidInput);
+        }
+        if discount_percent > 0 && discount_amount > 0 {
+            return Err(FactoryError::InvalidInput);
+        }
+        if discount_percent > 100 {
+            return Err(FactoryError::InvalidInput);
+        }
+
+        // Check if code already exists for this merchant
+        let code_key = DataKey::DiscountCode(merchant.clone(), code.clone());
+        if env.storage().persistent().has(&code_key) {
+            return Err(FactoryError::DiscountAlreadyExists);
+        }
+
+        let now = env.ledger().timestamp();
+
+        let discount = DiscountCode {
+            code: code.clone(),
+            merchant: merchant.clone(),
+            discount_percent,
+            discount_amount,
+            max_uses,
+            used_count: 0,
+            expires_at,
+            is_active: true,
+            first_payment_only,
+            created_at: now,
+        };
+
+        env.storage().persistent().set(&code_key, &discount);
+        env.storage()
+            .persistent()
+            .extend_ttl(&code_key, 100, 500_000);
+
+        // Track in merchant's discount list
+        Self::add_to_merchant_discounts(&env, &merchant, &code);
+
+        env.events().publish(
+            (symbol_short!("discount"), symbol_short!("created")),
+            DiscountCreatedEvent {
+                code: code.clone(),
+                merchant: merchant.clone(),
+                discount_percent,
+                discount_amount,
+                max_uses,
+            },
+        );
+
+        log!(&env, "Discount code created: code={}", code);
+        Ok(discount)
+    }
+
+    /// Validate a discount code and calculate the discounted amount.
+    /// Does NOT increment usage — call `apply_discount` after payment.
+    pub fn validate_discount(
+        env: Env,
+        merchant: Address,
+        code: String,
+        original_amount: i128,
+    ) -> Result<DiscountResult, FactoryError> {
+        let code_key = DataKey::DiscountCode(merchant, code.clone());
+        let discount: DiscountCode = env
+            .storage()
+            .persistent()
+            .get(&code_key)
+            .ok_or(FactoryError::DiscountNotFound)?;
+
+        // Check active
+        if !discount.is_active {
+            return Err(FactoryError::DiscountNotFound);
+        }
+
+        // Check expiry
+        let now = env.ledger().timestamp();
+        if discount.expires_at > 0 && now > discount.expires_at {
+            return Err(FactoryError::DiscountExpired);
+        }
+
+        // Check usage limit
+        if discount.max_uses > 0 && discount.used_count >= discount.max_uses {
+            return Err(FactoryError::DiscountExhausted);
+        }
+
+        // Calculate discount
+        let savings = if discount.discount_percent > 0 {
+            (original_amount * discount.discount_percent as i128) / 100
+        } else {
+            // Fixed discount, capped at original amount
+            if discount.discount_amount > original_amount {
+                original_amount
+            } else {
+                discount.discount_amount
+            }
+        };
+
+        let discounted_amount = original_amount - savings;
+
+        Ok(DiscountResult {
+            original_amount,
+            discounted_amount,
+            savings,
+            code,
+        })
+    }
+
+    /// Apply a discount code — increments usage counter.
+    /// Called by Payment Engine AFTER successful payment.
+    pub fn apply_discount(
+        env: Env,
+        merchant: Address,
+        code: String,
+    ) -> Result<(), FactoryError> {
+        let code_key = DataKey::DiscountCode(merchant, code.clone());
+        let mut discount: DiscountCode = env
+            .storage()
+            .persistent()
+            .get(&code_key)
+            .ok_or(FactoryError::DiscountNotFound)?;
+
+        discount.used_count = discount
+            .used_count
+            .checked_add(1)
+            .ok_or(FactoryError::Overflow)?;
+
+        // Auto-deactivate if max uses reached
+        if discount.max_uses > 0 && discount.used_count >= discount.max_uses {
+            discount.is_active = false;
+        }
+
+        env.storage().persistent().set(&code_key, &discount);
+
+        log!(
+            &env,
+            "Discount applied: code={}, uses={}/{}",
+            code,
+            discount.used_count,
+            discount.max_uses
+        );
+        Ok(())
+    }
+
+    /// Deactivate a discount code. Only the merchant can call this.
+    pub fn deactivate_discount(
+        env: Env,
+        merchant: Address,
+        code: String,
+    ) -> Result<(), FactoryError> {
+        merchant.require_auth();
+
+        let code_key = DataKey::DiscountCode(merchant, code.clone());
+        let mut discount: DiscountCode = env
+            .storage()
+            .persistent()
+            .get(&code_key)
+            .ok_or(FactoryError::DiscountNotFound)?;
+
+        discount.is_active = false;
+        env.storage().persistent().set(&code_key, &discount);
+
+        log!(&env, "Discount deactivated: code={}", code);
+        Ok(())
+    }
+
+    /// Get a discount code's details.
+    pub fn get_discount(
+        env: Env,
+        merchant: Address,
+        code: String,
+    ) -> Result<DiscountCode, FactoryError> {
+        let code_key = DataKey::DiscountCode(merchant, code);
+        env.storage()
+            .persistent()
+            .get(&code_key)
+            .ok_or(FactoryError::DiscountNotFound)
+    }
+
+    /// List all discount codes for a merchant.
+    pub fn list_merchant_discounts(env: Env, merchant: Address) -> Vec<String> {
+        let key = DataKey::MerchantDiscounts(merchant);
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    // --------------------------------------------------------
     // READ FUNCTIONS
     // --------------------------------------------------------
 
@@ -423,6 +740,32 @@ impl SubscriptionFactory {
             .instance()
             .get(&DataKey::TotalPlans)
             .unwrap_or(0)
+    }
+
+    /// List all plans for a merchant filtered by tier.
+    pub fn list_plans_by_tier(env: Env, merchant: Address, tier: u32) -> Vec<String> {
+        let plan_tier = match Self::u32_to_tier(tier) {
+            Ok(t) => t,
+            Err(_) => return Vec::new(&env),
+        };
+
+        let plan_ids = Self::get_merchant_plan_list(&env, &merchant);
+        let mut filtered = Vec::new(&env);
+
+        for i in 0..plan_ids.len() {
+            let plan_id = plan_ids.get(i).unwrap();
+            if let Some(plan) = env
+                .storage()
+                .persistent()
+                .get::<DataKey, SubscriptionPlan>(&DataKey::Plan(plan_id.clone()))
+            {
+                if plan.tier == plan_tier && plan.is_active {
+                    filtered.push_back(plan_id);
+                }
+            }
+        }
+
+        filtered
     }
 
     // --------------------------------------------------------
@@ -469,6 +812,16 @@ impl SubscriptionFactory {
             return Err(FactoryError::Paused);
         }
         Ok(())
+    }
+
+    fn u32_to_tier(tier: u32) -> Result<PlanTier, FactoryError> {
+        match tier {
+            0 => Ok(PlanTier::Basic),
+            1 => Ok(PlanTier::Standard),
+            2 => Ok(PlanTier::Pro),
+            3 => Ok(PlanTier::Enterprise),
+            _ => Err(FactoryError::InvalidTier),
+        }
     }
 
     fn generate_plan_id(env: &Env, _merchant: &Address, counter: u64) -> String {
@@ -528,6 +881,19 @@ impl SubscriptionFactory {
         env.storage().persistent().set(&key, &list);
         env.storage().persistent().extend_ttl(&key, 100, 500_000);
     }
+
+    fn add_to_merchant_discounts(env: &Env, merchant: &Address, code: &String) {
+        let key = DataKey::MerchantDiscounts(merchant.clone());
+        let mut list: Vec<String> = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(Vec::new(env));
+
+        list.push_back(code.clone());
+        env.storage().persistent().set(&key, &list);
+        env.storage().persistent().extend_ttl(&key, 100, 500_000);
+    }
 }
 
 // ============================================================
@@ -540,7 +906,7 @@ mod tests {
     use soroban_sdk::testutils::Address as _;
 
     #[test]
-    fn test_create_plan() {
+    fn test_create_tiered_plan() {
         let env = Env::default();
         env.mock_all_auths();
 
@@ -555,19 +921,60 @@ mod tests {
 
         let plan = client.create_plan(
             &merchant,
-            &String::from_str(&env, "Pro Plan"),
-            &String::from_str(&env, "Premium features for professionals"),
-            &1000_i128,
-            &token,
-            &2592000_u64, // 30 days
-            &0_u32,       // infinite
-            &String::from_str(&env, "ipfs://QmExample"),
+            &PlanConfig {
+                name: String::from_str(&env, "Pro Plan"),
+                description: String::from_str(&env, "Premium features for professionals"),
+                amount: 1000_i128,
+                token,
+                interval: 2592000_u64, // 30 days
+                max_payments: 0_u32,       // infinite
+                metadata_uri: String::from_str(&env, "ipfs://QmExample"),
+                tier: 2_u32,       // Pro tier
+                trial_days: 14_u32,      // 14-day trial
+                features: String::from_str(&env, "Unlimited API,Priority support,Custom branding"),
+            },
         );
 
         assert_eq!(plan.amount, 1000);
         assert_eq!(plan.interval, 2592000);
         assert!(plan.is_active);
         assert_eq!(plan.subscriber_count, 0);
+        assert_eq!(plan.tier, PlanTier::Pro);
+        assert_eq!(plan.trial_days, 14);
+    }
+
+    #[test]
+    fn test_create_plan_basic_tier() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        let plan = client.create_plan(
+            &merchant,
+            &PlanConfig {
+                name: String::from_str(&env, "Basic Plan"),
+                description: String::from_str(&env, "Basic features"),
+                amount: 500_i128,
+                token,
+                interval: 2592000_u64,
+                max_payments: 12_u32,
+                metadata_uri: String::from_str(&env, "ipfs://QmBasic"),
+                tier: 0_u32, // Basic tier
+                trial_days: 0_u32, // No trial
+                features: String::from_str(&env, "5 API calls/day,Email support"),
+            },
+        );
+
+        assert_eq!(plan.tier, PlanTier::Basic);
+        assert_eq!(plan.trial_days, 0);
     }
 
     #[test]
@@ -586,13 +993,18 @@ mod tests {
 
         let plan = client.create_plan(
             &merchant,
-            &String::from_str(&env, "Basic Plan"),
-            &String::from_str(&env, "Basic features"),
-            &500_i128,
-            &token,
-            &2592000_u64,
-            &12_u32,
-            &String::from_str(&env, "ipfs://QmBasic"),
+            &PlanConfig {
+                name: String::from_str(&env, "Basic Plan"),
+                description: String::from_str(&env, "Basic features"),
+                amount: 500_i128,
+                token,
+                interval: 2592000_u64,
+                max_payments: 12_u32,
+                metadata_uri: String::from_str(&env, "ipfs://QmBasic"),
+                tier: 1_u32,
+                trial_days: 0_u32,
+                features: String::from_str(&env, ""),
+            },
         );
 
         client.deactivate_plan(&merchant, &plan.plan_id);
@@ -615,30 +1027,290 @@ mod tests {
 
         client.initialize(&admin);
 
-        // Create two plans
+        // Create two plans with different tiers
         client.create_plan(
             &merchant,
-            &String::from_str(&env, "Plan A"),
-            &String::from_str(&env, "Description A"),
-            &500_i128,
-            &token,
-            &2592000_u64,
-            &0_u32,
-            &String::from_str(&env, "ipfs://A"),
+            &PlanConfig {
+                name: String::from_str(&env, "Plan A"),
+                description: String::from_str(&env, "Description A"),
+                amount: 500_i128,
+                token: token.clone(),
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, "ipfs://A"),
+                tier: 0_u32, // Basic
+                trial_days: 0_u32,
+                features: String::from_str(&env, ""),
+            },
         );
 
         client.create_plan(
             &merchant,
-            &String::from_str(&env, "Plan B"),
-            &String::from_str(&env, "Description B"),
-            &1000_i128,
-            &token,
-            &2592000_u64,
-            &0_u32,
-            &String::from_str(&env, "ipfs://B"),
+            &PlanConfig {
+                name: String::from_str(&env, "Plan B"),
+                description: String::from_str(&env, "Description B"),
+                amount: 1000_i128,
+                token,
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, "ipfs://B"),
+                tier: 2_u32, // Pro
+                trial_days: 7_u32, // 7-day trial
+                features: String::from_str(&env, ""),
+            },
         );
 
         let plans = client.list_merchant_plans(&merchant);
         assert_eq!(plans.len(), 2);
+    }
+
+    #[test]
+    fn test_create_discount_code_percent() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        let discount = client.create_discount_code(
+            &merchant,
+            &String::from_str(&env, "LAUNCH50"),
+            &50_u32,   // 50% off
+            &0_i128,   // no fixed amount
+            &100_u32,  // max 100 uses
+            &0_u64,    // never expires
+            &true,     // first payment only
+        );
+
+        assert_eq!(discount.discount_percent, 50);
+        assert_eq!(discount.max_uses, 100);
+        assert_eq!(discount.used_count, 0);
+        assert!(discount.is_active);
+        assert!(discount.first_payment_only);
+    }
+
+    #[test]
+    fn test_create_discount_code_fixed() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        let discount = client.create_discount_code(
+            &merchant,
+            &String::from_str(&env, "SAVE5"),
+            &0_u32,       // no percent
+            &5_000_000,   // 5 USDC fixed (7 decimals)
+            &0_u32,       // unlimited
+            &0_u64,       // never expires
+            &false,       // applies to all payments
+        );
+
+        assert_eq!(discount.discount_amount, 5_000_000);
+        assert_eq!(discount.discount_percent, 0);
+    }
+
+    #[test]
+    fn test_validate_discount_percent() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        client.create_discount_code(
+            &merchant,
+            &String::from_str(&env, "HALF"),
+            &50_u32,
+            &0_i128,
+            &0_u32,
+            &0_u64,
+            &true,
+        );
+
+        let result = client.validate_discount(
+            &merchant,
+            &String::from_str(&env, "HALF"),
+            &10_000_000, // 10 USDC
+        );
+
+        assert_eq!(result.original_amount, 10_000_000);
+        assert_eq!(result.savings, 5_000_000);
+        assert_eq!(result.discounted_amount, 5_000_000);
+    }
+
+    #[test]
+    fn test_apply_discount_increments_usage() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        client.create_discount_code(
+            &merchant,
+            &String::from_str(&env, "ONCE"),
+            &25_u32,
+            &0_i128,
+            &2_u32, // max 2 uses
+            &0_u64,
+            &true,
+        );
+
+        // First use
+        client.apply_discount(&merchant, &String::from_str(&env, "ONCE"));
+        let d1 = client.get_discount(&merchant, &String::from_str(&env, "ONCE"));
+        assert_eq!(d1.used_count, 1);
+        assert!(d1.is_active);
+
+        // Second use — should auto-deactivate
+        client.apply_discount(&merchant, &String::from_str(&env, "ONCE"));
+        let d2 = client.get_discount(&merchant, &String::from_str(&env, "ONCE"));
+        assert_eq!(d2.used_count, 2);
+        assert!(!d2.is_active); // auto-deactivated at max_uses
+    }
+
+    #[test]
+    fn test_list_plans_by_tier() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        // Create plans at different tiers
+        client.create_plan(
+            &merchant,
+            &PlanConfig {
+                name: String::from_str(&env, "Basic A"),
+                description: String::from_str(&env, ""),
+                amount: 500_i128,
+                token: token.clone(),
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, ""),
+                tier: 0_u32, // Basic
+                trial_days: 0_u32,
+                features: String::from_str(&env, ""),
+            },
+        );
+
+        client.create_plan(
+            &merchant,
+            &PlanConfig {
+                name: String::from_str(&env, "Pro A"),
+                description: String::from_str(&env, ""),
+                amount: 1500_i128,
+                token: token.clone(),
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, ""),
+                tier: 2_u32, // Pro
+                trial_days: 0_u32,
+                features: String::from_str(&env, ""),
+            },
+        );
+
+        client.create_plan(
+            &merchant,
+            &PlanConfig {
+                name: String::from_str(&env, "Basic B"),
+                description: String::from_str(&env, ""),
+                amount: 300_i128,
+                token,
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, ""),
+                tier: 0_u32, // Basic
+                trial_days: 0_u32,
+                features: String::from_str(&env, ""),
+            },
+        );
+
+        let basic_plans = client.list_plans_by_tier(&merchant, &0_u32);
+        assert_eq!(basic_plans.len(), 2);
+
+        let pro_plans = client.list_plans_by_tier(&merchant, &2_u32);
+        assert_eq!(pro_plans.len(), 1);
+    }
+
+    #[test]
+    fn test_update_plan_with_tier() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let merchant = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let contract_id = env.register_contract(None, SubscriptionFactory);
+        let client = SubscriptionFactoryClient::new(&env, &contract_id);
+
+        client.initialize(&admin);
+
+        let plan = client.create_plan(
+            &merchant,
+            &PlanConfig {
+                name: String::from_str(&env, "Starter"),
+                description: String::from_str(&env, ""),
+                amount: 500_i128,
+                token: token.clone(),
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, ""),
+                tier: 0_u32, // Basic
+                trial_days: 0_u32,
+                features: String::from_str(&env, "Feature A"),
+            },
+        );
+
+        // Upgrade to Pro tier
+        let updated = client.update_plan(
+            &merchant,
+            &plan.plan_id,
+            &PlanConfig {
+                name: String::from_str(&env, "Professional"),
+                description: String::from_str(&env, "Upgraded plan"),
+                amount: 1500_i128,
+                token,
+                interval: 2592000_u64,
+                max_payments: 0_u32,
+                metadata_uri: String::from_str(&env, ""),
+                tier: 2_u32, // Pro
+                trial_days: 7_u32, // Add 7-day trial
+                features: String::from_str(&env, "Feature A,Feature B,Feature C"),
+            },
+        );
+
+        assert_eq!(updated.tier, PlanTier::Pro);
+        assert_eq!(updated.trial_days, 7);
+        assert_eq!(updated.amount, 1500);
     }
 }

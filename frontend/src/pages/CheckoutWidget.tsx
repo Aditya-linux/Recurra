@@ -163,7 +163,10 @@ const CheckoutWidget: React.FC = () => {
                   ${plan.amount} <span className="text-body-sm" style={{ color: 'var(--on-surface-variant)', fontWeight: 400 }}>USDC</span>
                 </span>
               </div>
-              <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)' }}>Billed every month. Cancel anytime.</p>
+              <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)' }}>
+                Billed every month. Cancel anytime.
+                {plan.trial_days > 0 && <span style={{ color: '#10b981', display: 'block', marginTop: '4px', fontWeight: 600 }}>Includes {plan.trial_days}-day free trial</span>}
+              </p>
             </div>
           ) : (
             <div style={{ height: '96px', borderRadius: '16px', marginBottom: '24px', background: 'var(--surface-container)', animation: 'pulse 2s infinite' }}></div>
@@ -185,6 +188,25 @@ const CheckoutWidget: React.FC = () => {
                 <p className="text-body-sm" style={{ color: 'var(--on-surface-variant)', textAlign: 'center', marginBottom: '16px' }}>
                   Connected as: <span style={{ fontFamily: 'monospace', color: 'var(--on-surface)' }}>{fullWalletAddress.substring(0,6)}...{fullWalletAddress.substring(52)}</span>
                 </p>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label className="text-body-sm" style={{ fontWeight: 600, color: 'var(--on-surface)' }}>Discount Code (Optional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="ENTER CODE" 
+                    style={{ 
+                      width: '100%', 
+                      marginTop: '4px',
+                      background: 'var(--surface-container-high)', 
+                      border: '1px solid var(--outline-variant)', 
+                      padding: '12px', 
+                      borderRadius: '8px', 
+                      color: 'var(--on-surface)', 
+                      outline: 'none',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
 
                 <div style={{ marginBottom: '16px' }}>
                   <label className="text-body-sm" style={{ fontWeight: 600, color: 'var(--on-surface)' }}>WhatsApp Number for Receipts (Optional)</label>

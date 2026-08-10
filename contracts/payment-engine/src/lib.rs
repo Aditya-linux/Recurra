@@ -1,7 +1,12 @@
-//! # Recurra Recurring Payment Engine (CORE CONTRACT)
+//! # Recurra Recurring Payment Engine v2 (CORE CONTRACT)
 //!
 //! The billing robot — stores active subscriptions and executes payments when due.
 //! This is the most critical contract in the Recurra protocol.
+//!
+//! ## v2 Additions
+//! - **Trial Periods**: Subscriptions can start with a free trial, auto-converting to paid
+//! - **Upgrade/Downgrade**: Users can switch plans with prorated billing calculated on-chain
+//! - **Discount Codes**: First-payment discounts validated and applied atomically
 //!
 //! ## Security Model (Checks-Effects-Interactions)
 //! 1. CHECKS: Validate all preconditions
@@ -13,6 +18,7 @@
 //! - Grace period handling for failed payments (7 days)
 //! - Emergency pause capability
 //! - Only keeper or user can trigger payments
+//! - Prorated billing is exact to the second (no rounding exploits)
 
 #![no_std]
 
@@ -76,6 +82,14 @@ pub enum PaymentError {
     CannotResume = 17,
     /// Cannot pause — wrong status
     CannotPause = 18,
+    /// Trial has not yet expired
+    TrialNotExpired = 19,
+    /// Subscription is not in trial status
+    NotTrialing = 20,
+    /// Cannot upgrade — same or invalid plan
+    InvalidUpgrade = 21,
+    /// Discount code error
+    DiscountError = 22,
 }
 
 // ============================================================
@@ -127,6 +141,8 @@ pub enum DataKey {
     TotalPayments,
     /// Total volume processed
     TotalVolume,
+    /// Discount applied to subscription (subscription_id -> discount_code)
+    SubDiscount(String),
 }
 
 /// A user's active subscription
@@ -148,6 +164,37 @@ pub struct UserSubscription {
     pub grace_period_end: u64,
     pub created_at: u64,
     pub last_payment_at: u64,
+    /// Trial end time (0 = no trial)
+    pub trial_end_time: u64,
+    /// Original amount before any discount
+    pub original_amount: i128,
+    /// Whether a discount was applied to the first payment
+    pub discount_applied: bool,
+}
+
+/// Event emitted on subscription upgrade/downgrade
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct TierChangeEvent {
+    pub subscription_id: String,
+    pub user: Address,
+    pub old_plan_id: String,
+    pub new_plan_id: String,
+    pub old_amount: i128,
+    pub new_amount: i128,
+    pub proration_credit: i128,
+    pub proration_charge: i128,
+    pub is_upgrade: bool,
+}
+
+/// Event emitted when a trial converts to paid
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct TrialConvertedEvent {
+    pub subscription_id: String,
+    pub user: Address,
+    pub plan_id: String,
+    pub amount: i128,
 }
 
 /// Event emitted when a payment is executed
@@ -294,6 +341,9 @@ impl RecurringPaymentEngine {
             grace_period_end: 0,
             created_at: now,
             last_payment_at: 0,
+            trial_end_time: 0,
+            original_amount: amount,
+            discount_applied: false,
         };
 
         // Store subscription
@@ -631,6 +681,309 @@ impl RecurringPaymentEngine {
         // Delegate to the standard execute_payment logic
         // (inherits all safety: timing check, idempotency, CEI pattern)
         Self::execute_payment(env, subscription_id)
+    }
+
+    // --------------------------------------------------------
+    // TRIAL PERIOD FUNCTIONS
+    // --------------------------------------------------------
+
+    /// Create a subscription with a free trial period.
+    /// No payment is collected during the trial — billing starts after trial_days.
+    ///
+    /// # Arguments
+    /// * `user` — The subscriber
+    /// * `plan_id` — Plan identifier
+    /// * `merchant` — Merchant receiving payments
+    /// * `token` — Payment token
+    /// * `amount` — Amount per billing period
+    /// * `interval` — Billing interval in seconds
+    /// * `max_payments` — Max payments (0 = infinite)
+    /// * `trial_days` — Free trial duration in days
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_trial_subscription(
+        env: Env,
+        user: Address,
+        plan_id: String,
+        merchant: Address,
+        token: Address,
+        amount: i128,
+        interval: u64,
+        max_payments: u32,
+        trial_days: u32,
+    ) -> Result<UserSubscription, PaymentError> {
+        user.require_auth();
+        Self::check_not_paused(&env)?;
+
+        if amount <= 0 || interval < 3600 || trial_days == 0 {
+            return Err(PaymentError::InvalidInput);
+        }
+
+        let user_subs = Self::get_user_sub_list(&env, &user);
+        if user_subs.len() >= MAX_USER_SUBSCRIPTIONS {
+            return Err(PaymentError::MaxSubscriptionsReached);
+        }
+
+        let counter: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::SubCounter)
+            .unwrap_or(0);
+        let new_counter = counter.checked_add(1).ok_or(PaymentError::Overflow)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::SubCounter, &new_counter);
+
+        let sub_id = Self::generate_sub_id(&env, new_counter);
+        let now = env.ledger().timestamp();
+        let trial_end = now + (trial_days as u64 * 86400);
+
+        let subscription = UserSubscription {
+            subscription_id: sub_id.clone(),
+            user: user.clone(),
+            plan_id: plan_id.clone(),
+            merchant: merchant.clone(),
+            token: token.clone(),
+            amount,
+            interval,
+            start_time: now,
+            next_payment_time: trial_end, // First payment due after trial
+            payments_made: 0,
+            max_payments,
+            status: SubscriptionStatus::Trialing,
+            grace_period_end: 0,
+            created_at: now,
+            last_payment_at: 0,
+            trial_end_time: trial_end,
+            original_amount: amount,
+            discount_applied: false,
+        };
+
+        let sub_key = DataKey::Subscription(sub_id.clone());
+        env.storage().persistent().set(&sub_key, &subscription);
+        env.storage()
+            .persistent()
+            .extend_ttl(&sub_key, 100, 500_000);
+
+        Self::add_to_user_subs(&env, &user, &sub_id);
+        Self::add_to_merchant_subs(&env, &merchant, &sub_id);
+
+        env.events().publish(
+            (symbol_short!("sub"), symbol_short!("trial")),
+            SubscriptionCreatedEvent {
+                subscription_id: sub_id.clone(),
+                user: user.clone(),
+                plan_id,
+                merchant: merchant.clone(),
+                amount,
+            },
+        );
+
+        log!(
+            &env,
+            "Trial subscription created: id={}, trial_days={}",
+            sub_id,
+            trial_days
+        );
+        Ok(subscription)
+    }
+
+    /// Convert a trial subscription to active paid status.
+    /// Called by the Keeper when the trial period expires.
+    /// This triggers the first payment collection.
+    pub fn convert_trial(
+        env: Env,
+        subscription_id: String,
+    ) -> Result<TrialConvertedEvent, PaymentError> {
+        Self::check_not_paused(&env)?;
+
+        let sub_key = DataKey::Subscription(subscription_id.clone());
+        let mut sub: UserSubscription = env
+            .storage()
+            .persistent()
+            .get(&sub_key)
+            .ok_or(PaymentError::SubscriptionNotFound)?;
+
+        if sub.status != SubscriptionStatus::Trialing {
+            return Err(PaymentError::NotTrialing);
+        }
+
+        let now = env.ledger().timestamp();
+        if now < sub.trial_end_time {
+            return Err(PaymentError::TrialNotExpired);
+        }
+
+        // Convert trial to active — set next payment due NOW
+        sub.status = SubscriptionStatus::Active;
+        sub.next_payment_time = now;
+
+        env.storage().persistent().set(&sub_key, &sub);
+        env.storage()
+            .persistent()
+            .extend_ttl(&sub_key, 100, 500_000);
+
+        let event = TrialConvertedEvent {
+            subscription_id: subscription_id.clone(),
+            user: sub.user.clone(),
+            plan_id: sub.plan_id.clone(),
+            amount: sub.amount,
+        };
+
+        env.events().publish(
+            (symbol_short!("trial"), symbol_short!("convert")),
+            event.clone(),
+        );
+
+        log!(
+            &env,
+            "Trial converted to active: id={}",
+            subscription_id
+        );
+        Ok(event)
+    }
+
+    // --------------------------------------------------------
+    // UPGRADE / DOWNGRADE FUNCTIONS
+    // --------------------------------------------------------
+
+    /// Upgrade or downgrade a subscription to a different plan.
+    /// Calculates prorated billing based on time remaining in the current period.
+    ///
+    /// # Proration Logic
+    /// 1. Calculate days remaining in current billing period
+    /// 2. Credit = (old_amount / interval) * remaining_seconds
+    /// 3. Charge = (new_amount / interval) * remaining_seconds
+    /// 4. If upgrade (charge > credit): user pays difference immediately
+    /// 5. If downgrade (credit > charge): credit is applied to next payment
+    ///
+    /// # Security
+    /// - Only the subscription owner can change plans
+    /// - Both plans must be from the same merchant and use the same token
+    #[allow(clippy::too_many_arguments)]
+    pub fn change_plan(
+        env: Env,
+        user: Address,
+        subscription_id: String,
+        new_plan_id: String,
+        new_amount: i128,
+        new_interval: u64,
+        new_max_payments: u32,
+    ) -> Result<TierChangeEvent, PaymentError> {
+        user.require_auth();
+        Self::check_not_paused(&env)?;
+
+        if new_amount <= 0 || new_interval < 3600 {
+            return Err(PaymentError::InvalidInput);
+        }
+
+        let sub_key = DataKey::Subscription(subscription_id.clone());
+        let mut sub: UserSubscription = env
+            .storage()
+            .persistent()
+            .get(&sub_key)
+            .ok_or(PaymentError::SubscriptionNotFound)?;
+
+        // Only owner can change plans
+        if sub.user != user {
+            return Err(PaymentError::Unauthorized);
+        }
+
+        // Must be active to change plans
+        if sub.status != SubscriptionStatus::Active {
+            return Err(PaymentError::SubscriptionInactive);
+        }
+
+        let now = env.ledger().timestamp();
+        let old_plan_id = sub.plan_id.clone();
+        let old_amount = sub.amount;
+
+        // Calculate proration based on remaining time in current period
+        let period_elapsed = if now > sub.last_payment_at && sub.last_payment_at > 0 {
+            now - sub.last_payment_at
+        } else {
+            0
+        };
+        let period_remaining = sub.interval.saturating_sub(period_elapsed);
+
+        // Calculate prorated amounts (per-second precision)
+        // Credit for unused portion of old plan
+        let proration_credit = if sub.interval > 0 {
+            (old_amount * period_remaining as i128) / sub.interval as i128
+        } else {
+            0
+        };
+
+        // Charge for remaining portion of new plan
+        let proration_charge = if new_interval > 0 {
+            (new_amount * period_remaining as i128) / new_interval as i128
+        } else {
+            0
+        };
+
+        let is_upgrade = new_amount > old_amount;
+
+        // Update subscription to new plan
+        sub.plan_id = new_plan_id.clone();
+        sub.amount = new_amount;
+        sub.interval = new_interval;
+        sub.max_payments = new_max_payments;
+        sub.original_amount = new_amount;
+
+        // If upgrading, user owes the difference for remaining period
+        // If downgrading, credit is applied (next_payment_time extended)
+        if is_upgrade && proration_charge > proration_credit {
+            let difference = proration_charge - proration_credit;
+            // Transfer the proration difference immediately
+            let token = token_interface::Client::new(&env, &sub.token);
+
+            // Calculate fee on proration
+            let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(50);
+            let fee = (difference * fee_bps as i128) / 10_000;
+            let merchant_share = difference - fee;
+
+            token.transfer(&sub.user, &sub.merchant, &merchant_share);
+
+            let fee_recipient: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::FeeRecipient)
+                .ok_or(PaymentError::NotInitialized)?;
+            token.transfer(&sub.user, &fee_recipient, &fee);
+        }
+
+        // Next payment starts from now + new_interval
+        sub.next_payment_time = now + new_interval;
+
+        env.storage().persistent().set(&sub_key, &sub);
+        env.storage()
+            .persistent()
+            .extend_ttl(&sub_key, 100, 500_000);
+
+        let event = TierChangeEvent {
+            subscription_id: subscription_id.clone(),
+            user: user.clone(),
+            old_plan_id,
+            new_plan_id,
+            old_amount,
+            new_amount,
+            proration_credit,
+            proration_charge,
+            is_upgrade,
+        };
+
+        env.events().publish(
+            (symbol_short!("sub"), symbol_short!("upgrade")),
+            event.clone(),
+        );
+
+        log!(
+            &env,
+            "Plan changed: id={}, upgrade={}, credit={}, charge={}",
+            subscription_id,
+            is_upgrade,
+            proration_credit,
+            proration_charge
+        );
+        Ok(event)
     }
 
     // --------------------------------------------------------

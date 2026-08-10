@@ -226,3 +226,105 @@ webhookRoutes.post('/:id/test', async (req: Request, res: Response, next: NextFu
     next(err);
   }
 });
+
+/**
+ * PUT /api/v1/webhooks/:id — Update webhook endpoint
+ */
+webhookRoutes.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { url, events, is_active } = req.body;
+    const { dbPool } = await import('../../database/index.js');
+
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    const merchantId = merchantResult.rows[0].id;
+
+    const result = await dbPool.query(
+      `UPDATE webhook_endpoints 
+       SET url = COALESCE($1, url), events = COALESCE($2, events), is_active = COALESCE($3, is_active), updated_at = NOW()
+       WHERE id = $4 AND merchant_id = $5 RETURNING id, url, events, is_active`,
+      [url, events, is_active, id, merchantId]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Webhook endpoint not found' });
+      return;
+    }
+
+    res.json({ message: 'Webhook endpoint updated', webhook: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/v1/webhooks/:id/rotate-secret — Rotate webhook signing secret
+ */
+webhookRoutes.post('/:id/rotate-secret', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const newSecret = crypto.randomBytes(32).toString('hex');
+    const { dbPool } = await import('../../database/index.js');
+
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    const merchantId = merchantResult.rows[0].id;
+
+    const result = await dbPool.query(
+      'UPDATE webhook_endpoints SET secret = $1, updated_at = NOW() WHERE id = $2 AND merchant_id = $3 RETURNING id',
+      [newSecret, id, merchantId]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Webhook endpoint not found' });
+      return;
+    }
+
+    logger.info('Webhook secret rotated', { webhookId: id, merchantId });
+
+    res.json({ message: 'Secret rotated successfully', signingSecret: newSecret });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/v1/webhooks/:id/logs — Get delivery logs for a webhook endpoint
+ */
+webhookRoutes.get('/:id/logs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = (page - 1) * limit;
+
+    const { dbPool } = await import('../../database/index.js');
+
+    const merchantResult = await dbPool.query('SELECT id FROM merchants WHERE wallet_address = $1', [req.user!.walletAddress]);
+    if (merchantResult.rowCount === 0) { res.status(403).json({ error: 'Merchant not found' }); return; }
+    const merchantId = merchantResult.rows[0].id;
+
+    // Verify ownership
+    const endpointCheck = await dbPool.query('SELECT id FROM webhook_endpoints WHERE id = $1 AND merchant_id = $2', [id, merchantId]);
+    if (endpointCheck.rowCount === 0) { res.status(404).json({ error: 'Webhook endpoint not found' }); return; }
+
+    const countResult = await dbPool.query('SELECT COUNT(*)::int AS total FROM webhook_deliveries WHERE webhook_endpoint_id = $1', [id]);
+    const total = countResult.rows[0].total;
+
+    const logsResult = await dbPool.query(
+      `SELECT id, event_type, payload, response_status, response_body, attempt_number, delivered_at 
+       FROM webhook_deliveries 
+       WHERE webhook_endpoint_id = $1 
+       ORDER BY delivered_at DESC LIMIT $2 OFFSET $3`,
+      [id, limit, offset]
+    );
+
+    res.json({
+      data: logsResult.rows,
+      pagination: { page, limit, total }
+    });
+  } catch (err) {
+    next(err);
+  }
+});

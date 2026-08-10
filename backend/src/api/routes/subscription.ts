@@ -428,3 +428,73 @@ subscriptionRoutes.post('/:id/auto-renew', async (req: Request, res: Response, n
   }
 });
 
+/**
+ * POST /api/v1/subscriptions/:id/change-plan — Upgrade or downgrade subscription
+ */
+subscriptionRoutes.post('/:id/change-plan', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { newPlanId, transactionHash } = req.body;
+
+    if (!newPlanId || !transactionHash) {
+      res.status(400).json({ error: 'newPlanId and transactionHash are required' });
+      return;
+    }
+
+    const sub = await SubscriptionRepository.findById(id);
+    if (!sub || sub.user_id !== (req.user!.userId as string)) {
+      res.status(404).json({ error: 'Subscription not found or unauthorized' });
+      return;
+    }
+
+    const newPlan = await PlanRepository.findById(newPlanId);
+    if (!newPlan || newPlan.merchant_id !== sub.merchant_id) {
+      res.status(400).json({ error: 'Invalid plan or plan belongs to different merchant' });
+      return;
+    }
+
+    // Verify transaction on-chain
+    try {
+      const server = new rpc.Server(config.stellar.rpcUrl);
+      const txResponse = await server.getTransaction(transactionHash);
+      if (txResponse.status !== 'SUCCESS') {
+        res.status(400).json({ error: 'Transaction failed on-chain or is pending' });
+        return;
+      }
+    } catch (error) {
+      logger.error('Failed to verify transaction on-chain', { error: (error as Error).message });
+      res.status(400).json({ error: 'Invalid or unverified transaction hash' });
+      return;
+    }
+
+    // Update subscription plan in database
+    const { dbPool } = await import('../../database/index.js');
+    const result = await dbPool.query(
+      'UPDATE subscriptions SET plan_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [newPlanId, id]
+    );
+
+    const updatedSub = result.rows[0];
+
+    logger.info('Subscription plan changed', {
+      subscriptionId: id,
+      oldPlanId: sub.plan_id,
+      newPlanId,
+      transactionHash
+    });
+
+    res.json({
+      message: 'Subscription plan updated successfully',
+      subscription: updatedSub,
+    });
+
+    try {
+      getIO().emit('subscription_updated', { type: 'plan_changed', subscription: updatedSub });
+    } catch (e) {
+      logger.error('Failed to emit socket event', { error: (e as Error).message });
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+

@@ -75,9 +75,17 @@ const Navbar: React.FC = () => {
               </>
             )}
             {showNavLinks && isMerchant && (
-              <NavLink to="/merchant" className={getNavClass} onClick={closeMenu}>
-                Merchant Portal
-              </NavLink>
+              <>
+                <NavLink to="/merchant" className={getNavClass} onClick={closeMenu}>
+                  Merchant Portal
+                </NavLink>
+                <NavLink to="/webhooks" className={getNavClass} onClick={closeMenu}>
+                  Webhooks
+                </NavLink>
+                <NavLink to="/docs" className={getNavClass} onClick={closeMenu}>
+                  Docs
+                </NavLink>
+              </>
             )}
           </div>
 
@@ -261,10 +269,16 @@ const Navbar: React.FC = () => {
                 </NavLink>
               </>
             ) : (
-              <NavLink to="/merchant" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
-                <span className="material-symbols-outlined">store</span>
-                <span className="mobile-tab-label">Merchant</span>
-              </NavLink>
+              <>
+                <NavLink to="/merchant" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                  <span className="material-symbols-outlined">store</span>
+                  <span className="mobile-tab-label">Merchant</span>
+                </NavLink>
+                <NavLink to="/webhooks" className={({ isActive }) => `mobile-tab ${isActive ? 'active' : ''}`} onClick={closeMenu}>
+                  <span className="material-symbols-outlined">webhook</span>
+                  <span className="mobile-tab-label">Webhooks</span>
+                </NavLink>
+              </>
             )}
             <button className="mobile-tab" onClick={() => setMobileOpen(!mobileOpen)}>
               <span className="material-symbols-outlined">more_horiz</span>
@@ -289,6 +303,26 @@ const Navbar: React.FC = () => {
             <span className="material-symbols-outlined">feedback</span>
             Send Feedback
           </button>
+          {!isMerchant && (
+            <>
+              <button className="mobile-sheet-item" onClick={() => { window.location.href='/plans'; closeMenu(); }}>
+                <span className="material-symbols-outlined">view_list</span>
+                Pricing Plans
+              </button>
+              <button className="mobile-sheet-item" onClick={() => { window.location.href='/timeline'; closeMenu(); }}>
+                <span className="material-symbols-outlined">history</span>
+                Payment Timeline
+              </button>
+              <button className="mobile-sheet-item" onClick={() => { window.location.href='/smart-wallet'; closeMenu(); }}>
+                <span className="material-symbols-outlined">shield</span>
+                Smart Wallet
+              </button>
+              <button className="mobile-sheet-item" onClick={() => { window.location.href='/fiat-gateway'; closeMenu(); }}>
+                <span className="material-symbols-outlined">currency_exchange</span>
+                Fiat Gateway
+              </button>
+            </>
+          )}
           {/* Buy XLM — mobile */}
           <button className="mobile-sheet-item" onClick={() => { window.open('https://lobstr.co', '_blank', 'noopener,noreferrer'); closeMenu(); }}>
             <span className="material-symbols-outlined">currency_exchange</span>
