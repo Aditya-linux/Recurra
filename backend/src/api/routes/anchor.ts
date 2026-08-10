@@ -42,7 +42,7 @@ anchorRoutes.post('/convert', async (req: Request, res: Response, next: NextFunc
  * POST /api/v1/anchor/interactive
  * Initiate SEP-24 interactive flow (requires authentication)
  */
-anchorRoutes.post('/interactive', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+anchorRoutes.post('/interactive', authenticate, async (req: Request, res: Response) => {
   try {
     const { domain, action, assetCode, account, jwtToken } = req.body;
     

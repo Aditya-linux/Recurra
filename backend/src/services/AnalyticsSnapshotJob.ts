@@ -101,7 +101,7 @@ export class AnalyticsSnapshotJob {
            AND DATE(processed_at) = $2`,
           [merchantId, snapshotDate]
         );
-        const totalRefunds = Number(refundResult.rows[0].total);
+        const totalRefunds = Number(refundsResult.rows[0].total);
 
         // 7. Calculate Churn Rate
         // Simplified: churned / (active + churned)

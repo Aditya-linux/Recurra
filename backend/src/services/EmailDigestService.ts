@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { dbPool } from '../database/index.js';
 import { logger } from '../utils/logger.js';
-import { MailService } from './MailService.js';
+
 
 export class EmailDigestService {
   private static task: cron.ScheduledTask | null = null;
