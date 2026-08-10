@@ -4,25 +4,27 @@ import { Shield, Key, AlertTriangle, Activity, CreditCard, Lock, Unlock, Clock }
 import { useWallet } from '../context/WalletContext';
 import toast from 'react-hot-toast';
 
+const mockWalletState = {
+  isDeployed: true,
+  isFrozen: false,
+  dailyLimit: '100 USDC',
+  monthlyLimit: '1000 USDC',
+  dailySpent: '24 USDC',
+  monthlySpent: '120 USDC',
+  autoApproveThreshold: '10 USDC',
+  sessionKeys: [
+    { id: '1', key: 'G...A1B2', expiresAt: new Date(Date.now() + 86400000 * 5).toISOString(), limit: '50 USDC' },
+    { id: '2', key: 'G...X9Y0', expiresAt: new Date(Date.now() - 86400000).toISOString(), limit: '10 USDC' }
+  ]
+};
+
 const SmartWallet: React.FC = () => {
   const { walletAddress } = useWallet();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'limits' | 'security'>('overview');
   
   // Mock data for UI demonstration since contract view functions aren't wired up in this mockup
-  const walletState = {
-    isDeployed: true,
-    isFrozen: false,
-    dailyLimit: '100 USDC',
-    monthlyLimit: '1000 USDC',
-    dailySpent: '24 USDC',
-    monthlySpent: '120 USDC',
-    autoApproveThreshold: '10 USDC',
-    sessionKeys: [
-      { id: '1', key: 'G...A1B2', expiresAt: new Date(Date.now() + 86400000 * 5).toISOString(), limit: '50 USDC' },
-      { id: '2', key: 'G...X9Y0', expiresAt: new Date(Date.now() - 86400000).toISOString(), limit: '10 USDC' }
-    ]
-  };
+  const walletState = mockWalletState;
 
   const handleDeploy = async () => {
     setLoading(true);

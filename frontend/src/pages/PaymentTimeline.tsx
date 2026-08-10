@@ -21,12 +21,6 @@ const PaymentTimeline: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (walletAddress) {
-      fetchHistory();
-    }
-  }, [walletAddress]);
-
   const fetchHistory = async () => {
     try {
       const res = await api('/payments/history?limit=50');
@@ -38,6 +32,12 @@ const PaymentTimeline: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (walletAddress) {
+      fetchHistory();
+    }
+  }, [walletAddress]);
 
   const downloadReceipt = async (paymentId: string) => {
     try {

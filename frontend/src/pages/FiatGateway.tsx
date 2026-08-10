@@ -14,19 +14,6 @@ const FiatGateway: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [convertedAmount, setConvertedAmount] = useState('0');
 
-  useEffect(() => {
-    fetchRates();
-  }, []);
-
-  useEffect(() => {
-    if (rates[currency] && rates['USDC']) {
-      // Very simplified mock calculation
-      const rateToUSD = rates[currency] || 1;
-      const usdcAmount = Number(amount) / rateToUSD;
-      setConvertedAmount(usdcAmount.toFixed(2));
-    }
-  }, [amount, currency, rates, action]);
-
   const fetchRates = async () => {
     try {
       const res = await api('/anchor/rates');
@@ -39,6 +26,19 @@ const FiatGateway: React.FC = () => {
       setRates({ USD: 1.0, EUR: 0.92, GBP: 0.79, INR: 83.5, USDC: 1.0 });
     }
   };
+
+  useEffect(() => {
+    fetchRates();
+  }, []);
+
+  useEffect(() => {
+    if (rates[currency] && rates['USDC']) {
+      // Very simplified mock calculation
+      const rateToUSD = rates[currency] || 1;
+      const usdcAmount = Number(amount) / rateToUSD;
+      setConvertedAmount(usdcAmount.toFixed(2));
+    }
+  }, [amount, currency, rates, action]);
 
   const handleInteractiveFlow = async () => {
     if (!walletAddress) {

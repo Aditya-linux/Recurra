@@ -27,10 +27,6 @@ const WebhookManager: React.FC = () => {
     'payment.failed'
   ];
 
-  useEffect(() => {
-    fetchEndpoints();
-  }, []);
-
   const fetchEndpoints = async () => {
     try {
       setLoading(true);
@@ -44,6 +40,10 @@ const WebhookManager: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEndpoints();
+  }, []);
 
   const handleAddEndpoint = async () => {
     if (!newUrl) return toast.error('URL is required');
