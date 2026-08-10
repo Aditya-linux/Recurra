@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Key, Settings, AlertTriangle, Activity, CreditCard, Lock, Unlock, Clock } from 'lucide-react';
+import { Shield, Key, AlertTriangle, Activity, CreditCard, Lock, Unlock, Clock } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
-import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const SmartWallet: React.FC = () => {

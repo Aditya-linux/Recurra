@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useWallet } from '../context/WalletContext';
 import { motion } from 'framer-motion';
-import { Check, X, ArrowRight, Star } from 'lucide-react';
+import { Check, ArrowRight, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Plan {
@@ -31,7 +31,7 @@ const PlanComparison: React.FC = () => {
         const sortedPlans = response.data.data.sort((a: Plan, b: Plan) => Number(a.amount) - Number(b.amount));
         setPlans(sortedPlans);
       } catch (err: any) {
-        setError(err.message || 'Failed to load plans');
+        console.error(err.message || 'Failed to load plans');
       } finally {
         setLoading(false);
       }

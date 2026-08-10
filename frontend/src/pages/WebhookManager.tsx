@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Webhook, Plus, Trash2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Webhook, Plus, Trash2, RefreshCw, Clock } from 'lucide-react';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 

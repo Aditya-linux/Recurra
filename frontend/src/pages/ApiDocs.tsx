@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code, Terminal, Key, Server, Webhook, FileJson } from 'lucide-react';
+import { Key, Server, Webhook, FileJson } from 'lucide-react';
 
 const ApiDocs: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'authentication' | 'subscriptions' | 'webhooks'>('authentication');

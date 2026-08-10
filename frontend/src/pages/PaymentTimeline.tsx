@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, ExternalLink, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { Download, ExternalLink, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { api } from '../utils/api';
 import { useWallet } from '../context/WalletContext';
 

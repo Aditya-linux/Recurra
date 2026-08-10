@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, ArrowRightLeft, CreditCard, Building, Building2, CheckCircle2 } from 'lucide-react';
+import { Globe, ArrowRightLeft, CreditCard, Building2, CheckCircle2 } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
