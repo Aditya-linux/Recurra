@@ -27,6 +27,10 @@
 /* ─── Landing page global font override ─── */
 html, body {
   font-family: 'TT Norms Pro', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
 }
 
 * {

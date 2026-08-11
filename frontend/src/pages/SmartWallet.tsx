@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Shield, Key, AlertTriangle, Activity, CreditCard, Lock, Unlock, Clock } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 import toast from 'react-hot-toast';
+import { PageWrapper, FadeIn, StaggerContainer, StaggerItem } from '../components/ui/animations';
 
 const mockWalletState = {
   isDeployed: true,
@@ -22,16 +23,11 @@ const SmartWallet: React.FC = () => {
   const { walletAddress } = useWallet();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'limits' | 'security'>('overview');
-  
-  // Mock data for UI demonstration since contract view functions aren't wired up in this mockup
   const walletState = mockWalletState;
 
   const handleDeploy = async () => {
     setLoading(true);
-    setTimeout(() => {
-      toast.success('Smart Wallet deployed successfully!');
-      setLoading(false);
-    }, 2000);
+    setTimeout(() => { toast.success('Smart Wallet deployed successfully!'); setLoading(false); }, 2000);
   };
 
   const toggleFreeze = () => {
@@ -41,11 +37,11 @@ const SmartWallet: React.FC = () => {
 
   if (!walletAddress) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="text-center text-white">
-          <Shield className="mx-auto mb-4 h-16 w-16 text-blue-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5]">
+        <div className="text-center text-black">
+          <Shield className="mx-auto mb-4 h-16 w-16 text-black/20" />
           <h2 className="text-2xl font-bold">Connect your wallet</h2>
-          <p className="mt-2 text-gray-400">Please connect your Stellar wallet to manage your Smart Wallet.</p>
+          <p className="mt-2 text-black/50">Please connect your Stellar wallet to manage your Smart Wallet.</p>
         </div>
       </div>
     );
@@ -53,29 +49,25 @@ const SmartWallet: React.FC = () => {
 
   if (!walletState.isDeployed) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4">
-        <motion.div 
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5] px-4">
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-8 text-center shadow-2xl"
+          className="max-w-md bg-white border border-black/5 shadow-sm rounded-3xl p-8 text-center"
         >
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/20">
-            <Shield className="h-10 w-10 text-blue-500" />
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
+            <Shield className="h-10 w-10 text-blue-600" />
           </div>
-          <h2 className="mb-4 text-2xl font-bold text-white">Upgrade to Smart Wallet</h2>
-          <p className="mb-8 text-gray-400">
+          <h2 className="mb-4 text-2xl font-bold text-black">Upgrade to Smart Wallet</h2>
+          <p className="mb-8 text-black/50">
             Deploy an Account Abstraction contract to enable session keys, spending limits, and seamless auto-payments without popups.
           </p>
           <button
             onClick={handleDeploy}
             disabled={loading}
-            className="flex w-full items-center justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+            className="flex w-full items-center justify-center rounded-2xl bg-black py-3 font-semibold text-white transition hover:bg-black/80 disabled:opacity-50"
           >
-            {loading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div>
-            ) : (
-              'Deploy Smart Wallet'
-            )}
+            {loading ? <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div> : 'Deploy Smart Wallet'}
           </button>
         </motion.div>
       </div>
@@ -83,238 +75,229 @@ const SmartWallet: React.FC = () => {
   }
 
   return (
-    <div className="pt-nav min-h-screen bg-gray-950 px-4 pb-16 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Smart Wallet Dashboard</h1>
-            <p className="mt-1 text-gray-400">Manage your Account Abstraction features and security settings</p>
-          </div>
-          <div className="flex space-x-3">
-            <button 
-              onClick={toggleFreeze}
-              className={`flex items-center rounded-lg px-4 py-2 text-sm font-medium transition ${
-                walletState.isFrozen 
-                  ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' 
-                  : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
-              }`}
-            >
-              {walletState.isFrozen ? (
-                <><Unlock className="mr-2 h-4 w-4" /> Unfreeze Wallet</>
-              ) : (
-                <><Lock className="mr-2 h-4 w-4" /> Emergency Freeze</>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {walletState.isFrozen && (
-          <div className="mb-8 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
-            <div className="flex items-center">
-              <AlertTriangle className="h-6 w-6 text-red-500" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-500">Wallet is currently frozen</h3>
-                <p className="mt-1 text-sm text-red-400">All outgoing transactions and session keys are temporarily suspended.</p>
+    <PageWrapper>
+      <main className="pt-nav min-h-screen bg-[#F5F5F5] text-black pb-16 font-sans">
+        <section className="container mx-auto px-6 mt-10 max-w-6xl">
+          <FadeIn delay={0.1}>
+            <div className="mb-8 flex flex-col justify-between space-y-4 sm:flex-row sm:items-end sm:space-y-0">
+              <div>
+                <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-black" style={{ letterSpacing: '-0.03em' }}>
+                  Smart Wallet
+                </h2>
+                <p className="text-lg text-black/60 mt-2">
+                  Manage your Account Abstraction features and security settings.
+                </p>
               </div>
+              <button
+                onClick={toggleFreeze}
+                className={`flex items-center rounded-xl px-5 py-2.5 text-sm font-semibold transition self-start sm:self-auto ${
+                  walletState.isFrozen
+                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100'
+                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                }`}
+              >
+                {walletState.isFrozen ? <><Unlock className="mr-2 h-4 w-4" /> Unfreeze Wallet</> : <><Lock className="mr-2 h-4 w-4" /> Emergency Freeze</>}
+              </button>
             </div>
-          </div>
-        )}
+          </FadeIn>
 
-        <div className="mb-8 flex space-x-2 overflow-x-auto border-b border-gray-800 pb-px">
-          {['overview', 'sessions', 'limits', 'security'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? 'border-b-2 border-blue-500 text-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === 'overview' && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-                <div className="flex items-center text-gray-400">
-                  <Activity className="mr-2 h-5 w-5 text-blue-500" />
-                  Daily Spending Limit
+          {walletState.isFrozen && (
+            <div className="mb-8 rounded-2xl bg-red-50 border border-red-100 p-4">
+              <div className="flex items-center">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-bold text-red-600">Wallet is currently frozen</h3>
+                  <p className="mt-1 text-sm text-red-500/70">All outgoing transactions and session keys are temporarily suspended.</p>
                 </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <div>
-                    <div className="text-2xl font-bold text-white">{walletState.dailySpent}</div>
-                    <div className="text-sm text-gray-500">of {walletState.dailyLimit}</div>
-                  </div>
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-800">
-                    <div className="h-full w-1/4 bg-blue-500"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-                <div className="flex items-center text-gray-400">
-                  <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
-                  Monthly Limit
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <div>
-                    <div className="text-2xl font-bold text-white">{walletState.monthlySpent}</div>
-                    <div className="text-sm text-gray-500">of {walletState.monthlyLimit}</div>
-                  </div>
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-800">
-                    <div className="h-full w-[12%] bg-emerald-500"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-                <div className="flex items-center text-gray-400">
-                  <Key className="mr-2 h-5 w-5 text-purple-500" />
-                  Active Session Keys
-                </div>
-                <div className="mt-4 text-2xl font-bold text-white">
-                  {walletState.sessionKeys.filter(k => new Date(k.expiresAt) > new Date()).length}
-                </div>
-                <div className="mt-1 text-sm text-gray-500">Providing seamless UX for dApps</div>
               </div>
             </div>
           )}
 
-          {activeTab === 'sessions' && (
-            <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-white">Session Keys</h3>
-                  <p className="text-sm text-gray-400">Manage delegated keys that can sign on your behalf</p>
-                </div>
-                <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
-                  Create New Key
+          {/* Tabs */}
+          <FadeIn delay={0.2}>
+            <div className="mb-8 flex space-x-1 overflow-x-auto rounded-2xl bg-white border border-black/5 shadow-sm p-1">
+              {['overview', 'sessions', 'limits', 'security'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`px-5 py-2.5 text-sm font-semibold capitalize rounded-xl transition-colors ${
+                    activeTab === tab ? 'bg-black text-white shadow-sm' : 'text-black/40 hover:text-black'
+                  }`}
+                >
+                  {tab}
                 </button>
-              </div>
+              ))}
+            </div>
+          </FadeIn>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-400">
-                  <thead className="border-b border-gray-800 bg-gray-900/50 text-xs uppercase text-gray-500">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Key ID</th>
-                      <th className="px-6 py-3 text-left">Spending Limit</th>
-                      <th className="px-6 py-3 text-left">Expires At</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {walletState.sessionKeys.map((key) => {
-                      const isExpired = new Date(key.expiresAt) < new Date();
-                      return (
-                        <tr key={key.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                          <td className="px-6 py-4 font-mono text-white">{key.key}</td>
-                          <td className="px-6 py-4">{key.limit}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <Clock className="mr-2 h-4 w-4 text-gray-500" />
-                              {new Date(key.expiresAt).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                              isExpired ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
-                            }`}>
-                              {isExpired ? 'Expired' : 'Active'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button className="text-red-500 hover:text-red-400">Revoke</button>
-                          </td>
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+            {activeTab === 'overview' && (
+              <StaggerContainer className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <StaggerItem>
+                  <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-center text-black/50 text-sm font-bold uppercase tracking-wider">
+                      <Activity className="mr-2 h-5 w-5 text-blue-500" /> Daily Spending
+                    </div>
+                    <div className="mt-4 flex items-end justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-black">{walletState.dailySpent}</div>
+                        <div className="text-sm text-black/30">of {walletState.dailyLimit}</div>
+                      </div>
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-black/5">
+                        <div className="h-full w-1/4 bg-blue-500 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </StaggerItem>
+
+                <StaggerItem>
+                  <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-center text-black/50 text-sm font-bold uppercase tracking-wider">
+                      <CreditCard className="mr-2 h-5 w-5 text-emerald-500" /> Monthly Limit
+                    </div>
+                    <div className="mt-4 flex items-end justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-black">{walletState.monthlySpent}</div>
+                        <div className="text-sm text-black/30">of {walletState.monthlyLimit}</div>
+                      </div>
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-black/5">
+                        <div className="h-full w-[12%] bg-emerald-500 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </StaggerItem>
+
+                <StaggerItem>
+                  <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-center text-black/50 text-sm font-bold uppercase tracking-wider">
+                      <Key className="mr-2 h-5 w-5 text-purple-500" /> Active Session Keys
+                    </div>
+                    <div className="mt-4 text-2xl font-bold text-black">
+                      {walletState.sessionKeys.filter(k => new Date(k.expiresAt) > new Date()).length}
+                    </div>
+                    <div className="mt-1 text-sm text-black/30">Providing seamless UX for dApps</div>
+                  </div>
+                </StaggerItem>
+              </StaggerContainer>
+            )}
+
+            {activeTab === 'sessions' && (
+              <FadeIn>
+                <div className="bg-white border border-black/5 shadow-sm rounded-3xl p-6 hover:shadow-md transition-shadow">
+                  <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-black">Session Keys</h3>
+                      <p className="text-sm text-black/40">Manage delegated keys that can sign on your behalf</p>
+                    </div>
+                    <button className="rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-black/80 transition">
+                      Create New Key
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-black/60">
+                      <thead className="border-b border-black/5 text-xs font-bold uppercase text-black/30 tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Key ID</th>
+                          <th className="px-4 py-3 text-left">Spending Limit</th>
+                          <th className="px-4 py-3 text-left">Expires At</th>
+                          <th className="px-4 py-3 text-left">Status</th>
+                          <th className="px-4 py-3 text-right">Action</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'limits' && (
-            <div className="max-w-2xl rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-              <h3 className="mb-6 text-lg font-medium text-white">Global Spending Limits</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-400">Auto-Approve Threshold</label>
-                  <p className="mb-3 text-xs text-gray-500">Transactions below this amount require no signature</p>
-                  <div className="flex rounded-md shadow-sm">
-                    <input
-                      type="text"
-                      defaultValue="10"
-                      className="block w-full rounded-l-md border-0 bg-gray-800 py-2.5 pl-4 text-white ring-1 ring-inset ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    />
-                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-700 bg-gray-800 px-4 text-gray-400 sm:text-sm">
-                      USDC
-                    </span>
+                      </thead>
+                      <tbody>
+                        {walletState.sessionKeys.map((key) => {
+                          const isExpired = new Date(key.expiresAt) < new Date();
+                          return (
+                            <tr key={key.id} className="border-b border-black/5 hover:bg-[#F5F5F5]/50">
+                              <td className="px-4 py-4 font-mono font-semibold text-black">{key.key}</td>
+                              <td className="px-4 py-4">{key.limit}</td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center">
+                                  <Clock className="mr-2 h-4 w-4 text-black/20" />
+                                  {new Date(key.expiresAt).toLocaleDateString()}
+                                </div>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
+                                  isExpired ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
+                                }`}>
+                                  {isExpired ? 'Expired' : 'Active'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-right">
+                                <button className="text-red-500 hover:text-red-600 font-semibold text-sm">Revoke</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
+              </FadeIn>
+            )}
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-400">Daily Limit</label>
-                  <div className="flex rounded-md shadow-sm">
-                    <input
-                      type="text"
-                      defaultValue="100"
-                      className="block w-full rounded-l-md border-0 bg-gray-800 py-2.5 pl-4 text-white ring-1 ring-inset ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    />
-                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-700 bg-gray-800 px-4 text-gray-400 sm:text-sm">
-                      USDC
-                    </span>
+            {activeTab === 'limits' && (
+              <FadeIn>
+                <div className="max-w-2xl bg-white border border-black/5 shadow-sm rounded-3xl p-8 hover:shadow-md transition-shadow">
+                  <h3 className="mb-6 text-xl font-bold text-black">Global Spending Limits</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-black/60">Auto-Approve Threshold</label>
+                      <p className="mb-3 text-xs text-black/30">Transactions below this amount require no signature</p>
+                      <div className="flex rounded-xl shadow-sm">
+                        <input type="text" defaultValue="10"
+                          className="block w-full rounded-l-xl border border-black/10 bg-[#F5F5F5] py-2.5 pl-4 text-black ring-0 focus:ring-2 focus:ring-black/20 focus:border-transparent outline-none sm:text-sm" />
+                        <span className="inline-flex items-center rounded-r-xl border border-l-0 border-black/10 bg-[#F5F5F5] px-4 text-black/40 sm:text-sm font-medium">USDC</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-black/60">Daily Limit</label>
+                      <div className="flex rounded-xl shadow-sm">
+                        <input type="text" defaultValue="100"
+                          className="block w-full rounded-l-xl border border-black/10 bg-[#F5F5F5] py-2.5 pl-4 text-black ring-0 focus:ring-2 focus:ring-black/20 focus:border-transparent outline-none sm:text-sm" />
+                        <span className="inline-flex items-center rounded-r-xl border border-l-0 border-black/10 bg-[#F5F5F5] px-4 text-black/40 sm:text-sm font-medium">USDC</span>
+                      </div>
+                    </div>
+                    <button className="mt-4 rounded-xl bg-black px-6 py-2.5 font-semibold text-white transition hover:bg-black/80">
+                      Update Limits
+                    </button>
                   </div>
                 </div>
+              </FadeIn>
+            )}
 
-                <button className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-500">
-                  Update Limits
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="max-w-2xl rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-              <h3 className="mb-6 text-lg font-medium text-white">Security Settings</h3>
-              
-              <div className="space-y-6">
-                <div className="flex items-center justify-between rounded-lg border border-gray-800 p-4">
-                  <div>
-                    <h4 className="font-medium text-white">Multi-signature Support</h4>
-                    <p className="mt-1 text-sm text-gray-400">Require multiple devices to approve large transactions</p>
+            {activeTab === 'security' && (
+              <FadeIn>
+                <div className="max-w-2xl bg-white border border-black/5 shadow-sm rounded-3xl p-8 hover:shadow-md transition-shadow">
+                  <h3 className="mb-6 text-xl font-bold text-black">Security Settings</h3>
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-2xl border border-black/5 bg-[#F5F5F5] p-5 gap-4">
+                      <div>
+                        <h4 className="font-bold text-black">Multi-signature Support</h4>
+                        <p className="mt-1 text-sm text-black/40">Require multiple devices to approve large transactions</p>
+                      </div>
+                      <button className="rounded-xl border border-black/10 bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-black/5 transition">
+                        Configure
+                      </button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-2xl border border-black/5 bg-[#F5F5F5] p-5 gap-4">
+                      <div>
+                        <h4 className="font-bold text-black">Social Recovery</h4>
+                        <p className="mt-1 text-sm text-black/40">Recover your wallet using trusted guardians</p>
+                      </div>
+                      <button className="rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-black/80 transition">
+                        Setup
+                      </button>
+                    </div>
                   </div>
-                  <button className="rounded-lg border border-gray-700 bg-transparent px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-                    Configure
-                  </button>
                 </div>
-                
-                <div className="flex items-center justify-between rounded-lg border border-gray-800 p-4">
-                  <div>
-                    <h4 className="font-medium text-white">Social Recovery</h4>
-                    <p className="mt-1 text-sm text-gray-400">Recover your wallet using trusted guardians</p>
-                  </div>
-                  <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
-                    Setup
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      </div>
-    </div>
+              </FadeIn>
+            )}
+          </motion.div>
+        </section>
+      </main>
+    </PageWrapper>
   );
 };
 

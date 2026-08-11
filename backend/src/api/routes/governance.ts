@@ -9,12 +9,18 @@ export const governanceRoutes = Router();
  * GET /api/v1/governance/proposals
  * Get all governance proposals
  */
-governanceRoutes.get('/proposals', async (_req: Request, res: Response, next: NextFunction) => {
+governanceRoutes.get('/proposals', async (_req: Request, res: Response) => {
   try {
     const proposals = await GovernanceService.getProposals();
     res.json({ proposals });
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    // If the table doesn't exist yet (migration not run), return empty gracefully
+    if (err?.code === '42P01') {
+      res.json({ proposals: [] });
+      return;
+    }
+    logger.error('Failed to fetch governance proposals', { error: err.message });
+    res.status(500).json({ error: 'Failed to fetch proposals' });
   }
 });
 

@@ -72,6 +72,9 @@ const Navbar: React.FC = () => {
                 <NavLink to="/dashboard" className={getNavClass} onClick={closeMenu}>Dashboard</NavLink>
                 <NavLink to="/user" className={getNavClass} onClick={closeMenu}>User Setup</NavLink>
                 <NavLink to="/subscriptions" className={getNavClass} onClick={closeMenu}>Storefront</NavLink>
+                <NavLink to="/smart-wallet" className={getNavClass} onClick={closeMenu}>Wallet</NavLink>
+                <NavLink to="/timeline" className={getNavClass} onClick={closeMenu}>Timeline</NavLink>
+                <NavLink to="/fiat-gateway" className={getNavClass} onClick={closeMenu}>Fiat Gateway</NavLink>
               </>
             )}
             {showNavLinks && isMerchant && (
@@ -308,10 +311,6 @@ const Navbar: React.FC = () => {
           </button>
           {!isMerchant && (
             <>
-              <button className="mobile-sheet-item" onClick={() => { window.location.href='/plans'; closeMenu(); }}>
-                <span className="material-symbols-outlined">view_list</span>
-                Pricing Plans
-              </button>
               <button className="mobile-sheet-item" onClick={() => { window.location.href='/timeline'; closeMenu(); }}>
                 <span className="material-symbols-outlined">history</span>
                 Payment Timeline
