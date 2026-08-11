@@ -5,7 +5,7 @@ members = [
     "payment-engine",
     "token-wrapper",
     "escrow",
-    "smart-wallet",
+    "smart-wallet", "multi-sig-governance",
 ]
 resolver = "2"
 

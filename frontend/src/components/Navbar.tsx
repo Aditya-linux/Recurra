@@ -82,6 +82,9 @@ const Navbar: React.FC = () => {
                 <NavLink to="/webhooks" className={getNavClass} onClick={closeMenu}>
                   Webhooks
                 </NavLink>
+                <NavLink to="/governance" className={getNavClass} onClick={closeMenu}>
+                  Governance
+                </NavLink>
                 <NavLink to="/docs" className={getNavClass} onClick={closeMenu}>
                   Docs
                 </NavLink>
@@ -322,6 +325,12 @@ const Navbar: React.FC = () => {
                 Fiat Gateway
               </button>
             </>
+          )}
+          {isMerchant && (
+            <button className="mobile-sheet-item" onClick={() => { window.location.href='/governance'; closeMenu(); }}>
+              <span className="material-symbols-outlined">shield</span>
+              Governance
+            </button>
           )}
           {/* Buy XLM — mobile */}
           <button className="mobile-sheet-item" onClick={() => { window.open('https://lobstr.co', '_blank', 'noopener,noreferrer'); closeMenu(); }}>

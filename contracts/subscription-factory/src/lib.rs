@@ -798,6 +798,18 @@ impl SubscriptionFactory {
         Ok(())
     }
 
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), FactoryError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(FactoryError::NotInitialized)?;
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        log!(&env, "Admin transferred");
+        Ok(())
+    }
+
     // --------------------------------------------------------
     // INTERNAL HELPERS
     // --------------------------------------------------------

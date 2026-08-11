@@ -221,6 +221,17 @@ impl TokenWrapperContract {
         Ok(())
     }
 
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), TokenError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(TokenError::NotInitialized)?;
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        Ok(())
+    }
+
     pub fn stats(env: Env) -> (i128, u64) {
         let volume: i128 = env
             .storage()

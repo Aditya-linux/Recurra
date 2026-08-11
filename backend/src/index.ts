@@ -47,6 +47,7 @@ import { feedbackRoutes } from './api/routes/feedback.js';
 import { newFeedbackRoutes } from './api/routes/new-feedback.js';
 import paymentsRoutes from './api/routes/payments.js';
 import { anchorRoutes } from './api/routes/anchor.js';
+import { governanceRoutes } from './api/routes/governance.js';
 import { apolloServer } from './api/graphql/index.js';
 
 // Services
@@ -196,6 +197,7 @@ app.use('/api/v1/feedback', feedbackRoutes);
 app.use('/api/v1/new-feedback', newFeedbackRoutes);
 app.use('/api/v1/payments', paymentsRoutes);
 app.use('/api/v1/anchor', anchorRoutes);
+app.use('/api/v1/governance', governanceRoutes);
 
 // ============================================================
 // CATCH-ALL ROUTE FOR REACT ROUTER

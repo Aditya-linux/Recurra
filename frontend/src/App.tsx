@@ -23,6 +23,7 @@ import WebhookManager from './pages/WebhookManager';
 import PaymentTimeline from './pages/PaymentTimeline';
 import FiatGateway from './pages/FiatGateway';
 import ApiDocs from './pages/ApiDocs';
+import Governance from './pages/Governance';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -78,6 +79,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/timeline" element={<RequireWallet><StrictUserGuard><ErrorBoundary><PaymentTimeline /></ErrorBoundary></StrictUserGuard></RequireWallet>} />
         <Route path="/fiat-gateway" element={<RequireWallet><ErrorBoundary><FiatGateway /></ErrorBoundary></RequireWallet>} />
         <Route path="/docs" element={<ErrorBoundary><ApiDocs /></ErrorBoundary>} />
+        <Route path="/governance" element={<RequireWallet><ErrorBoundary><Governance /></ErrorBoundary></RequireWallet>} />
       </Routes>
     </AnimatePresence>
   );
