@@ -4,9 +4,10 @@ import { useWallet } from '../context/WalletContext';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import { PageWrapper, FadeIn, StaggerContainer, StaggerItem } from '../components/ui/animations';
+import { AnchorClient } from '../utils/AnchorClient';
 
 const FiatGateway: React.FC = () => {
-  const { walletAddress } = useWallet();
+  const { walletAddress, fullWalletAddress, signTransaction } = useWallet();
   const [rates, setRates] = useState<Record<string, number>>({});
   const [amount, setAmount] = useState('100');
   const [currency, setCurrency] = useState('USD');
@@ -39,21 +40,28 @@ const FiatGateway: React.FC = () => {
   }, [amount, currency, rates, action]);
 
   const handleInteractiveFlow = async () => {
-    if (!walletAddress) { toast.error('Connect your wallet first'); return; }
+    if (!walletAddress || !fullWalletAddress) { toast.error('Connect your wallet first'); return; }
     setLoading(true);
+    
+    let toastId;
     try {
       const domain = 'testanchor.stellar.org';
-      const res = await api('/anchor/interactive', {
-        method: 'POST',
-        body: JSON.stringify({
-          domain, action, assetCode: 'USDC', account: walletAddress, jwtToken: 'mock-sep10-jwt'
-        })
-      });
-      if (!res.ok) throw new Error(res.error || `Failed to initiate ${action}`);
-      if (res.data.url) {
-        window.open(res.data.url, 'sep24-interactive', 'width=500,height=700');
+      
+      // Step 1: SEP-10 Authentication
+      toastId = toast.loading('Waiting for wallet signature to authenticate...', { duration: 60000 });
+      const jwt = await AnchorClient.authenticate(domain, fullWalletAddress, signTransaction);
+      toast.success('Wallet authenticated!', { id: toastId });
+      
+      // Step 2: SEP-24 Interactive Flow
+      toastId = toast.loading('Initiating interactive flow...');
+      const url = await AnchorClient.initiateInteractiveFlow(domain, action, 'USDC', fullWalletAddress, jwt);
+      toast.dismiss(toastId);
+      
+      if (url) {
+        window.open(url, 'sep24-interactive', 'width=500,height=700');
       }
     } catch (err: any) {
+      if (toastId) toast.dismiss(toastId);
       toast.error(err.message || `Failed to initiate ${action}`);
     } finally {
       setLoading(false);

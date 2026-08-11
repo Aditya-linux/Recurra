@@ -37,32 +37,3 @@ anchorRoutes.post('/convert', async (req: Request, res: Response, next: NextFunc
     next(err);
   }
 });
-
-/**
- * POST /api/v1/anchor/interactive
- * Initiate SEP-24 interactive flow (requires authentication)
- */
-anchorRoutes.post('/interactive', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { domain, action, assetCode, account, jwtToken } = req.body;
-    
-    if (!domain || !action || !assetCode || !account || !jwtToken) {
-      res.status(400).json({ error: 'domain, action, assetCode, account, and jwtToken are required' });
-      return;
-    }
-
-    if (action !== 'deposit' && action !== 'withdraw') {
-      res.status(400).json({ error: 'action must be deposit or withdraw' });
-      return;
-    }
-
-    const result = await AnchorService.initiateInteractiveFlow(domain, action, assetCode, account, jwtToken);
-    
-    logger.info(`SEP-24 ${action} initiated`, { domain, account, transactionId: result.id });
-    
-    res.json(result);
-  } catch (err: any) {
-    logger.error('SEP-24 error', { error: err.message });
-    res.status(500).json({ error: err.message || 'Failed to initiate interactive flow' });
-  }
-});
