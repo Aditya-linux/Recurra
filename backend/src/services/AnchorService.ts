@@ -62,6 +62,15 @@ export class AnchorService {
     const transferServer = await this.getTransferServerUrl(domain);
     const endpoint = action === 'deposit' ? `${transferServer}/transactions/deposit/interactive` : `${transferServer}/transactions/withdraw/interactive`;
 
+    // Mock bypass for UI demonstration purposes
+    if (jwtToken === 'mock-sep10-jwt') {
+      logger.info(`SEP-24 ${action} mock initiated`, { domain, account });
+      return {
+        url: `https://testanchor.stellar.org/sep24/interactive?transaction_id=mock-tx-12345&asset_code=${assetCode}&account=${account}`,
+        id: 'mock-tx-12345'
+      };
+    }
+
     try {
       const response = await axios.post(
         endpoint,
