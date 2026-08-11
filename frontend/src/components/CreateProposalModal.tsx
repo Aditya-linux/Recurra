@@ -37,8 +37,8 @@ const CreateProposalModal: React.FC<CreateProposalModalProps> = ({ onClose, onSu
         try {
           parsedArgs = JSON.parse(formData.callArgs);
           if (!Array.isArray(parsedArgs)) throw new Error('Must be an array');
-        } catch (e) {
-          throw new Error('Call arguments must be a valid JSON array');
+        } catch (e: any) {
+          throw new Error('Call arguments must be a valid JSON array', { cause: e });
         }
       }
 

@@ -27,8 +27,6 @@ const Governance: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const THRESHOLD = 2;
 
-  useEffect(() => { fetchProposals(); }, []);
-
   const fetchProposals = async () => {
     try {
       const res = await api('/governance/proposals', { public: true });
@@ -41,6 +39,8 @@ const Governance: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => { fetchProposals(); }, []);
 
   const handleVote = async (proposalId: number) => {
     if (!walletAddress) { toast.error('Connect your wallet first.'); return; }

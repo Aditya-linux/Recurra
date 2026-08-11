@@ -39,7 +39,7 @@ export class AnchorClient {
       return toml;
     } catch (err: any) {
       console.error(`[AnchorClient] Failed to resolve TOML for ${domain}:`, err);
-      throw new Error(`Could not fetch stellar.toml from ${domain}`);
+      throw new Error(`Could not fetch stellar.toml from ${domain}`, { cause: err });
     }
   }
 
@@ -67,7 +67,7 @@ export class AnchorClient {
       challengeXdr = authData.transaction;
       if (!challengeXdr) throw new Error('No transaction returned from auth endpoint');
     } catch (err: any) {
-      throw new Error(`Failed to request auth challenge: ${err.message}`);
+      throw new Error(`Failed to request auth challenge: ${err.message}`, { cause: err });
     }
 
     // Step 2: Sign the Challenge
@@ -75,7 +75,7 @@ export class AnchorClient {
     try {
       signedXdr = await signTransaction(challengeXdr);
     } catch (err: any) {
-      throw new Error('User declined to sign the authentication transaction.');
+      throw new Error('User declined to sign the authentication transaction.', { cause: err });
     }
 
     // Step 3: Submit signed transaction to get JWT
@@ -94,7 +94,7 @@ export class AnchorClient {
       const submitData = await submitRes.json();
       return submitData.token;
     } catch (err: any) {
-      throw new Error(`Failed to get JWT: ${err.message}`);
+      throw new Error(`Failed to get JWT: ${err.message}`, { cause: err });
     }
   }
 
@@ -138,7 +138,7 @@ export class AnchorClient {
       const data = await res.json();
       return data.url;
     } catch (err: any) {
-      throw new Error(`Failed to start interactive flow: ${err.message}`);
+      throw new Error(`Failed to start interactive flow: ${err.message}`, { cause: err });
     }
   }
 }

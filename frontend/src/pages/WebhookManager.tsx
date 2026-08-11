@@ -27,10 +27,6 @@ const WebhookManager: React.FC = () => {
     'payment.created', 'payment.failed', 'payment.completed'
   ];
 
-  useEffect(() => {
-    if (walletAddress) fetchEndpoints();
-  }, [walletAddress]);
-
   const fetchEndpoints = async () => {
     try {
       const res = await api('/webhooks');
@@ -41,6 +37,10 @@ const WebhookManager: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (walletAddress) fetchEndpoints();
+  }, [walletAddress]);
 
   const handleAddEndpoint = async () => {
     if (!newUrl) { toast.error('URL is required'); return; }
