@@ -1,9 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../middleware/auth.js';
-import { AnchorService } from '../../services/AnchorService.js';
 import { CurrencyService } from '../../services/CurrencyService.js';
-import { logger } from '../../utils/logger.js';
-
 export const anchorRoutes = Router();
 
 /**
